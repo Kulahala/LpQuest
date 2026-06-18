@@ -9,6 +9,10 @@ Saved/
 .codegraph/
 .serena/
 
+# Local planning notes
+plan.md
+tunicplan.md
+
 # Visual Studio generated
 *.sln
 *.slnx
