@@ -47,9 +47,9 @@ Avoid early dependencies on PCG, CommonUI, DLSS, Streamline, Reflex, and release
 
 Current dodge input is debug-only: locally owned clients request dodge through a server RPC, the server logs the accepted request, and then calls the existing Blueprint hook. Real dodge movement, invulnerability, stamina cost, montage, and cooldown behavior are not implemented yet.
 
-Current light attack input is debug-only: locally owned clients request light attack through a server RPC, the server logs the accepted request, performs a short server-side nearby enemy query, logs the target enemy ASC/AttributeSet if one is found, applies a minimal instant GameplayEffect damage path to the enemy ASC when debug damage is enabled, and then calls the existing Blueprint hook. Weapon traces, montage dependency, stamina cost, cooldown behavior, hit reactions, death behavior, Health clamping, and damage immunity rules are not implemented yet.
+Current light attack input is debug-only: locally owned clients request light attack through a server RPC, the server logs the accepted request, performs a short server-side nearby enemy query, logs the target enemy ASC/AttributeSet if one is found, applies a minimal instant GameplayEffect damage path to the enemy ASC when debug damage is enabled, and then calls the existing Blueprint hook. Dead enemies are skipped by the debug target query and debug damage path. Weapon traces, montage dependency, stamina cost, cooldown behavior, hit reactions, and formal damage immunity rules are not implemented yet.
 
-`ATunicEnemyCharacter` owns its own ASC and AttributeSet because enemies do not have PlayerStates. It initializes GAS with itself as OwnerActor and AvatarActor.
+`ATunicEnemyCharacter` owns its own ASC and AttributeSet because enemies do not have PlayerStates. It initializes GAS with itself as OwnerActor and AvatarActor. It currently has a minimal replicated death state: when server Health reaches 0, the enemy replicates `bIsDead`, disables capsule collision and character movement, calls a Blueprint death-state hook, and attempts to add the `State.Dead` loose gameplay tag if that tag is registered.
 
 Current enemy GAS validation is debug-only: enemy initialization logs ASC, OwnerActor, AvatarActor, AttributeSet, attributes, and network role before any damage, targeting, or AI behavior is layered on top.
 
@@ -71,7 +71,7 @@ GAS owns abilities, cooldowns, damage effects, elemental states, action locks, i
 
 `UTunicAbilitySystemComponent` is the project ASC subclass. Player ASC instances use `Mixed` replication mode on `ATunicPlayerState`; enemy ASC instances use `Minimal` replication mode on `ATunicEnemyCharacter`.
 
-`UTunicAttributeSet` defines replicated `Health`, `MaxHealth`, `Stamina`, `MaxStamina`, and `ElementalPower` attributes with `OnRep_*` notification hooks.
+`UTunicAttributeSet` defines replicated `Health`, `MaxHealth`, `Stamina`, `MaxStamina`, and `ElementalPower` attributes with `OnRep_*` notification hooks. It clamps Health and Stamina against their max values, keeps MaxHealth and MaxStamina at least 1, clamps ElementalPower to non-negative values, and re-clamps current Health/Stamina after max-value GameplayEffect changes.
 
 Movement, camera, simple interaction, and editor-only setup should not be forced into GameplayAbilities. Player input should activate abilities or validated server requests; input handlers must not directly apply damage, death, or elemental states.
 

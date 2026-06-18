@@ -4,6 +4,12 @@
 
 #include "Ability/TunicAbilitySystemComponent.h"
 #include "Ability/TunicAttributeSet.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayTagContainer.h"
+#include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLpQuestEnemyGasDebug, Log, All);
 
@@ -18,6 +24,13 @@ ATunicEnemyCharacter::ATunicEnemyCharacter(const FObjectInitializer& ObjectIniti
 	SetAbilitySystemReferences(EnemyAbilitySystemComponent, EnemyAttributeSet);
 }
 
+void ATunicEnemyCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ATunicEnemyCharacter, bIsDead);
+}
+
 void ATunicEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -25,13 +38,106 @@ void ATunicEnemyCharacter::BeginPlay()
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UTunicAttributeSet::GetHealthAttribute()).AddUObject(this, &ATunicEnemyCharacter::HandleHealthChanged);
 		LogEnemyAbilitySystemDebug();
 	}
+}
+
+bool ATunicEnemyCharacter::IsDead() const
+{
+	return bIsDead;
 }
 
 void ATunicEnemyCharacter::SetAbilitySystemInitializationLoggingEnabled(bool bEnabled)
 {
 	bLogAbilitySystemInitialization = bEnabled;
+}
+
+void ATunicEnemyCharacter::OnDeathStateChanged_Implementation(bool bNewIsDead)
+{
+	if (!bNewIsDead || bDeathPresentationApplied)
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* CharacterMesh = GetMesh();
+	if (!CharacterMesh)
+	{
+		return;
+	}
+
+	bDeathPresentationApplied = true;
+	CharacterMesh->SetRelativeRotation(CharacterMesh->GetRelativeRotation() + FRotator(0.0f, 0.0f, 90.0f));
+	CharacterMesh->SetRelativeScale3D(FVector(1.0f, 0.35f, 1.0f));
+}
+
+void ATunicEnemyCharacter::OnRep_IsDead()
+{
+	ApplyDeathState();
+}
+
+void ATunicEnemyCharacter::HandleHealthChanged(const FOnAttributeChangeData& ChangeData)
+{
+	if (!HasAuthority() || bIsDead || ChangeData.NewValue > 0.0f)
+	{
+		return;
+	}
+
+	SetDead(true);
+}
+
+void ATunicEnemyCharacter::SetDead(bool bNewIsDead)
+{
+	if (!HasAuthority() || bIsDead == bNewIsDead)
+	{
+		return;
+	}
+
+	bIsDead = bNewIsDead;
+	ApplyDeathState();
+}
+
+void ATunicEnemyCharacter::ApplyDeathState()
+{
+	if (!bIsDead)
+	{
+		return;
+	}
+
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->StopMovementImmediately();
+		MovementComponent->DisableMovement();
+	}
+
+	if (HasAuthority() && AbilitySystemComponent)
+	{
+		const FGameplayTag DeadTag = FGameplayTag::RequestGameplayTag(TEXT("State.Dead"), false);
+		if (DeadTag.IsValid())
+		{
+			AbilitySystemComponent->SetLooseGameplayTagCount(DeadTag, 1, EGameplayTagReplicationState::TagAndCountToAll);
+		}
+	}
+
+	if (bLogDeathState)
+	{
+		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy entered death state | Character=%s | ASC=%s | AttributeSet=%s | Health=%.1f/%.1f | Authority=%s | LocalRole=%d | RemoteRole=%d"),
+			*GetNameSafe(this),
+			*GetNameSafe(AbilitySystemComponent),
+			*GetNameSafe(AttributeSet),
+			AttributeSet ? AttributeSet->GetHealth() : 0.0f,
+			AttributeSet ? AttributeSet->GetMaxHealth() : 0.0f,
+			HasAuthority() ? TEXT("true") : TEXT("false"),
+			static_cast<int32>(GetLocalRole()),
+			static_cast<int32>(GetRemoteRole()));
+	}
+
+	OnDeathStateChanged(bIsDead);
 }
 
 void ATunicEnemyCharacter::LogEnemyAbilitySystemDebug() const

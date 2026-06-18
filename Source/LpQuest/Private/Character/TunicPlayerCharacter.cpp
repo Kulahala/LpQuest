@@ -313,7 +313,7 @@ ATunicEnemyCharacter* ATunicPlayerCharacter::FindLightAttackDebugTarget() const
 	for (const FOverlapResult& OverlapResult : OverlapResults)
 	{
 		ATunicEnemyCharacter* EnemyCharacter = Cast<ATunicEnemyCharacter>(OverlapResult.GetActor());
-		if (EnemyCharacter)
+		if (EnemyCharacter && !EnemyCharacter->IsDead())
 		{
 			const float DistanceSquared = FVector::DistSquared(GetActorLocation(), EnemyCharacter->GetActorLocation());
 			if (DistanceSquared < ClosestDistanceSquared)
@@ -370,6 +370,14 @@ void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(ATunicEnemyCharacter* Ta
 	{
 		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage skipped: no target | Character=%s"),
 			*GetNameSafe(this));
+		return;
+	}
+
+	if (TargetEnemy->IsDead())
+	{
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage skipped: target is dead | Character=%s | Target=%s"),
+			*GetNameSafe(this),
+			*GetNameSafe(TargetEnemy));
 		return;
 	}
 
