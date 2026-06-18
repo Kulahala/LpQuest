@@ -7,9 +7,11 @@
 #include "TunicPlayerCharacter.generated.h"
 
 class UCameraComponent;
+class UGameplayEffect;
 class UInputAction;
 struct FInputActionValue;
 class USpringArmComponent;
+class ATunicEnemyCharacter;
 
 UCLASS(Blueprintable)
 class LPQUEST_API ATunicPlayerCharacter : public ATunicCharacterBase
@@ -99,6 +101,21 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
 	void SetLightAttackRequestLoggingEnabled(bool bEnabled);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
+	bool bLogLightAttackTargetQuery = true;
+
+	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
+	void SetLightAttackTargetQueryLoggingEnabled(bool bEnabled);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Debug", meta = (ClampMin = "0.0", Units = "cm"))
+	float LightAttackTargetQueryRange = 225.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Debug")
+	bool bApplyLightAttackDebugDamage = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Debug")
+	TSubclassOf<UGameplayEffect> LightAttackDamageEffectClass;
+
 private:
 	void InitializePlayerAbilitySystem();
 	void LogPlayerAbilitySystemDebug(const class ATunicPlayerState* TunicPlayerState, const class UTunicAbilitySystemComponent* PlayerAbilitySystemComponent, const class UTunicAttributeSet* PlayerAttributeSet) const;
@@ -108,6 +125,9 @@ private:
 	void RequestLightAttack();
 	void HandleLightAttackRequest();
 	void LogLightAttackRequestDebug() const;
+	ATunicEnemyCharacter* FindLightAttackDebugTarget() const;
+	void LogLightAttackTargetDebug(const ATunicEnemyCharacter* TargetEnemy) const;
+	void ApplyLightAttackDebugDamage(ATunicEnemyCharacter* TargetEnemy) const;
 	void LogServerInputRequestDebug(const TCHAR* RequestName, bool bShouldLog) const;
 
 	UFUNCTION(Server, Reliable)

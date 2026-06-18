@@ -4,8 +4,13 @@
 
 #include "Ability/TunicAbilitySystemComponent.h"
 #include "Ability/TunicAttributeSet.h"
+#include "Ability/TunicDamageGameplayEffect.h"
 #include "Camera/CameraComponent.h"
+#include "Character/TunicEnemyCharacter.h"
 #include "EnhancedInputComponent.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/OverlapResult.h"
+#include "Engine/World.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputActionValue.h"
 #include "Player/TunicPlayerState.h"
@@ -31,6 +36,8 @@ ATunicPlayerCharacter::ATunicPlayerCharacter(const FObjectInitializer& ObjectIni
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
+
+	LightAttackDamageEffectClass = UTunicDamageGameplayEffect::StaticClass();
 }
 
 void ATunicPlayerCharacter::PossessedBy(AController* NewController)
@@ -190,6 +197,11 @@ void ATunicPlayerCharacter::SetLightAttackRequestLoggingEnabled(bool bEnabled)
 	bLogLightAttackRequests = bEnabled;
 }
 
+void ATunicPlayerCharacter::SetLightAttackTargetQueryLoggingEnabled(bool bEnabled)
+{
+	bLogLightAttackTargetQuery = bEnabled;
+}
+
 void ATunicPlayerCharacter::InitializePlayerAbilitySystem()
 {
 	ATunicPlayerState* TunicPlayerState = GetPlayerState<ATunicPlayerState>();
@@ -260,12 +272,132 @@ void ATunicPlayerCharacter::HandleLightAttackRequest()
 	}
 
 	LogLightAttackRequestDebug();
+	ATunicEnemyCharacter* TargetEnemy = FindLightAttackDebugTarget();
+	if (bLogLightAttackTargetQuery)
+	{
+		LogLightAttackTargetDebug(TargetEnemy);
+	}
+	ApplyLightAttackDebugDamage(TargetEnemy);
 	OnLightAttackRequested();
 }
 
 void ATunicPlayerCharacter::LogLightAttackRequestDebug() const
 {
 	LogServerInputRequestDebug(TEXT("Light attack"), bLogLightAttackRequests);
+}
+
+ATunicEnemyCharacter* ATunicPlayerCharacter::FindLightAttackDebugTarget() const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	const FVector QueryCenter = GetActorLocation();
+	const FCollisionShape QueryShape = FCollisionShape::MakeSphere(LightAttackTargetQueryRange);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(LightAttackDebugTargetQuery), false, this);
+	TArray<FOverlapResult> OverlapResults;
+	World->OverlapMultiByChannel(
+		OverlapResults,
+		QueryCenter,
+		FQuat::Identity,
+		ECC_Pawn,
+		QueryShape,
+		QueryParams);
+
+	ATunicEnemyCharacter* ClosestEnemy = nullptr;
+	float ClosestDistanceSquared = UE_BIG_NUMBER;
+
+	for (const FOverlapResult& OverlapResult : OverlapResults)
+	{
+		ATunicEnemyCharacter* EnemyCharacter = Cast<ATunicEnemyCharacter>(OverlapResult.GetActor());
+		if (EnemyCharacter)
+		{
+			const float DistanceSquared = FVector::DistSquared(GetActorLocation(), EnemyCharacter->GetActorLocation());
+			if (DistanceSquared < ClosestDistanceSquared)
+			{
+				ClosestEnemy = EnemyCharacter;
+				ClosestDistanceSquared = DistanceSquared;
+			}
+		}
+	}
+
+	return ClosestEnemy;
+}
+
+void ATunicPlayerCharacter::LogLightAttackTargetDebug(const ATunicEnemyCharacter* TargetEnemy) const
+{
+	if (!bLogLightAttackTargetQuery)
+	{
+		return;
+	}
+
+	if (!TargetEnemy)
+	{
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack target query found no enemy | Character=%s | QueryRange=%.1f"),
+			*GetNameSafe(this),
+			LightAttackTargetQueryRange);
+		return;
+	}
+
+	const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = TargetEnemy->GetTunicAbilitySystemComponent();
+	const UTunicAttributeSet* TargetAttributeSet = TargetEnemy->GetAttributeSet();
+
+	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack target query found enemy | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | TargetHealth=%.1f/%.1f | TargetStamina=%.1f/%.1f | TargetDistance=%.1f | TargetLocalRole=%d | TargetRemoteRole=%d"),
+		*GetNameSafe(this),
+		*GetNameSafe(TargetEnemy),
+		*GetNameSafe(TargetAbilitySystemComponent),
+		*GetNameSafe(TargetAttributeSet),
+		TargetAttributeSet ? TargetAttributeSet->GetHealth() : 0.0f,
+		TargetAttributeSet ? TargetAttributeSet->GetMaxHealth() : 0.0f,
+		TargetAttributeSet ? TargetAttributeSet->GetStamina() : 0.0f,
+		TargetAttributeSet ? TargetAttributeSet->GetMaxStamina() : 0.0f,
+		FVector::Dist(GetActorLocation(), TargetEnemy->GetActorLocation()),
+		static_cast<int32>(TargetEnemy->GetLocalRole()),
+		static_cast<int32>(TargetEnemy->GetRemoteRole()));
+}
+
+void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(ATunicEnemyCharacter* TargetEnemy) const
+{
+	if (!bApplyLightAttackDebugDamage)
+	{
+		return;
+	}
+
+	if (!TargetEnemy)
+	{
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage skipped: no target | Character=%s"),
+			*GetNameSafe(this));
+		return;
+	}
+
+	UTunicAbilitySystemComponent* TargetAbilitySystemComponent = TargetEnemy->GetTunicAbilitySystemComponent();
+	UTunicAttributeSet* TargetAttributeSet = TargetEnemy->GetAttributeSet();
+	if (!TargetAbilitySystemComponent || !TargetAttributeSet || !LightAttackDamageEffectClass)
+	{
+		UE_LOG(LogLpQuestGasDebug, Warning, TEXT("Light attack debug damage failed: missing target GAS data | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | EffectClass=%s"),
+			*GetNameSafe(this),
+			*GetNameSafe(TargetEnemy),
+			*GetNameSafe(TargetAbilitySystemComponent),
+			*GetNameSafe(TargetAttributeSet),
+			*GetNameSafe(LightAttackDamageEffectClass.Get()));
+		return;
+	}
+
+	const float HealthBefore = TargetAttributeSet->GetHealth();
+	const UTunicAbilitySystemComponent* SourceAbilitySystemComponent = GetTunicAbilitySystemComponent();
+	FGameplayEffectContextHandle EffectContext = SourceAbilitySystemComponent ? SourceAbilitySystemComponent->MakeEffectContext() : TargetAbilitySystemComponent->MakeEffectContext();
+	EffectContext.AddSourceObject(this);
+	TargetAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(LightAttackDamageEffectClass, 1.0f, EffectContext);
+
+	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage applied | Character=%s | Target=%s | EffectClass=%s | TargetHealth=%.1f->%.1f"),
+		*GetNameSafe(this),
+		*GetNameSafe(TargetEnemy),
+		*GetNameSafe(LightAttackDamageEffectClass.Get()),
+		HealthBefore,
+		TargetAttributeSet->GetHealth());
 }
 
 void ATunicPlayerCharacter::RequestDodge()

@@ -115,6 +115,10 @@ Pull requests should include a short summary, affected areas (`Source`, `Config`
 
 Read real project files before changing behavior. Keep edits small and aligned with the single-module structure. Do not delete generated folders or user assets unless explicitly requested.
 
+If Serena MCP is available, try activating `E:\UnRealEngine\LpQuest` before symbol-level C++ navigation or C++ edits. In this UE C++ project, treat empty or stale Serena symbol results as non-authoritative because UHT, generated headers, UBT include paths, and changing `compile_commands.json` can make the LSP index incomplete.
+
+If a Serena call fails or cannot find known project symbols, report the concrete reason instead of silently falling back. Include the failing operation, the error or symptom, and the most likely fix, such as reactivating the project, restarting the MCP/client, regenerating `compile_commands.json`, rebuilding the editor target, or refreshing the LSP index. Then immediately fall back to CodeGraph, `rg`, direct source reads, compiler output, and local UE Engine headers.
+
 If `.codegraph/` exists, try CodeGraph before text search for code navigation. If CodeGraph service fails, mention the failure and fall back to `rg` / direct file reads.
 
 If Serena or CodeGraph results appear stale, mention it and suggest reactivation, restart, or re-indexing. After adding/removing C++ files or changing module dependencies, remind the user that `compile_commands.json` may need regeneration for Serena/clangd accuracy.

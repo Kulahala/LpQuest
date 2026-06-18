@@ -47,7 +47,7 @@ Avoid early dependencies on PCG, CommonUI, DLSS, Streamline, Reflex, and release
 
 Current dodge input is debug-only: locally owned clients request dodge through a server RPC, the server logs the accepted request, and then calls the existing Blueprint hook. Real dodge movement, invulnerability, stamina cost, montage, and cooldown behavior are not implemented yet.
 
-Current light attack input is debug-only: locally owned clients request light attack through a server RPC, the server logs the accepted request, and then calls the existing Blueprint hook. Damage, weapon traces, target mutation, montage dependency, stamina cost, and cooldown behavior are not implemented yet.
+Current light attack input is debug-only: locally owned clients request light attack through a server RPC, the server logs the accepted request, performs a short server-side nearby enemy query, logs the target enemy ASC/AttributeSet if one is found, applies a minimal instant GameplayEffect damage path to the enemy ASC when debug damage is enabled, and then calls the existing Blueprint hook. Weapon traces, montage dependency, stamina cost, cooldown behavior, hit reactions, death behavior, Health clamping, and damage immunity rules are not implemented yet.
 
 `ATunicEnemyCharacter` owns its own ASC and AttributeSet because enemies do not have PlayerStates. It initializes GAS with itself as OwnerActor and AvatarActor.
 

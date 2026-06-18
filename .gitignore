@@ -8,6 +8,7 @@ Saved/
 # Local agent / editor indexes
 .codegraph/
 .serena/
+compile_commands.json
 
 # Local planning notes
 plan.md
