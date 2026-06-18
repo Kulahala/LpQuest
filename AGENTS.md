@@ -84,9 +84,13 @@ For GAS/networking work, verify OwnerActor, AvatarActor, AttributeSet ownership,
 
 Update `ARCHITECTURE.md` only when code changes actual architecture. Use `plan.md` for current task status and next steps. Do not turn `tunicplan.md` into a running changelog.
 
+Before any commit, check whether `README.md`, `ARCHITECTURE.md`, and `AGENTS.md` need updates for the completed change. Only update them when their documented scope actually changed.
+
 ## Commit & Pull Request Guidelines
 
 This directory currently has no Git history available, so no repository-specific commit convention can be inferred. Use concise imperative commits such as `Add PlayerState GAS ownership` or `Fix input mapping defaults`.
+
+Do not commit immediately after making changes. Stop after implementation and verification, summarize the diff and validation status, then wait for the user's explicit approval before committing.
 
 Pull requests should include a short summary, affected areas (`Source`, `Config`, or `Content`), build/test results, and screenshots or clips for visible gameplay/editor changes. Call out `.uasset` edits explicitly.
 
