@@ -32,14 +32,18 @@ The first vertical slice should prove:
 - UE 5.8 project shell exists as `LpQuest`.
 - Gameplay C++ skeleton has been migrated from the previous prototype into the `LpQuest` module.
 - Implemented base character, player character, enemy character, project ASC, replicated AttributeSet, PlayerState-owned player ASC, player controller, game mode, and game state.
-- `LpQuestEditor Win64 Development` builds successfully on UE 5.8.\n- Next validation step is minimal Editor setup for listen-server PIE testing.
+- `LpQuestEditor Win64 Development` builds successfully on UE 5.8.
+- Stage 1 editor setup is in place: Enhanced Input actions/mapping context, player character/controller/game mode Blueprints, KayKit prototype character mesh, and OpenWorld-based default map setup.
+- Single-player PIE validates the fixed isometric camera and screen-relative WASD movement.
+- Listen-server PIE with two players validates that both players spawn and move.
+- A small GAS debug path validates PlayerState-owned ASC and replicated AttributeSet setup per player in Listen Server + 2 Players.
+- Current gameplay work is moving through Stage 2 server-authoritative validation: debug-only dodge and light attack request paths are implemented, and enemy ASC initialization logging is in place before real movement, invulnerability, damage, targeting, AI, stamina, montage, or cooldown behavior.
 
 ## Documentation
 
-- `tunicplan.md` is the long-term roadmap.
-- `plan.md` is the current short implementation plan and handoff surface.
 - `ARCHITECTURE.md` stores stable architecture facts.
 - `AGENTS.md` stores contributor and AI collaboration rules.
+- `plan.md` and `tunicplan.md` are local-only planning notes and are intentionally ignored by Git.
 
 ## Development Notes
 

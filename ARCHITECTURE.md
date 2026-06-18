@@ -45,7 +45,13 @@ Avoid early dependencies on PCG, CommonUI, DLSS, Streamline, Reflex, and release
 
 `ATunicPlayerCharacter` owns local presentation and input: fixed isometric `SpringArm + Camera`, Enhanced Input bindings, screen-relative movement, and Blueprint-facing request hooks for dodge, attacks, aim, interact, and weapon switching. It initializes player GAS from `ATunicPlayerState` in `PossessedBy` and `OnRep_PlayerState`, using PlayerState as OwnerActor and Character as AvatarActor.
 
+Current dodge input is debug-only: locally owned clients request dodge through a server RPC, the server logs the accepted request, and then calls the existing Blueprint hook. Real dodge movement, invulnerability, stamina cost, montage, and cooldown behavior are not implemented yet.
+
+Current light attack input is debug-only: locally owned clients request light attack through a server RPC, the server logs the accepted request, and then calls the existing Blueprint hook. Damage, weapon traces, target mutation, montage dependency, stamina cost, and cooldown behavior are not implemented yet.
+
 `ATunicEnemyCharacter` owns its own ASC and AttributeSet because enemies do not have PlayerStates. It initializes GAS with itself as OwnerActor and AvatarActor.
+
+Current enemy GAS validation is debug-only: enemy initialization logs ASC, OwnerActor, AvatarActor, AttributeSet, attributes, and network role before any damage, targeting, or AI behavior is layered on top.
 
 ### Player Framework
 

@@ -14,7 +14,16 @@ class LPQUEST_API ATunicEnemyCharacter : public ATunicCharacterBase
 public:
 	ATunicEnemyCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
+	void SetAbilitySystemInitializationLoggingEnabled(bool bEnabled);
+
 protected:
 	virtual void BeginPlay() override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
+	bool bLogAbilitySystemInitialization = true;
+
+private:
+	void LogEnemyAbilitySystemDebug() const;
 };
 

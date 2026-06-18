@@ -81,7 +81,39 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Input")
 	void OnSwitchWeaponRequested();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
+	bool bLogAbilitySystemInitialization = true;
+
+	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
+	void SetAbilitySystemInitializationLoggingEnabled(bool bEnabled);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
+	bool bLogDodgeRequests = true;
+
+	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
+	void SetDodgeRequestLoggingEnabled(bool bEnabled);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
+	bool bLogLightAttackRequests = true;
+
+	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
+	void SetLightAttackRequestLoggingEnabled(bool bEnabled);
+
 private:
 	void InitializePlayerAbilitySystem();
+	void LogPlayerAbilitySystemDebug(const class ATunicPlayerState* TunicPlayerState, const class UTunicAbilitySystemComponent* PlayerAbilitySystemComponent, const class UTunicAttributeSet* PlayerAttributeSet) const;
+	void RequestDodge();
+	void HandleDodgeRequest();
+	void LogDodgeRequestDebug() const;
+	void RequestLightAttack();
+	void HandleLightAttackRequest();
+	void LogLightAttackRequestDebug() const;
+	void LogServerInputRequestDebug(const TCHAR* RequestName, bool bShouldLog) const;
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestDodge();
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestLightAttack();
 };
 

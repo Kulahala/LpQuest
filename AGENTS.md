@@ -74,6 +74,8 @@ No dedicated test module exists yet. For now, every gameplay change should at le
 
 For GAS/networking work, verify OwnerActor, AvatarActor, AttributeSet ownership, and replication behavior before adding gameplay on top.
 
+At the end of each stage, do a strict review pass before moving on. Run both a normal review and an adversarial review: first look for bugs, reliability risks, behavior regressions, missing validation, coupling problems, architecture debt, and multiplayer/GAS shortcuts; then defend the key design choices and mark anything that cannot be defended as a risk.
+
 ## Documentation Roles
 
 - `README.md`: project overview, current status, and public-facing direction.
@@ -88,7 +90,22 @@ Before any commit, check whether `README.md`, `ARCHITECTURE.md`, and `AGENTS.md`
 
 ## Commit & Pull Request Guidelines
 
-This directory currently has no Git history available, so no repository-specific commit convention can be inferred. Use concise imperative commits such as `Add PlayerState GAS ownership` or `Fix input mapping defaults`.
+Commit messages should be clear and match the current repository style.
+
+If the repository has an explicit commit format, follow it. If not, use bilingual titles by default:
+
+- `[Feature] 中文标题（English Title）`
+- `[Fix] 中文标题（English Title）`
+- `[Docs] 中文标题（English Title）`
+- `[Refactor] 中文标题（English Title）`
+- `[Test] 中文标题（English Title）`
+- `[Chore] 中文标题（English Title）`
+
+The Chinese title should describe the actual change. The English title should be concise and natural, not a rigid word-for-word translation. Keep titles short; put complex details in the body.
+
+Simple changes do not need a long body. For complex changes, the body should explain what changed, why it changed, and whether there are migration, compatibility, or validation notes.
+
+Do not claim that something was tested, built, deployed, packaged, or manually verified unless it was actually done or the user explicitly confirmed it. Do not repeat low-value details that are obvious from the diff.
 
 Do not commit immediately after making changes. Stop after implementation and verification, summarize the diff and validation status, then wait for the user's explicit approval before committing.
 
