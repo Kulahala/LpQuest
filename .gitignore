@@ -1,0 +1,28 @@
+# Unreal generated
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+
+# Local agent / editor indexes
+.codegraph/
+.serena/
+
+# Visual Studio generated
+*.sln
+*.slnx
+*.VC.db
+*.VC.opendb
+.vscode/
+
+# Rider / JetBrains
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Build logs / temp
+*.log
+*.tmp
