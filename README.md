@@ -38,7 +38,7 @@ The first vertical slice should prove:
 - Listen-server PIE with two players validates that both players spawn and move.
 - A small GAS debug path validates PlayerState-owned ASC and replicated AttributeSet setup per player in Listen Server + 2 Players.
 - Current gameplay work has completed the Stage 2 server-authoritative validation checkpoint: debug-only dodge and light attack request paths work through the server, enemy ASC initialization is logged, light attack can find a nearby enemy on the server, and a minimal instant GameplayEffect damage path has reduced enemy Health through GAS.
-- Stage 3 has started with the first reliability checkpoint: Health/Stamina clamping, minimal replicated enemy death state, dead-target filtering, and temporary visible death feedback are implemented and manually validated in PIE. Formal weapon traces, animation hit windows, invulnerability, stamina costs, cooldowns, hit reactions, final death presentation, and AI behavior are not implemented yet.
+- Stage 3 has started with the first reliability checkpoint: Health/Stamina clamping, minimal replicated enemy death state, dead-target filtering, temporary visible death feedback, initial GameplayTags registration, a minimal light attack GameplayAbility entry point, and server-side light attack sweep validation are implemented. Formal weapon traces, montage-driven hit windows, invulnerability, stamina costs, cooldowns, hit reactions, final death presentation, and AI behavior are not implemented yet.
 
 ## Documentation
 

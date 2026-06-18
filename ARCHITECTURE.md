@@ -47,9 +47,9 @@ Avoid early dependencies on PCG, CommonUI, DLSS, Streamline, Reflex, and release
 
 Current dodge input is debug-only: locally owned clients request dodge through a server RPC, the server logs the accepted request, and then calls the existing Blueprint hook. Real dodge movement, invulnerability, stamina cost, montage, and cooldown behavior are not implemented yet.
 
-Current light attack input is debug-only: locally owned clients request light attack through a server RPC, the server logs the accepted request, runs a server-side light attack hit window, performs a short capsule sweep in front of the character, logs sweep results, applies a minimal instant GameplayEffect damage path to hit enemy ASCs when debug damage is enabled, and then calls the existing Blueprint hook. Dead enemies are skipped by the sweep and damage path. The hit window is exposed through `BeginLightAttackHitWindow`, `ProcessLightAttackHitWindow`, and `EndLightAttackHitWindow` so later animation notify states can drive the same server-authoritative sweep. Montage dependency, stamina cost, cooldown behavior, hit reactions, final WeaponActor traces, and formal damage immunity rules are not implemented yet.
+Current light attack input activates a minimal `UGameplayAbility` tagged `Ability.Attack.Sword.Light` through the player ASC. The ability executes on the server, logs the accepted request, runs a server-side light attack hit window, performs a short capsule sweep in front of the character, logs sweep results, applies a minimal instant GameplayEffect damage path to hit enemy ASCs when debug damage is enabled, and then calls the existing Blueprint hook. The old server RPC path remains as a temporary fallback while the ability setup is still being validated. Dead enemies are skipped by the sweep and damage path. The hit window is exposed through `BeginLightAttackHitWindow`, `ProcessLightAttackHitWindow`, and `EndLightAttackHitWindow` so later animation notify states can drive the same server-authoritative sweep. Montage dependency, stamina cost, cooldown behavior, hit reactions, final WeaponActor traces, and formal damage immunity rules are not implemented yet.
 
-`ATunicEnemyCharacter` owns its own ASC and AttributeSet because enemies do not have PlayerStates. It initializes GAS with itself as OwnerActor and AvatarActor. It currently has a minimal replicated death state: when server Health reaches 0, the enemy replicates `bIsDead`, disables capsule collision and character movement, calls a Blueprint death-state hook, and attempts to add the `State.Dead` loose gameplay tag if that tag is registered.
+`ATunicEnemyCharacter` owns its own ASC and AttributeSet because enemies do not have PlayerStates. It initializes GAS with itself as OwnerActor and AvatarActor. It currently has a minimal replicated death state: when server Health reaches 0, the enemy replicates `bIsDead`, disables capsule collision and character movement, calls a Blueprint death-state hook, and adds the registered `State.Dead` loose gameplay tag.
 
 Current enemy GAS validation is debug-only: enemy initialization logs ASC, OwnerActor, AvatarActor, AttributeSet, attributes, and network role before any damage, targeting, or AI behavior is layered on top.
 
@@ -72,6 +72,8 @@ GAS owns abilities, cooldowns, damage effects, elemental states, action locks, i
 `UTunicAbilitySystemComponent` is the project ASC subclass. Player ASC instances use `Mixed` replication mode on `ATunicPlayerState`; enemy ASC instances use `Minimal` replication mode on `ATunicEnemyCharacter`.
 
 `UTunicAttributeSet` defines replicated `Health`, `MaxHealth`, `Stamina`, `MaxStamina`, and `ElementalPower` attributes with `OnRep_*` notification hooks. It clamps Health and Stamina against their max values, keeps MaxHealth and MaxStamina at least 1, clamps ElementalPower to non-negative values, and re-clamps current Health/Stamina after max-value GameplayEffect changes.
+
+`UTunicGameplayAbility_LightAttack` is the first minimal player GameplayAbility. It is server-only, granted by `ATunicPlayerCharacter` during player ASC initialization, and currently delegates to the existing server-side light attack hit-window implementation. It does not yet own cooldowns, stamina costs, action locks, montage playback, or hit reactions.
 
 Movement, camera, simple interaction, and editor-only setup should not be forced into GameplayAbilities. Player input should activate abilities or validated server requests; input handlers must not directly apply damage, death, or elemental states.
 
@@ -102,7 +104,9 @@ Current asset directory skeleton:
 - `Content/_Game/Maps`
 - `Content/_External/KayKit`
 
-## Planned Gameplay Tags
+## Gameplay Tags
+
+The initial gameplay tag dictionary is registered through `Config/DefaultGameplayTags.ini`.
 
 - `Element.Fire`
 - `Element.Ice`

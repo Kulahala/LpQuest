@@ -5,6 +5,9 @@
 #include "Ability/TunicAbilitySystemComponent.h"
 #include "Ability/TunicAttributeSet.h"
 #include "Ability/TunicDamageGameplayEffect.h"
+#include "Ability/TunicGameplayAbility_LightAttack.h"
+#include "Abilities/GameplayAbility.h"
+#include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Character/TunicEnemyCharacter.h"
 #include "EnhancedInputComponent.h"
@@ -12,6 +15,8 @@
 #include "Engine/HitResult.h"
 #include "Engine/World.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameplayAbilitySpec.h"
+#include "GameplayTagContainer.h"
 #include "InputActionValue.h"
 #include "Player/TunicPlayerState.h"
 
@@ -39,6 +44,7 @@ ATunicPlayerCharacter::ATunicPlayerCharacter(const FObjectInitializer& ObjectIni
 	bUseControllerRotationRoll = false;
 
 	LightAttackDamageEffectClass = UTunicDamageGameplayEffect::StaticClass();
+	LightAttackAbilityClass = UTunicGameplayAbility_LightAttack::StaticClass();
 }
 
 void ATunicPlayerCharacter::PossessedBy(AController* NewController)
@@ -225,7 +231,23 @@ void ATunicPlayerCharacter::InitializePlayerAbilitySystem()
 
 	PlayerAbilitySystemComponent->InitAbilityActorInfo(TunicPlayerState, this);
 	SetAbilitySystemReferences(PlayerAbilitySystemComponent, PlayerAttributeSet);
+	GrantDefaultAbilities(PlayerAbilitySystemComponent);
 	LogPlayerAbilitySystemDebug(TunicPlayerState, PlayerAbilitySystemComponent, PlayerAttributeSet);
+}
+
+void ATunicPlayerCharacter::GrantDefaultAbilities(UTunicAbilitySystemComponent* PlayerAbilitySystemComponent)
+{
+	if (!HasAuthority() || !PlayerAbilitySystemComponent || !LightAttackAbilityClass)
+	{
+		return;
+	}
+
+	if (PlayerAbilitySystemComponent->FindAbilitySpecFromClass(LightAttackAbilityClass))
+	{
+		return;
+	}
+
+	PlayerAbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(LightAttackAbilityClass, 1));
 }
 
 void ATunicPlayerCharacter::LogPlayerAbilitySystemDebug(const ATunicPlayerState* TunicPlayerState, const UTunicAbilitySystemComponent* PlayerAbilitySystemComponent, const UTunicAttributeSet* PlayerAttributeSet) const
@@ -256,6 +278,11 @@ void ATunicPlayerCharacter::LogPlayerAbilitySystemDebug(const ATunicPlayerState*
 
 void ATunicPlayerCharacter::RequestLightAttack()
 {
+	if (TryActivateLightAttackAbility())
+	{
+		return;
+	}
+
 	if (HasAuthority())
 	{
 		HandleLightAttackRequest();
@@ -285,6 +312,32 @@ void ATunicPlayerCharacter::HandleLightAttackRequest()
 		EndLightAttackHitWindow();
 	}
 	OnLightAttackRequested();
+}
+
+void ATunicPlayerCharacter::ExecuteLightAttackAbility()
+{
+	HandleLightAttackRequest();
+}
+
+bool ATunicPlayerCharacter::TryActivateLightAttackAbility()
+{
+	UTunicAbilitySystemComponent* PlayerAbilitySystemComponent = GetTunicAbilitySystemComponent();
+	if (!PlayerAbilitySystemComponent)
+	{
+		return false;
+	}
+
+	if (const FGameplayTag LightAttackTag = FGameplayTag::RequestGameplayTag(TEXT("Ability.Attack.Sword.Light"), false); LightAttackTag.IsValid())
+	{
+		FGameplayTagContainer LightAttackAbilityTags;
+		LightAttackAbilityTags.AddTag(LightAttackTag);
+		if (PlayerAbilitySystemComponent->TryActivateAbilitiesByTag(LightAttackAbilityTags))
+		{
+			return true;
+		}
+	}
+
+	return LightAttackAbilityClass ? PlayerAbilitySystemComponent->TryActivateAbilityByClass(LightAttackAbilityClass) : false;
 }
 
 void ATunicPlayerCharacter::LogLightAttackRequestDebug() const

@@ -7,8 +7,10 @@
 #include "TunicPlayerCharacter.generated.h"
 
 class UCameraComponent;
+class UGameplayAbility;
 class UGameplayEffect;
 class UInputAction;
+class UTunicAbilitySystemComponent;
 struct FInputActionValue;
 struct FHitResult;
 class USpringArmComponent;
@@ -34,6 +36,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Combat")
 	void EndLightAttackHitWindow();
+
+	void ExecuteLightAttackAbility();
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Camera")
@@ -141,14 +145,19 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Debug")
 	TSubclassOf<UGameplayEffect> LightAttackDamageEffectClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities")
+	TSubclassOf<UGameplayAbility> LightAttackAbilityClass;
+
 private:
 	void InitializePlayerAbilitySystem();
+	void GrantDefaultAbilities(UTunicAbilitySystemComponent* PlayerAbilitySystemComponent);
 	void LogPlayerAbilitySystemDebug(const class ATunicPlayerState* TunicPlayerState, const class UTunicAbilitySystemComponent* PlayerAbilitySystemComponent, const class UTunicAttributeSet* PlayerAttributeSet) const;
 	void RequestDodge();
 	void HandleDodgeRequest();
 	void LogDodgeRequestDebug() const;
 	void RequestLightAttack();
 	void HandleLightAttackRequest();
+	bool TryActivateLightAttackAbility();
 	void LogLightAttackRequestDebug() const;
 	FVector GetLightAttackSweepPoint(const FVector& LocalOffset) const;
 	void LogLightAttackHitSweepDebug(const TArray<FHitResult>& HitResults, int32 AppliedHitCount) const;
