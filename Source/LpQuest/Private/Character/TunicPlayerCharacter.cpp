@@ -9,7 +9,7 @@
 #include "Character/TunicEnemyCharacter.h"
 #include "EnhancedInputComponent.h"
 #include "Engine/EngineTypes.h"
-#include "Engine/OverlapResult.h"
+#include "Engine/HitResult.h"
 #include "Engine/World.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputActionValue.h"
@@ -28,6 +28,7 @@ ATunicPlayerCharacter::ATunicPlayerCharacter(const FObjectInitializer& ObjectIni
 	CameraBoom->bInheritPitch = false;
 	CameraBoom->bInheritYaw = false;
 	CameraBoom->bInheritRoll = false;
+	CameraBoom->bDoCollisionTest = false;
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
@@ -197,9 +198,14 @@ void ATunicPlayerCharacter::SetLightAttackRequestLoggingEnabled(bool bEnabled)
 	bLogLightAttackRequests = bEnabled;
 }
 
+void ATunicPlayerCharacter::SetLightAttackHitSweepLoggingEnabled(bool bEnabled)
+{
+	bLogLightAttackHitSweep = bEnabled;
+}
+
 void ATunicPlayerCharacter::SetLightAttackTargetQueryLoggingEnabled(bool bEnabled)
 {
-	bLogLightAttackTargetQuery = bEnabled;
+	SetLightAttackHitSweepLoggingEnabled(bEnabled);
 }
 
 void ATunicPlayerCharacter::InitializePlayerAbilitySystem()
@@ -272,12 +278,12 @@ void ATunicPlayerCharacter::HandleLightAttackRequest()
 	}
 
 	LogLightAttackRequestDebug();
-	ATunicEnemyCharacter* TargetEnemy = FindLightAttackDebugTarget();
-	if (bLogLightAttackTargetQuery)
+	if (bRunLightAttackHitWindowOnRequest)
 	{
-		LogLightAttackTargetDebug(TargetEnemy);
+		BeginLightAttackHitWindow();
+		ProcessLightAttackHitWindow();
+		EndLightAttackHitWindow();
 	}
-	ApplyLightAttackDebugDamage(TargetEnemy);
 	OnLightAttackRequested();
 }
 
@@ -286,77 +292,123 @@ void ATunicPlayerCharacter::LogLightAttackRequestDebug() const
 	LogServerInputRequestDebug(TEXT("Light attack"), bLogLightAttackRequests);
 }
 
-ATunicEnemyCharacter* ATunicPlayerCharacter::FindLightAttackDebugTarget() const
+void ATunicPlayerCharacter::BeginLightAttackHitWindow()
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	bLightAttackHitWindowActive = true;
+	LightAttackHitTargets.Reset();
+}
+
+void ATunicPlayerCharacter::ProcessLightAttackHitWindow()
+{
+	if (!HasAuthority() || !bLightAttackHitWindowActive)
+	{
+		return;
+	}
+
 	UWorld* World = GetWorld();
 	if (!World)
 	{
-		return nullptr;
+		return;
 	}
 
-	const FVector QueryCenter = GetActorLocation();
-	const FCollisionShape QueryShape = FCollisionShape::MakeSphere(LightAttackTargetQueryRange);
+	const FVector SweepStart = GetLightAttackSweepPoint(LightAttackSweepStartOffset);
+	const FVector SweepEnd = GetLightAttackSweepPoint(LightAttackSweepEndOffset);
+	const FCollisionShape SweepShape = FCollisionShape::MakeCapsule(LightAttackSweepRadius, LightAttackSweepHalfHeight);
 
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(LightAttackDebugTargetQuery), false, this);
-	TArray<FOverlapResult> OverlapResults;
-	World->OverlapMultiByChannel(
-		OverlapResults,
-		QueryCenter,
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(LightAttackHitSweep), false, this);
+	TArray<FHitResult> HitResults;
+	World->SweepMultiByChannel(
+		HitResults,
+		SweepStart,
+		SweepEnd,
 		FQuat::Identity,
 		ECC_Pawn,
-		QueryShape,
+		SweepShape,
 		QueryParams);
 
-	ATunicEnemyCharacter* ClosestEnemy = nullptr;
-	float ClosestDistanceSquared = UE_BIG_NUMBER;
-
-	for (const FOverlapResult& OverlapResult : OverlapResults)
+	int32 AppliedHitCount = 0;
+	for (const FHitResult& HitResult : HitResults)
 	{
-		ATunicEnemyCharacter* EnemyCharacter = Cast<ATunicEnemyCharacter>(OverlapResult.GetActor());
-		if (EnemyCharacter && !EnemyCharacter->IsDead())
+		ATunicEnemyCharacter* EnemyCharacter = Cast<ATunicEnemyCharacter>(HitResult.GetActor());
+		if (!EnemyCharacter || EnemyCharacter->IsDead() || LightAttackHitTargets.Contains(EnemyCharacter))
 		{
-			const float DistanceSquared = FVector::DistSquared(GetActorLocation(), EnemyCharacter->GetActorLocation());
-			if (DistanceSquared < ClosestDistanceSquared)
-			{
-				ClosestEnemy = EnemyCharacter;
-				ClosestDistanceSquared = DistanceSquared;
-			}
+			continue;
 		}
+
+		LightAttackHitTargets.Add(EnemyCharacter);
+		ApplyLightAttackDebugDamage(EnemyCharacter);
+		++AppliedHitCount;
 	}
 
-	return ClosestEnemy;
+	LogLightAttackHitSweepDebug(HitResults, AppliedHitCount);
 }
 
-void ATunicPlayerCharacter::LogLightAttackTargetDebug(const ATunicEnemyCharacter* TargetEnemy) const
+void ATunicPlayerCharacter::EndLightAttackHitWindow()
 {
-	if (!bLogLightAttackTargetQuery)
+	if (!HasAuthority())
 	{
 		return;
 	}
 
-	if (!TargetEnemy)
+	bLightAttackHitWindowActive = false;
+	LightAttackHitTargets.Reset();
+}
+
+FVector ATunicPlayerCharacter::GetLightAttackSweepPoint(const FVector& LocalOffset) const
+{
+	return GetActorLocation() + GetActorRotation().RotateVector(LocalOffset);
+}
+
+void ATunicPlayerCharacter::LogLightAttackHitSweepDebug(const TArray<FHitResult>& HitResults, int32 AppliedHitCount) const
+{
+	if (!bLogLightAttackHitSweep)
 	{
-		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack target query found no enemy | Character=%s | QueryRange=%.1f"),
-			*GetNameSafe(this),
-			LightAttackTargetQueryRange);
 		return;
 	}
 
-	const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = TargetEnemy->GetTunicAbilitySystemComponent();
-	const UTunicAttributeSet* TargetAttributeSet = TargetEnemy->GetAttributeSet();
-
-	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack target query found enemy | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | TargetHealth=%.1f/%.1f | TargetStamina=%.1f/%.1f | TargetDistance=%.1f | TargetLocalRole=%d | TargetRemoteRole=%d"),
+	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack hit sweep completed | Character=%s | SweepStart=%s | SweepEnd=%s | HitCount=%d | AppliedHitCount=%d | Radius=%.1f | HalfHeight=%.1f"),
 		*GetNameSafe(this),
-		*GetNameSafe(TargetEnemy),
-		*GetNameSafe(TargetAbilitySystemComponent),
-		*GetNameSafe(TargetAttributeSet),
-		TargetAttributeSet ? TargetAttributeSet->GetHealth() : 0.0f,
-		TargetAttributeSet ? TargetAttributeSet->GetMaxHealth() : 0.0f,
-		TargetAttributeSet ? TargetAttributeSet->GetStamina() : 0.0f,
-		TargetAttributeSet ? TargetAttributeSet->GetMaxStamina() : 0.0f,
-		FVector::Dist(GetActorLocation(), TargetEnemy->GetActorLocation()),
-		static_cast<int32>(TargetEnemy->GetLocalRole()),
-		static_cast<int32>(TargetEnemy->GetRemoteRole()));
+		*GetLightAttackSweepPoint(LightAttackSweepStartOffset).ToCompactString(),
+		*GetLightAttackSweepPoint(LightAttackSweepEndOffset).ToCompactString(),
+		HitResults.Num(),
+		AppliedHitCount,
+		LightAttackSweepRadius,
+		LightAttackSweepHalfHeight);
+
+	if (HitResults.IsEmpty())
+	{
+		return;
+	}
+
+	for (const FHitResult& HitResult : HitResults)
+	{
+		const ATunicEnemyCharacter* TargetEnemy = Cast<ATunicEnemyCharacter>(HitResult.GetActor());
+		if (!TargetEnemy)
+		{
+			continue;
+		}
+
+		const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = TargetEnemy->GetTunicAbilitySystemComponent();
+		const UTunicAttributeSet* TargetAttributeSet = TargetEnemy->GetAttributeSet();
+
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack hit sweep target | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | TargetHealth=%.1f/%.1f | TargetStamina=%.1f/%.1f | ImpactPoint=%s | TargetLocalRole=%d | TargetRemoteRole=%d"),
+			*GetNameSafe(this),
+			*GetNameSafe(TargetEnemy),
+			*GetNameSafe(TargetAbilitySystemComponent),
+			*GetNameSafe(TargetAttributeSet),
+			TargetAttributeSet ? TargetAttributeSet->GetHealth() : 0.0f,
+			TargetAttributeSet ? TargetAttributeSet->GetMaxHealth() : 0.0f,
+			TargetAttributeSet ? TargetAttributeSet->GetStamina() : 0.0f,
+			TargetAttributeSet ? TargetAttributeSet->GetMaxStamina() : 0.0f,
+			*HitResult.ImpactPoint.ToCompactString(),
+			static_cast<int32>(TargetEnemy->GetLocalRole()),
+			static_cast<int32>(TargetEnemy->GetRemoteRole()));
+	}
 }
 
 void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(ATunicEnemyCharacter* TargetEnemy) const

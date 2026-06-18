@@ -10,6 +10,7 @@ class UCameraComponent;
 class UGameplayEffect;
 class UInputAction;
 struct FInputActionValue;
+struct FHitResult;
 class USpringArmComponent;
 class ATunicEnemyCharacter;
 
@@ -24,6 +25,15 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+
+	UFUNCTION(BlueprintCallable, Category = "Tunic|Combat")
+	void BeginLightAttackHitWindow();
+
+	UFUNCTION(BlueprintCallable, Category = "Tunic|Combat")
+	void ProcessLightAttackHitWindow();
+
+	UFUNCTION(BlueprintCallable, Category = "Tunic|Combat")
+	void EndLightAttackHitWindow();
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Camera")
@@ -102,13 +112,28 @@ protected:
 	void SetLightAttackRequestLoggingEnabled(bool bEnabled);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
-	bool bLogLightAttackTargetQuery = true;
+	bool bLogLightAttackHitSweep = true;
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
+	void SetLightAttackHitSweepLoggingEnabled(bool bEnabled);
+
+	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug", meta = (DeprecatedFunction, DeprecationMessage = "Use SetLightAttackHitSweepLoggingEnabled."))
 	void SetLightAttackTargetQueryLoggingEnabled(bool bEnabled);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Debug", meta = (ClampMin = "0.0", Units = "cm"))
-	float LightAttackTargetQueryRange = 225.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation")
+	bool bRunLightAttackHitWindowOnRequest = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ClampMin = "0.0", Units = "cm"))
+	float LightAttackSweepRadius = 65.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ClampMin = "0.0", Units = "cm"))
+	float LightAttackSweepHalfHeight = 75.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (Units = "cm"))
+	FVector LightAttackSweepStartOffset = FVector(60.0f, 0.0f, 45.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (Units = "cm"))
+	FVector LightAttackSweepEndOffset = FVector(225.0f, 0.0f, 45.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Debug")
 	bool bApplyLightAttackDebugDamage = true;
@@ -125,8 +150,8 @@ private:
 	void RequestLightAttack();
 	void HandleLightAttackRequest();
 	void LogLightAttackRequestDebug() const;
-	ATunicEnemyCharacter* FindLightAttackDebugTarget() const;
-	void LogLightAttackTargetDebug(const ATunicEnemyCharacter* TargetEnemy) const;
+	FVector GetLightAttackSweepPoint(const FVector& LocalOffset) const;
+	void LogLightAttackHitSweepDebug(const TArray<FHitResult>& HitResults, int32 AppliedHitCount) const;
 	void ApplyLightAttackDebugDamage(ATunicEnemyCharacter* TargetEnemy) const;
 	void LogServerInputRequestDebug(const TCHAR* RequestName, bool bShouldLog) const;
 
@@ -135,5 +160,8 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestLightAttack();
+
+	bool bLightAttackHitWindowActive = false;
+	TSet<TWeakObjectPtr<ATunicEnemyCharacter>> LightAttackHitTargets;
 };
 
