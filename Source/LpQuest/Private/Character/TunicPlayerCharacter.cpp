@@ -6,16 +6,19 @@
 #include "Ability/TunicAttributeSet.h"
 #include "Ability/TunicDamageGameplayEffect.h"
 #include "Ability/TunicGameplayAbility_LightAttack.h"
+#include "Ability/TunicStaminaRegenGameplayEffect.h"
 #include "Abilities/GameplayAbility.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Character/TunicEnemyCharacter.h"
+#include "DrawDebugHelpers.h"
 #include "EnhancedInputComponent.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/HitResult.h"
 #include "Engine/World.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameplayAbilitySpec.h"
+#include "GameplayEffect.h"
 #include "GameplayTagContainer.h"
 #include "InputActionValue.h"
 #include "Player/TunicPlayerState.h"
@@ -42,9 +45,11 @@ ATunicPlayerCharacter::ATunicPlayerCharacter(const FObjectInitializer& ObjectIni
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	LightAttackDamageEffectClass = UTunicDamageGameplayEffect::StaticClass();
 	LightAttackAbilityClass = UTunicGameplayAbility_LightAttack::StaticClass();
+	StaminaRegenEffectClass = UTunicStaminaRegenGameplayEffect::StaticClass();
 }
 
 void ATunicPlayerCharacter::PossessedBy(AController* NewController)
@@ -107,6 +112,13 @@ void ATunicPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 	{
 		EnhancedInputComponent->BindAction(SwitchWeaponAction, ETriggerEvent::Started, this, &ATunicPlayerCharacter::SwitchWeapon);
 	}
+}
+
+void ATunicPlayerCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	DrawAttributeDebug();
 }
 
 void ATunicPlayerCharacter::Move(const FInputActionValue& Value)
@@ -209,6 +221,11 @@ void ATunicPlayerCharacter::SetLightAttackHitSweepLoggingEnabled(bool bEnabled)
 	bLogLightAttackHitSweep = bEnabled;
 }
 
+void ATunicPlayerCharacter::SetAttributeDebugDrawEnabled(bool bEnabled)
+{
+	bDrawAttributeDebug = bEnabled;
+}
+
 void ATunicPlayerCharacter::SetLightAttackTargetQueryLoggingEnabled(bool bEnabled)
 {
 	SetLightAttackHitSweepLoggingEnabled(bEnabled);
@@ -232,6 +249,7 @@ void ATunicPlayerCharacter::InitializePlayerAbilitySystem()
 	PlayerAbilitySystemComponent->InitAbilityActorInfo(TunicPlayerState, this);
 	SetAbilitySystemReferences(PlayerAbilitySystemComponent, PlayerAttributeSet);
 	GrantDefaultAbilities(PlayerAbilitySystemComponent);
+	ApplyDefaultEffects(PlayerAbilitySystemComponent);
 	LogPlayerAbilitySystemDebug(TunicPlayerState, PlayerAbilitySystemComponent, PlayerAttributeSet);
 }
 
@@ -248,6 +266,35 @@ void ATunicPlayerCharacter::GrantDefaultAbilities(UTunicAbilitySystemComponent* 
 	}
 
 	PlayerAbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(LightAttackAbilityClass, 1));
+}
+
+void ATunicPlayerCharacter::ApplyDefaultEffects(UTunicAbilitySystemComponent* PlayerAbilitySystemComponent)
+{
+	if (!HasAuthority() || !PlayerAbilitySystemComponent || !StaminaRegenEffectClass)
+	{
+		return;
+	}
+
+	if (StaminaRegenEffectHandle.IsValid())
+	{
+		return;
+	}
+
+	const TArray<FActiveGameplayEffectHandle> ActiveEffectHandles = PlayerAbilitySystemComponent->GetActiveEffects(FGameplayEffectQuery());
+	for (const FActiveGameplayEffectHandle& ActiveEffectHandle : ActiveEffectHandles)
+	{
+		const UGameplayEffect* ActiveEffect = PlayerAbilitySystemComponent->GetGameplayEffectDefForHandle(ActiveEffectHandle);
+		if (ActiveEffect && ActiveEffect->GetClass() == StaminaRegenEffectClass)
+		{
+			StaminaRegenEffectHandle = ActiveEffectHandle;
+			return;
+		}
+	}
+
+	FGameplayEffectContextHandle EffectContext = PlayerAbilitySystemComponent->MakeEffectContext();
+	EffectContext.AddSourceObject(this);
+
+	StaminaRegenEffectHandle = PlayerAbilitySystemComponent->ApplyGameplayEffectToSelf(StaminaRegenEffectClass->GetDefaultObject<UGameplayEffect>(), 1.0f, EffectContext);
 }
 
 void ATunicPlayerCharacter::LogPlayerAbilitySystemDebug(const ATunicPlayerState* TunicPlayerState, const UTunicAbilitySystemComponent* PlayerAbilitySystemComponent, const UTunicAttributeSet* PlayerAttributeSet) const
@@ -278,8 +325,10 @@ void ATunicPlayerCharacter::LogPlayerAbilitySystemDebug(const ATunicPlayerState*
 
 void ATunicPlayerCharacter::RequestLightAttack()
 {
-	if (TryActivateLightAttackAbility())
+	const bool bShouldUseAbility = GetTunicAbilitySystemComponent() && LightAttackAbilityClass;
+	if (bShouldUseAbility)
 	{
+		TryActivateLightAttackAbility();
 		return;
 	}
 
@@ -343,6 +392,23 @@ bool ATunicPlayerCharacter::TryActivateLightAttackAbility()
 void ATunicPlayerCharacter::LogLightAttackRequestDebug() const
 {
 	LogServerInputRequestDebug(TEXT("Light attack"), bLogLightAttackRequests);
+}
+
+void ATunicPlayerCharacter::DrawAttributeDebug() const
+{
+	if (!bDrawAttributeDebug || !AttributeSet)
+	{
+		return;
+	}
+
+	const FString DebugText = FString::Printf(
+		TEXT("Player\nHP %.0f/%.0f\nSTA %.0f/%.0f"),
+		AttributeSet->GetHealth(),
+		AttributeSet->GetMaxHealth(),
+		AttributeSet->GetStamina(),
+		AttributeSet->GetMaxStamina());
+
+	DrawDebugString(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 130.0f), DebugText, nullptr, FColor::Cyan, 0.0f, true, 1.1f);
 }
 
 void ATunicPlayerCharacter::BeginLightAttackHitWindow()

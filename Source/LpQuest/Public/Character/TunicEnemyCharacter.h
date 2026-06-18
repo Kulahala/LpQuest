@@ -18,12 +18,16 @@ public:
 	ATunicEnemyCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void Tick(float DeltaSeconds) override;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Combat")
 	bool IsDead() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
 	void SetAbilitySystemInitializationLoggingEnabled(bool bEnabled);
+
+	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
+	void SetAttributeDebugDrawEnabled(bool bEnabled);
 
 protected:
 	virtual void BeginPlay() override;
@@ -37,6 +41,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
 	bool bLogDeathState = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
+	bool bDrawAttributeDebug = true;
+
 private:
 	UFUNCTION()
 	void OnRep_IsDead();
@@ -45,6 +52,7 @@ private:
 	void SetDead(bool bNewIsDead);
 	void ApplyDeathState();
 	void LogEnemyAbilitySystemDebug() const;
+	void DrawAttributeDebug() const;
 
 	UPROPERTY(ReplicatedUsing = OnRep_IsDead)
 	bool bIsDead = false;

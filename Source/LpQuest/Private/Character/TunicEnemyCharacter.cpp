@@ -6,6 +6,7 @@
 #include "Ability/TunicAttributeSet.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "DrawDebugHelpers.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
@@ -22,6 +23,8 @@ ATunicEnemyCharacter::ATunicEnemyCharacter(const FObjectInitializer& ObjectIniti
 
 	UTunicAttributeSet* EnemyAttributeSet = CreateDefaultSubobject<UTunicAttributeSet>(TEXT("AttributeSet"));
 	SetAbilitySystemReferences(EnemyAbilitySystemComponent, EnemyAttributeSet);
+
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 void ATunicEnemyCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -29,6 +32,13 @@ void ATunicEnemyCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ATunicEnemyCharacter, bIsDead);
+}
+
+void ATunicEnemyCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	DrawAttributeDebug();
 }
 
 void ATunicEnemyCharacter::BeginPlay()
@@ -51,6 +61,11 @@ bool ATunicEnemyCharacter::IsDead() const
 void ATunicEnemyCharacter::SetAbilitySystemInitializationLoggingEnabled(bool bEnabled)
 {
 	bLogAbilitySystemInitialization = bEnabled;
+}
+
+void ATunicEnemyCharacter::SetAttributeDebugDrawEnabled(bool bEnabled)
+{
+	bDrawAttributeDebug = bEnabled;
 }
 
 void ATunicEnemyCharacter::OnDeathStateChanged_Implementation(bool bNewIsDead)
@@ -163,5 +178,23 @@ void ATunicEnemyCharacter::LogEnemyAbilitySystemDebug() const
 		HasAuthority() ? TEXT("true") : TEXT("false"),
 		static_cast<int32>(GetLocalRole()),
 		static_cast<int32>(GetRemoteRole()));
+}
+
+void ATunicEnemyCharacter::DrawAttributeDebug() const
+{
+	if (!bDrawAttributeDebug || !AttributeSet)
+	{
+		return;
+	}
+
+	const FString DebugText = FString::Printf(
+		TEXT("Enemy%s\nHP %.0f/%.0f\nSTA %.0f/%.0f"),
+		bIsDead ? TEXT(" DEAD") : TEXT(""),
+		AttributeSet->GetHealth(),
+		AttributeSet->GetMaxHealth(),
+		AttributeSet->GetStamina(),
+		AttributeSet->GetMaxStamina());
+
+	DrawDebugString(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 115.0f), DebugText, nullptr, bIsDead ? FColor::Silver : FColor::Red, 0.0f, true, 1.0f);
 }
 

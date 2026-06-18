@@ -2,6 +2,8 @@
 
 #include "Ability/TunicGameplayAbility_LightAttack.h"
 
+#include "Ability/TunicLightAttackCooldownGameplayEffect.h"
+#include "Ability/TunicLightAttackCostGameplayEffect.h"
 #include "Character/TunicPlayerCharacter.h"
 #include "GameplayTagContainer.h"
 
@@ -11,6 +13,8 @@ UTunicGameplayAbility_LightAttack::UTunicGameplayAbility_LightAttack()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
+	CostGameplayEffectClass = UTunicLightAttackCostGameplayEffect::StaticClass();
+	CooldownGameplayEffectClass = UTunicLightAttackCooldownGameplayEffect::StaticClass();
 
 	FGameplayTagContainer DefaultAbilityTags;
 	if (const FGameplayTag LightAttackTag = FGameplayTag::RequestGameplayTag(TEXT("Ability.Attack.Sword.Light"), false); LightAttackTag.IsValid())
@@ -18,6 +22,21 @@ UTunicGameplayAbility_LightAttack::UTunicGameplayAbility_LightAttack()
 		DefaultAbilityTags.AddTag(LightAttackTag);
 	}
 	SetAssetTags(DefaultAbilityTags);
+
+	if (const FGameplayTag CooldownAttackTag = FGameplayTag::RequestGameplayTag(TEXT("Cooldown.Attack"), false); CooldownAttackTag.IsValid())
+	{
+		ActivationBlockedTags.AddTag(CooldownAttackTag);
+	}
+
+	if (const FGameplayTag DeadTag = FGameplayTag::RequestGameplayTag(TEXT("State.Dead"), false); DeadTag.IsValid())
+	{
+		ActivationBlockedTags.AddTag(DeadTag);
+	}
+
+	if (const FGameplayTag ActionLockedTag = FGameplayTag::RequestGameplayTag(TEXT("State.ActionLocked"), false); ActionLockedTag.IsValid())
+	{
+		ActivationBlockedTags.AddTag(ActionLockedTag);
+	}
 }
 
 void UTunicGameplayAbility_LightAttack::ActivateAbility(

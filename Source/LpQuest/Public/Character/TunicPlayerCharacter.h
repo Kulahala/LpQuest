@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ActiveGameplayEffectHandle.h"
 #include "Character/TunicCharacterBase.h"
 #include "TunicPlayerCharacter.generated.h"
 
@@ -27,6 +28,7 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	virtual void Tick(float DeltaSeconds) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Combat")
 	void BeginLightAttackHitWindow();
@@ -121,6 +123,12 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
 	void SetLightAttackHitSweepLoggingEnabled(bool bEnabled);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
+	bool bDrawAttributeDebug = true;
+
+	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
+	void SetAttributeDebugDrawEnabled(bool bEnabled);
+
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug", meta = (DeprecatedFunction, DeprecationMessage = "Use SetLightAttackHitSweepLoggingEnabled."))
 	void SetLightAttackTargetQueryLoggingEnabled(bool bEnabled);
 
@@ -148,9 +156,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities")
 	TSubclassOf<UGameplayAbility> LightAttackAbilityClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities")
+	TSubclassOf<UGameplayEffect> StaminaRegenEffectClass;
+
 private:
 	void InitializePlayerAbilitySystem();
 	void GrantDefaultAbilities(UTunicAbilitySystemComponent* PlayerAbilitySystemComponent);
+	void ApplyDefaultEffects(UTunicAbilitySystemComponent* PlayerAbilitySystemComponent);
 	void LogPlayerAbilitySystemDebug(const class ATunicPlayerState* TunicPlayerState, const class UTunicAbilitySystemComponent* PlayerAbilitySystemComponent, const class UTunicAttributeSet* PlayerAttributeSet) const;
 	void RequestDodge();
 	void HandleDodgeRequest();
@@ -159,6 +171,7 @@ private:
 	void HandleLightAttackRequest();
 	bool TryActivateLightAttackAbility();
 	void LogLightAttackRequestDebug() const;
+	void DrawAttributeDebug() const;
 	FVector GetLightAttackSweepPoint(const FVector& LocalOffset) const;
 	void LogLightAttackHitSweepDebug(const TArray<FHitResult>& HitResults, int32 AppliedHitCount) const;
 	void ApplyLightAttackDebugDamage(ATunicEnemyCharacter* TargetEnemy) const;
@@ -170,6 +183,7 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerRequestLightAttack();
 
+	FActiveGameplayEffectHandle StaminaRegenEffectHandle;
 	bool bLightAttackHitWindowActive = false;
 	TSet<TWeakObjectPtr<ATunicEnemyCharacter>> LightAttackHitTargets;
 };
