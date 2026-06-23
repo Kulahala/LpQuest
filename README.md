@@ -38,9 +38,10 @@ The first vertical slice should prove:
 - Listen-server PIE with two players validates that both players spawn and move.
 - A small GAS debug path validates PlayerState-owned ASC and replicated AttributeSet setup per player in Listen Server + 2 Players.
 - Stage 2 server-authoritative validation is complete: debug-only dodge and light attack request paths work through the server, enemy ASC initialization is logged, and a minimal instant GameplayEffect damage path has reduced enemy Health through GAS.
-- Stage 3 death reliability is complete: Health/Stamina clamping, minimal replicated enemy death state, dead-target filtering, temporary visible death feedback, initial GameplayTags registration, a minimal light attack GameplayAbility entry point, native light-attack Stamina/cooldown gates, minimal GAS Stamina regeneration, and temporary world debug draw for player/enemy attributes are implemented.
+- Stage 3 death reliability is complete: Health/Stamina clamping, minimal replicated enemy death state, dead-target filtering, Blueprint death-state hook wiring, initial GameplayTags registration, a minimal light attack GameplayAbility entry point, native light-attack Stamina/cooldown gates, minimal GAS Stamina regeneration, and temporary world debug draw for player/enemy attributes are implemented.
 - Stage 4 animation-timed light attack validation is complete for the prototype path: the player uses fixed-view movement with continuous mouse-facing, light attack plays a Montage from the server-authoritative GAS path, `UTunicAnimNotifyState_LightAttackHitWindow` drives the server-side hit sweep during the Montage window, damage still flows through GameplayEffects, and the temporary sword mesh is visual-only with collision disabled.
-- Formal weapon/socket traces, hit reactions, dodge invulnerability, bow projectiles, final HUD/settings UI, final death presentation, and StateTree enemy behavior are not implemented yet.
+- Stage 5 combat feedback hardening has a validated minimal path: confirmed non-lethal enemy hits now have a server-triggered multicast presentation hook visible to both listen-server PIE windows, and enemy death presentation is routed through the Blueprint death-state hook instead of hard-coded C++ mesh deformation.
+- Formal weapon/socket traces, final hit-reaction animation/content, dodge invulnerability, bow projectiles, final HUD/settings UI, final death presentation, and StateTree enemy behavior are not implemented yet.
 
 ## Documentation
 

@@ -5,7 +5,6 @@
 #include "Ability/TunicAbilitySystemComponent.h"
 #include "Ability/TunicAttributeSet.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/SkeletalMeshComponent.h"
 #include "DrawDebugHelpers.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameplayEffectTypes.h"
@@ -68,22 +67,12 @@ void ATunicEnemyCharacter::SetAttributeDebugDrawEnabled(bool bEnabled)
 	bDrawAttributeDebug = bEnabled;
 }
 
-void ATunicEnemyCharacter::OnDeathStateChanged_Implementation(bool bNewIsDead)
+void ATunicEnemyCharacter::OnDeathStateChanged_Implementation(bool)
 {
-	if (!bNewIsDead || bDeathPresentationApplied)
-	{
-		return;
-	}
+}
 
-	USkeletalMeshComponent* CharacterMesh = GetMesh();
-	if (!CharacterMesh)
-	{
-		return;
-	}
-
-	bDeathPresentationApplied = true;
-	CharacterMesh->SetRelativeRotation(CharacterMesh->GetRelativeRotation() + FRotator(0.0f, 0.0f, 90.0f));
-	CharacterMesh->SetRelativeScale3D(FVector(1.0f, 0.35f, 1.0f));
+void ATunicEnemyCharacter::OnHitReaction_Implementation(AActor*)
+{
 }
 
 void ATunicEnemyCharacter::OnRep_IsDead()
@@ -99,6 +88,16 @@ void ATunicEnemyCharacter::HandleHealthChanged(const FOnAttributeChangeData& Cha
 	}
 
 	SetDead(true);
+}
+
+void ATunicEnemyCharacter::HandleHitReaction(AActor* InstigatorActor)
+{
+	if (!HasAuthority() || bIsDead)
+	{
+		return;
+	}
+
+	MulticastPlayHitReaction(InstigatorActor);
 }
 
 void ATunicEnemyCharacter::SetDead(bool bNewIsDead)
@@ -152,7 +151,11 @@ void ATunicEnemyCharacter::ApplyDeathState()
 			static_cast<int32>(GetRemoteRole()));
 	}
 
-	OnDeathStateChanged(bIsDead);
+	if (!bDeathPresentationApplied)
+	{
+		bDeathPresentationApplied = true;
+		OnDeathStateChanged(bIsDead);
+	}
 }
 
 void ATunicEnemyCharacter::LogEnemyAbilitySystemDebug() const
@@ -196,5 +199,25 @@ void ATunicEnemyCharacter::DrawAttributeDebug() const
 		AttributeSet->GetMaxStamina());
 
 	DrawDebugString(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 115.0f), DebugText, nullptr, bIsDead ? FColor::Silver : FColor::Red, 0.0f, true, 1.0f);
+}
+
+void ATunicEnemyCharacter::MulticastPlayHitReaction_Implementation(AActor* InstigatorActor)
+{
+	if (bIsDead)
+	{
+		return;
+	}
+
+	if (bLogHitReaction)
+	{
+		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy hit reaction | Character=%s | Instigator=%s | Authority=%s | LocalRole=%d | RemoteRole=%d"),
+			*GetNameSafe(this),
+			*GetNameSafe(InstigatorActor),
+			HasAuthority() ? TEXT("true") : TEXT("false"),
+			static_cast<int32>(GetLocalRole()),
+			static_cast<int32>(GetRemoteRole()));
+	}
+
+	OnHitReaction(InstigatorActor);
 }
 

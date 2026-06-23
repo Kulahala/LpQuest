@@ -178,11 +178,12 @@ private:
 	void HandleLightAttackRequest();
 	bool TryActivateLightAttackAbility();
 	bool PlayLightAttackMontage();
+	void CheckLightAttackMontageHitWindowTriggered(int32 MontageSerial);
 	void LogLightAttackRequestDebug() const;
 	void DrawAttributeDebug() const;
 	FVector GetLightAttackSweepPoint(const FVector& LocalOffset) const;
 	void LogLightAttackHitSweepDebug(const TArray<FHitResult>& HitResults, int32 AppliedHitCount) const;
-	void ApplyLightAttackDebugDamage(ATunicEnemyCharacter* TargetEnemy) const;
+	void ApplyLightAttackDebugDamage(ATunicEnemyCharacter* TargetEnemy);
 	void LogServerInputRequestDebug(const TCHAR* RequestName, bool bShouldLog) const;
 
 	UFUNCTION(Server, Reliable)
@@ -206,6 +207,8 @@ private:
 	FActiveGameplayEffectHandle StaminaRegenEffectHandle;
 	float TimeSinceLastMouseFacingServerUpdate = 0.0f;
 	bool bLightAttackHitWindowActive = false;
+	int32 LightAttackMontageActivationSerial = 0;
+	int32 LightAttackMontageHitWindowSerial = 0;
 	TSet<TWeakObjectPtr<ATunicEnemyCharacter>> LightAttackHitTargets;
 };
 

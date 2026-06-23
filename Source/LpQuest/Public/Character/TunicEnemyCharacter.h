@@ -7,6 +7,7 @@
 #include "TunicEnemyCharacter.generated.h"
 
 class FLifetimeProperty;
+class AActor;
 struct FOnAttributeChangeData;
 
 UCLASS(Blueprintable)
@@ -23,6 +24,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|Combat")
 	bool IsDead() const;
 
+	void HandleHitReaction(AActor* InstigatorActor);
+
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
 	void SetAbilitySystemInitializationLoggingEnabled(bool bEnabled);
 
@@ -35,11 +38,17 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Combat")
 	void OnDeathStateChanged(bool bNewIsDead);
 
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Combat")
+	void OnHitReaction(AActor* InstigatorActor);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
 	bool bLogAbilitySystemInitialization = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
 	bool bLogDeathState = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
+	bool bLogHitReaction = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
 	bool bDrawAttributeDebug = true;
@@ -53,6 +62,9 @@ private:
 	void ApplyDeathState();
 	void LogEnemyAbilitySystemDebug() const;
 	void DrawAttributeDebug() const;
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastPlayHitReaction(AActor* InstigatorActor);
 
 	UPROPERTY(ReplicatedUsing = OnRep_IsDead)
 	bool bIsDead = false;

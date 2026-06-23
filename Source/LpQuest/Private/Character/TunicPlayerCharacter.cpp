@@ -26,6 +26,7 @@
 #include "GameplayTagContainer.h"
 #include "InputActionValue.h"
 #include "Player/TunicPlayerState.h"
+#include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLpQuestGasDebug, Log, All);
 
@@ -510,7 +511,22 @@ bool ATunicPlayerCharacter::PlayLightAttackMontage()
 		return false;
 	}
 
+	const int32 MontageSerial = ++LightAttackMontageActivationSerial;
+	LightAttackMontageHitWindowSerial = 0;
 	MulticastPlayLightAttackMontage(LightAttackMontage);
+
+	if (UWorld* World = GetWorld())
+	{
+		FTimerHandle TimerHandle;
+		FTimerDelegate TimerDelegate;
+		TimerDelegate.BindUObject(this, &ATunicPlayerCharacter::CheckLightAttackMontageHitWindowTriggered, MontageSerial);
+		World->GetTimerManager().SetTimer(
+			TimerHandle,
+			TimerDelegate,
+			LightAttackMontage->GetPlayLength() + 0.1f,
+			false);
+	}
+
 	return true;
 }
 
@@ -529,6 +545,18 @@ void ATunicPlayerCharacter::MulticastPlayLightAttackMontage_Implementation(UAnim
 	}
 
 	AnimInstance->Montage_Play(MontageToPlay);
+}
+
+void ATunicPlayerCharacter::CheckLightAttackMontageHitWindowTriggered(int32 MontageSerial)
+{
+	if (!HasAuthority() || !LightAttackMontage || LightAttackMontageActivationSerial != MontageSerial || LightAttackMontageHitWindowSerial == MontageSerial)
+	{
+		return;
+	}
+
+	UE_LOG(LogLpQuestGasDebug, Warning, TEXT("Light attack montage completed without hit-window notify | Character=%s | Montage=%s"),
+		*GetNameSafe(this),
+		*GetNameSafe(LightAttackMontage));
 }
 
 void ATunicPlayerCharacter::LogLightAttackRequestDebug() const
@@ -561,6 +589,7 @@ void ATunicPlayerCharacter::BeginLightAttackHitWindow()
 	}
 
 	bLightAttackHitWindowActive = true;
+	LightAttackMontageHitWindowSerial = LightAttackMontageActivationSerial;
 	LightAttackHitTargets.Reset();
 }
 
@@ -672,7 +701,7 @@ void ATunicPlayerCharacter::LogLightAttackHitSweepDebug(const TArray<FHitResult>
 	}
 }
 
-void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(ATunicEnemyCharacter* TargetEnemy) const
+void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(ATunicEnemyCharacter* TargetEnemy)
 {
 	if (!bApplyLightAttackDebugDamage)
 	{
@@ -712,13 +741,19 @@ void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(ATunicEnemyCharacter* Ta
 	FGameplayEffectContextHandle EffectContext = SourceAbilitySystemComponent ? SourceAbilitySystemComponent->MakeEffectContext() : TargetAbilitySystemComponent->MakeEffectContext();
 	EffectContext.AddSourceObject(this);
 	TargetAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(LightAttackDamageEffectClass, 1.0f, EffectContext);
+	const float HealthAfter = TargetAttributeSet->GetHealth();
+
+	if (HealthAfter < HealthBefore && HealthAfter > 0.0f && !TargetEnemy->IsDead())
+	{
+		TargetEnemy->HandleHitReaction(this);
+	}
 
 	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage applied | Character=%s | Target=%s | EffectClass=%s | TargetHealth=%.1f->%.1f"),
 		*GetNameSafe(this),
 		*GetNameSafe(TargetEnemy),
 		*GetNameSafe(LightAttackDamageEffectClass.Get()),
 		HealthBefore,
-		TargetAttributeSet->GetHealth());
+		HealthAfter);
 }
 
 void ATunicPlayerCharacter::RequestDodge()
