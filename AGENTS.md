@@ -86,6 +86,8 @@ At the end of each stage, do a strict review pass before moving on. Run both a n
 
 Update `ARCHITECTURE.md` only when code changes actual architecture. Use `plan.md` for current task status and next steps. Do not turn `tunicplan.md` into a running changelog.
 
+Keep `ARCHITECTURE.md` focused on stable ownership, flow, boundaries, and class/function responsibilities. Avoid hard-coding tunable gameplay numbers such as damage, stamina cost, cooldown duration, regen rate, sweep size, movement speed, or camera distances unless the number is itself an architectural contract. Prefer naming the owning class, GameplayEffect, DataAsset, config key, or function instead. Use `plan.md` for temporary checkpoint values and validation notes.
+
 Before any commit, check whether `README.md`, `ARCHITECTURE.md`, and `AGENTS.md` need updates for the completed change. Only update them when their documented scope actually changed.
 
 ## Commit & Pull Request Guidelines
@@ -115,6 +117,10 @@ Pull requests should include a short summary, affected areas (`Source`, `Config`
 
 Read real project files before changing behavior. Keep edits small and aligned with the single-module structure. Do not delete generated folders or user assets unless explicitly requested.
 
+If a user request is vague, directionally unclear, or has multiple plausible interpretations that would affect architecture, assets, commits, or gameplay behavior, ask a concise clarifying question before editing.
+
+If a requested approach is technically unsound, high-risk, likely to damage the existing architecture, or clearly worse than another path, push back directly with the technical reason and propose a better alternative.
+
 If Serena MCP is available, try activating `E:\UnRealEngine\LpQuest` before symbol-level C++ navigation or C++ edits. In this UE C++ project, treat empty or stale Serena symbol results as non-authoritative because UHT, generated headers, UBT include paths, and changing `compile_commands.json` can make the LSP index incomplete.
 
 If a Serena call fails or cannot find known project symbols, report the concrete reason instead of silently falling back. Include the failing operation, the error or symptom, and the most likely fix, such as reactivating the project, restarting the MCP/client, regenerating `compile_commands.json`, rebuilding the editor target, or refreshing the LSP index. Then immediately fall back to CodeGraph, `rg`, direct source reads, compiler output, and local UE Engine headers.
@@ -122,6 +128,8 @@ If a Serena call fails or cannot find known project symbols, report the concrete
 If `.codegraph/` exists, try CodeGraph before text search for code navigation. If CodeGraph service fails, mention the failure and fall back to `rg` / direct file reads.
 
 If Serena or CodeGraph results appear stale, mention it and suggest reactivation, restart, or re-indexing. After adding/removing C++ files or changing module dependencies, remind the user that `compile_commands.json` may need regeneration for Serena/clangd accuracy.
+
+For live Unreal Editor work such as inspecting or changing levels, actors, assets, Blueprints, Gameplay Tags, GAS assets, materials, or widgets, use the `unreal-mcp` skill when the MCP server is available. Discover tools through `list_toolsets` / `describe_toolset`, dispatch through `call_tool`, keep calls sequential, and confirm the user has a save/recovery point before bulk or hard-to-undo asset edits.
 
 Do not treat user-tuned `.uasset` changes as review findings unless the user explicitly asks to review assets.
 

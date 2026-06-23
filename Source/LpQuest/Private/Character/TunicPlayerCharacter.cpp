@@ -9,6 +9,8 @@
 #include "Ability/TunicStaminaRegenGameplayEffect.h"
 #include "Abilities/GameplayAbility.h"
 #include "AbilitySystemComponent.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "Camera/CameraComponent.h"
 #include "Character/TunicEnemyCharacter.h"
 #include "DrawDebugHelpers.h"
@@ -16,6 +18,8 @@
 #include "Engine/EngineTypes.h"
 #include "Engine/HitResult.h"
 #include "Engine/World.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameplayAbilitySpec.h"
 #include "GameplayEffect.h"
@@ -45,6 +49,7 @@ ATunicPlayerCharacter::ATunicPlayerCharacter(const FObjectInitializer& ObjectIni
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
 	PrimaryActorTick.bCanEverTick = true;
 
 	LightAttackDamageEffectClass = UTunicDamageGameplayEffect::StaticClass();
@@ -118,6 +123,7 @@ void ATunicPlayerCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	UpdateFacingToMouse(DeltaSeconds, false);
 	DrawAttributeDebug();
 }
 
@@ -129,13 +135,12 @@ void ATunicPlayerCharacter::Move(const FInputActionValue& Value)
 		return;
 	}
 
-	const float CameraYaw = CameraBoom ? CameraBoom->GetComponentRotation().Yaw : GetActorRotation().Yaw;
-	const FRotator YawRotation(0.0f, CameraYaw, 0.0f);
-	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+	FVector ScreenUpDirection = FVector::ForwardVector;
+	FVector ScreenRightDirection = FVector::RightVector;
+	GetFixedViewMovementDirections(ScreenUpDirection, ScreenRightDirection);
 
-	AddMovementInput(ForwardDirection, -MovementVector.Y);
-	AddMovementInput(RightDirection, -MovementVector.X);
+	AddMovementInput(ScreenUpDirection, -MovementVector.Y);
+	AddMovementInput(ScreenRightDirection, -MovementVector.X);
 }
 
 void ATunicPlayerCharacter::StartDodge(const FInputActionValue& Value)
@@ -145,6 +150,7 @@ void ATunicPlayerCharacter::StartDodge(const FInputActionValue& Value)
 
 void ATunicPlayerCharacter::LightAttack(const FInputActionValue& Value)
 {
+	UpdateFacingToMouse(0.0f, true);
 	RequestLightAttack();
 }
 
@@ -229,6 +235,113 @@ void ATunicPlayerCharacter::SetAttributeDebugDrawEnabled(bool bEnabled)
 void ATunicPlayerCharacter::SetLightAttackTargetQueryLoggingEnabled(bool bEnabled)
 {
 	SetLightAttackHitSweepLoggingEnabled(bEnabled);
+}
+
+bool ATunicPlayerCharacter::GetMouseFacingYaw(float& OutYaw) const
+{
+	const APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController)
+	{
+		return false;
+	}
+
+	FVector CursorWorldLocation = FVector::ZeroVector;
+	FVector CursorWorldDirection = FVector::ZeroVector;
+	if (!PlayerController->DeprojectMousePositionToWorld(CursorWorldLocation, CursorWorldDirection) || FMath::IsNearlyZero(CursorWorldDirection.Z))
+	{
+		return false;
+	}
+
+	FVector AimPoint = FVector::ZeroVector;
+	FHitResult CursorHit;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(MouseFacingTrace), false, this);
+	QueryParams.AddIgnoredActor(this);
+
+	UWorld* World = GetWorld();
+	if (World && World->LineTraceSingleByChannel(CursorHit, CursorWorldLocation, CursorWorldLocation + CursorWorldDirection * 100000.0f, ECC_Visibility, QueryParams) && CursorHit.bBlockingHit)
+	{
+		AimPoint = CursorHit.ImpactPoint;
+	}
+	else
+	{
+		const float PlaneDistance = (GetActorLocation().Z - CursorWorldLocation.Z) / CursorWorldDirection.Z;
+		if (PlaneDistance < 0.0f)
+		{
+			return false;
+		}
+
+		AimPoint = CursorWorldLocation + CursorWorldDirection * PlaneDistance;
+	}
+
+	const FVector FacingDirection = AimPoint - GetActorLocation();
+	const FVector FacingDirection2D(FacingDirection.X, FacingDirection.Y, 0.0f);
+	if (FacingDirection2D.IsNearlyZero())
+	{
+		return false;
+	}
+
+	OutYaw = FacingDirection2D.Rotation().Yaw;
+	return true;
+}
+
+void ATunicPlayerCharacter::GetFixedViewMovementDirections(FVector& OutScreenUpDirection, FVector& OutScreenRightDirection) const
+{
+	const UCameraComponent* MovementCamera = FollowCamera ? FollowCamera.Get() : nullptr;
+	if (!MovementCamera)
+	{
+		return;
+	}
+
+	OutScreenUpDirection = FVector::VectorPlaneProject(MovementCamera->GetUpVector(), FVector::UpVector).GetSafeNormal();
+	OutScreenRightDirection = FVector::VectorPlaneProject(MovementCamera->GetRightVector(), FVector::UpVector).GetSafeNormal();
+
+	if (OutScreenUpDirection.IsNearlyZero() || OutScreenRightDirection.IsNearlyZero())
+	{
+		OutScreenUpDirection = FVector::ForwardVector;
+		OutScreenRightDirection = FVector::RightVector;
+	}
+}
+
+void ATunicPlayerCharacter::ServerSetFacingYaw_Implementation(float NewYaw, bool bSnap)
+{
+	if (!FMath::IsFinite(NewYaw))
+	{
+		return;
+	}
+
+	if (bSnap)
+	{
+		SetActorRotation(FRotator(0.0f, FRotator::NormalizeAxis(NewYaw), 0.0f));
+		return;
+	}
+
+	SetActorRotation(FRotator(0.0f, FRotator::NormalizeAxis(NewYaw), 0.0f));
+}
+
+void ATunicPlayerCharacter::UpdateFacingToMouse(float DeltaSeconds, bool bForceServerUpdate)
+{
+	if (!bFaceMouseOnAttack || !IsLocallyControlled())
+	{
+		return;
+	}
+
+	TimeSinceLastMouseFacingServerUpdate += FMath::Max(0.0f, DeltaSeconds);
+
+	float NewYaw = 0.0f;
+	if (!GetMouseFacingYaw(NewYaw))
+	{
+		return;
+	}
+
+	SetActorRotation(FRotator(0.0f, FRotator::NormalizeAxis(NewYaw), 0.0f));
+	if (!HasAuthority())
+	{
+		if (bForceServerUpdate || TimeSinceLastMouseFacingServerUpdate >= MouseFacingServerUpdateInterval)
+		{
+			ServerSetFacingYaw(NewYaw, true);
+			TimeSinceLastMouseFacingServerUpdate = 0.0f;
+		}
+	}
 }
 
 void ATunicPlayerCharacter::InitializePlayerAbilitySystem()
@@ -354,7 +467,8 @@ void ATunicPlayerCharacter::HandleLightAttackRequest()
 	}
 
 	LogLightAttackRequestDebug();
-	if (bRunLightAttackHitWindowOnRequest)
+	const bool bPlayedMontage = PlayLightAttackMontage();
+	if (bRunLightAttackHitWindowOnRequest && !bPlayedMontage)
 	{
 		BeginLightAttackHitWindow();
 		ProcessLightAttackHitWindow();
@@ -387,6 +501,34 @@ bool ATunicPlayerCharacter::TryActivateLightAttackAbility()
 	}
 
 	return LightAttackAbilityClass ? PlayerAbilitySystemComponent->TryActivateAbilityByClass(LightAttackAbilityClass) : false;
+}
+
+bool ATunicPlayerCharacter::PlayLightAttackMontage()
+{
+	if (!HasAuthority() || !LightAttackMontage)
+	{
+		return false;
+	}
+
+	MulticastPlayLightAttackMontage(LightAttackMontage);
+	return true;
+}
+
+void ATunicPlayerCharacter::MulticastPlayLightAttackMontage_Implementation(UAnimMontage* MontageToPlay)
+{
+	if (!MontageToPlay)
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* CharacterMesh = GetMesh();
+	UAnimInstance* AnimInstance = CharacterMesh ? CharacterMesh->GetAnimInstance() : nullptr;
+	if (!AnimInstance)
+	{
+		return;
+	}
+
+	AnimInstance->Montage_Play(MontageToPlay);
 }
 
 void ATunicPlayerCharacter::LogLightAttackRequestDebug() const

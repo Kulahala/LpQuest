@@ -11,6 +11,7 @@ class UCameraComponent;
 class UGameplayAbility;
 class UGameplayEffect;
 class UInputAction;
+class UAnimMontage;
 class UTunicAbilitySystemComponent;
 struct FInputActionValue;
 struct FHitResult;
@@ -153,6 +154,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Debug")
 	TSubclassOf<UGameplayEffect> LightAttackDamageEffectClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Animation")
+	TObjectPtr<UAnimMontage> LightAttackMontage;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities")
 	TSubclassOf<UGameplayAbility> LightAttackAbilityClass;
 
@@ -160,6 +164,9 @@ protected:
 	TSubclassOf<UGameplayEffect> StaminaRegenEffectClass;
 
 private:
+	bool GetMouseFacingYaw(float& OutYaw) const;
+	void GetFixedViewMovementDirections(FVector& OutScreenUpDirection, FVector& OutScreenRightDirection) const;
+	void UpdateFacingToMouse(float DeltaSeconds, bool bForceServerUpdate);
 	void InitializePlayerAbilitySystem();
 	void GrantDefaultAbilities(UTunicAbilitySystemComponent* PlayerAbilitySystemComponent);
 	void ApplyDefaultEffects(UTunicAbilitySystemComponent* PlayerAbilitySystemComponent);
@@ -170,6 +177,7 @@ private:
 	void RequestLightAttack();
 	void HandleLightAttackRequest();
 	bool TryActivateLightAttackAbility();
+	bool PlayLightAttackMontage();
 	void LogLightAttackRequestDebug() const;
 	void DrawAttributeDebug() const;
 	FVector GetLightAttackSweepPoint(const FVector& LocalOffset) const;
@@ -183,7 +191,20 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerRequestLightAttack();
 
+	UFUNCTION(Server, Unreliable)
+	void ServerSetFacingYaw(float NewYaw, bool bSnap);
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastPlayLightAttackMontage(UAnimMontage* MontageToPlay);
+
+	UPROPERTY(EditAnywhere, Category = "Tunic|Combat|Facing")
+	bool bFaceMouseOnAttack = true;
+
+	UPROPERTY(EditAnywhere, Category = "Tunic|Combat|Facing", meta = (ClampMin = "0.01", Units = "s"))
+	float MouseFacingServerUpdateInterval = 0.05f;
+
 	FActiveGameplayEffectHandle StaminaRegenEffectHandle;
+	float TimeSinceLastMouseFacingServerUpdate = 0.0f;
 	bool bLightAttackHitWindowActive = false;
 	TSet<TWeakObjectPtr<ATunicEnemyCharacter>> LightAttackHitTargets;
 };

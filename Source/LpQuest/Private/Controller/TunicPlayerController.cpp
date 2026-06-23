@@ -6,6 +6,8 @@
 
 ATunicPlayerController::ATunicPlayerController()
 {
+	bShowMouseCursor = true;
+	DefaultMouseCursor = EMouseCursor::Default;
 }
 
 void ATunicPlayerController::BeginPlay()

@@ -30,9 +30,9 @@ Current runtime dependencies:
 - `GameplayStateTreeModule`
 - `UMG`
 
-Optional later dependencies:
+Optional later runtime module dependencies:
 
-- `MotionWarping` for selected melee/Boss correction.
+- `MotionWarping` for selected melee/Boss correction. The plugin may be enabled during prototype setup, but the runtime module should not add a `MotionWarping` dependency until gameplay code actually uses it.
 - `Niagara` for elemental VFX.
 
 Avoid early dependencies on PCG, CommonUI, DLSS, Streamline, Reflex, and release/performance tooling until the project actually needs them.
@@ -43,11 +43,13 @@ Avoid early dependencies on PCG, CommonUI, DLSS, Streamline, Reflex, and release
 
 `ATunicCharacterBase` provides shared `ACharacter` movement plus Ability System Component and AttributeSet accessors. It does not create ASC/AttributeSet by default; ownership is supplied by PlayerState or enemy subclasses.
 
-`ATunicPlayerCharacter` owns local presentation and input: fixed isometric `SpringArm + Camera`, Enhanced Input bindings, screen-relative movement, and Blueprint-facing request hooks for dodge, attacks, aim, interact, and weapon switching. The fixed camera disables SpringArm collision retraction so nearby enemies do not shrink the view. It initializes player GAS from `ATunicPlayerState` in `PossessedBy` and `OnRep_PlayerState`, using PlayerState as OwnerActor and Character as AvatarActor.
+`ATunicPlayerCharacter` owns local presentation and input: fixed isometric `SpringArm + Camera`, Enhanced Input bindings, fixed-view movement, attack-facing intent, and Blueprint-facing request hooks for dodge, attacks, aim, interact, and weapon switching. The fixed camera disables SpringArm collision retraction so nearby enemies do not shrink the view. It initializes player GAS from `ATunicPlayerState` in `PossessedBy` and `OnRep_PlayerState`, using PlayerState as OwnerActor and Character as AvatarActor.
+
+Player movement remains fixed-view relative to the camera screen axes: WASD maps to the fixed camera's projected screen up/down/left/right directions on the ground plane. Movement does not depend on current character facing. Locally controlled players continuously face the current mouse cursor direction and send throttled yaw updates to the server; light attack input forces one immediate yaw update before activation so server-authoritative melee sweeps use the same attack direction.
 
 Current dodge input is debug-only: locally owned clients request dodge through a server RPC, the server logs the accepted request, and then calls the existing Blueprint hook. Real dodge movement, invulnerability, stamina cost, montage, and cooldown behavior are not implemented yet.
 
-Current light attack input activates a minimal `UGameplayAbility` tagged `Ability.Attack.Sword.Light` through the player ASC. The ability executes on the server, commits a 10 Stamina cost, applies a short cooldown/action-lock GameplayEffect, logs the accepted request, runs a server-side light attack hit window, performs a short capsule sweep in front of the character, logs sweep results, applies a minimal instant GameplayEffect damage path to hit enemy ASCs when debug damage is enabled, and then calls the existing Blueprint hook. If the player ASC and light attack ability class are available, failed ability activation does not fall back to the old RPC path; this keeps cooldown and cost gates authoritative. The old server RPC path remains only as a bootstrap fallback for cases where the ASC or ability class is unavailable. Dead enemies are skipped by the sweep and damage path. The hit window is exposed through `BeginLightAttackHitWindow`, `ProcessLightAttackHitWindow`, and `EndLightAttackHitWindow` so later animation notify states can drive the same server-authoritative sweep. Montage dependency, hit reactions, final WeaponActor traces, and formal damage immunity rules are not implemented yet.
+Current light attack input activates a minimal `UGameplayAbility` tagged `Ability.Attack.Sword.Light` through the player ASC. The ability executes on the server, commits its native light-attack Stamina cost GameplayEffect, applies its native cooldown/action-lock GameplayEffect, logs the accepted request, and then delegates to the player character's light-attack execution path. If a light attack Montage is configured on the player character, the server multicasts Montage playback and expects `UTunicAnimNotifyState_LightAttackHitWindow` on that Montage to drive the server-side hit window. If no Montage is configured, the old immediate hit-window path remains as a bootstrap fallback. The hit window performs a short capsule sweep in front of the character, logs sweep results, applies a minimal instant GameplayEffect damage path to hit enemy ASCs when debug damage is enabled, and skips dead enemies. If the player ASC and light attack ability class are available, failed ability activation does not fall back to the old RPC path; this keeps cooldown and cost gates authoritative. The old server RPC path remains only as a bootstrap fallback for cases where the ASC or ability class is unavailable. Hit reactions, final WeaponActor traces, and formal damage immunity rules are not implemented yet.
 
 `ATunicEnemyCharacter` owns its own ASC and AttributeSet because enemies do not have PlayerStates. It initializes GAS with itself as OwnerActor and AvatarActor. It currently has a minimal replicated death state: when server Health reaches 0, the enemy replicates `bIsDead`, disables capsule collision and character movement, calls a Blueprint death-state hook, and adds the registered `State.Dead` loose gameplay tag.
 
@@ -55,7 +57,7 @@ Current enemy GAS validation is debug-only: enemy initialization logs ASC, Owner
 
 ### Player Framework
 
-`ATunicPlayerController` owns local Enhanced Input Mapping Context installation. It exposes the default mapping context and priority for later Blueprint or asset configuration without hard-coded asset paths.
+`ATunicPlayerController` owns local Enhanced Input Mapping Context installation and enables the visible mouse cursor used by attack-facing validation. It exposes the default mapping context and priority for later Blueprint or asset configuration without hard-coded asset paths.
 
 `ATunicPlayerState` owns persistent player GAS state: player ASC and replicated AttributeSet.
 
@@ -73,9 +75,9 @@ GAS owns abilities, cooldowns, damage effects, elemental states, action locks, i
 
 `UTunicAttributeSet` defines replicated `Health`, `MaxHealth`, `Stamina`, `MaxStamina`, and `ElementalPower` attributes with `OnRep_*` notification hooks. It clamps Health and Stamina against their max values, keeps MaxHealth and MaxStamina at least 1, clamps ElementalPower to non-negative values, and re-clamps current Health/Stamina after max-value GameplayEffect changes.
 
-`UTunicGameplayAbility_LightAttack` is the first minimal player GameplayAbility. It is server-only, granted by `ATunicPlayerCharacter` during player ASC initialization, owns a native Stamina cost GameplayEffect and a native short cooldown/action-lock GameplayEffect, blocks activation while `Cooldown.Attack`, `State.ActionLocked`, or `State.Dead` is present, and delegates to the existing server-side light attack hit-window implementation. It does not yet own montage playback, animation-driven timing, or hit reactions.
+`UTunicGameplayAbility_LightAttack` is the first minimal player GameplayAbility. It is server-only, granted by `ATunicPlayerCharacter` during player ASC initialization, owns a native Stamina cost GameplayEffect and a native short cooldown/action-lock GameplayEffect, blocks activation while `Cooldown.Attack`, `State.ActionLocked`, or `State.Dead` is present, and delegates to the player character's server-side light attack execution path. The player character currently owns Montage playback configuration and the hit-window implementation. Hit reactions and final WeaponActor traces are not implemented yet.
 
-`UTunicStaminaRegenGameplayEffect` is a minimal server-applied infinite periodic GameplayEffect on the player ASC. It restores 2.5 Stamina every 0.25 seconds after the first period, for a current baseline of 10 Stamina per second. It does not yet include combat-delay, exhaustion, or tag-gated regen blocking rules.
+`UTunicStaminaRegenGameplayEffect` is a minimal server-applied infinite periodic GameplayEffect on the player ASC. It owns the current baseline Stamina regeneration tuning. It does not yet include combat-delay, exhaustion, or tag-gated regen blocking rules.
 
 Temporary debug draw on player and enemy characters renders replicated Health/Stamina values above actors for PIE validation. This is a world debug aid, not the final HUD or settings UI path.
 
@@ -84,6 +86,8 @@ Movement, camera, simple interaction, and editor-only setup should not be forced
 ### Combat
 
 Weapon hit windows should be animation-notify driven. Weapon actors may detect hits, but final damage and elemental state application should flow through GAS.
+
+`UTunicAnimNotifyState_LightAttackHitWindow` is the current C++ bridge from animation timing to the server-authoritative player hit-window functions. The notify state does not apply damage directly; it only forwards Begin/Tick/End timing to `ATunicPlayerCharacter`, whose authority guards and sweep logic own hit confirmation.
 
 For multiplayer PvE, authoritative hit confirmation, projectile spawning, damage GameplayEffects, death, and elemental state changes happen on the server. Clients may play presentation but should not own final combat results.
 
