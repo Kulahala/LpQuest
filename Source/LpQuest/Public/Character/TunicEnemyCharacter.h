@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Character/TunicCharacterBase.h"
+#include "Combat/TunicCombatTargetInterface.h"
 #include "TunicEnemyCharacter.generated.h"
 
 class FLifetimeProperty;
@@ -12,7 +13,7 @@ class UAnimMontage;
 struct FOnAttributeChangeData;
 
 UCLASS(Blueprintable)
-class LPQUEST_API ATunicEnemyCharacter : public ATunicCharacterBase
+class LPQUEST_API ATunicEnemyCharacter : public ATunicCharacterBase, public ITunicCombatTargetInterface
 {
 	GENERATED_BODY()
 
@@ -26,6 +27,10 @@ public:
 	bool IsDead() const;
 
 	void HandleHitReaction(AActor* InstigatorActor);
+	virtual bool IsCombatTargetAvailable() const override;
+	virtual UTunicAbilitySystemComponent* GetCombatTargetAbilitySystemComponent() const override;
+	virtual UTunicAttributeSet* GetCombatTargetAttributeSet() const override;
+	virtual void HandleCombatTargetHitReaction(AActor* InstigatorActor) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
 	void SetAbilitySystemInitializationLoggingEnabled(bool bEnabled);

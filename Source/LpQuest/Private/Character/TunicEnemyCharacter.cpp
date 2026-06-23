@@ -59,6 +59,26 @@ bool ATunicEnemyCharacter::IsDead() const
 	return bIsDead;
 }
 
+bool ATunicEnemyCharacter::IsCombatTargetAvailable() const
+{
+	return !IsDead();
+}
+
+UTunicAbilitySystemComponent* ATunicEnemyCharacter::GetCombatTargetAbilitySystemComponent() const
+{
+	return GetTunicAbilitySystemComponent();
+}
+
+UTunicAttributeSet* ATunicEnemyCharacter::GetCombatTargetAttributeSet() const
+{
+	return GetAttributeSet();
+}
+
+void ATunicEnemyCharacter::HandleCombatTargetHitReaction(AActor* InstigatorActor)
+{
+	HandleHitReaction(InstigatorActor);
+}
+
 void ATunicEnemyCharacter::SetAbilitySystemInitializationLoggingEnabled(bool bEnabled)
 {
 	bLogAbilitySystemInitialization = bEnabled;

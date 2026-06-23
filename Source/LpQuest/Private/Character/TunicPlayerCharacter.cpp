@@ -12,7 +12,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Camera/CameraComponent.h"
-#include "Character/TunicEnemyCharacter.h"
+#include "Combat/TunicCombatTargetInterface.h"
 #include "DrawDebugHelpers.h"
 #include "EnhancedInputComponent.h"
 #include "Engine/EngineTypes.h"
@@ -624,14 +624,15 @@ void ATunicPlayerCharacter::ProcessLightAttackHitWindow()
 	int32 AppliedHitCount = 0;
 	for (const FHitResult& HitResult : HitResults)
 	{
-		ATunicEnemyCharacter* EnemyCharacter = Cast<ATunicEnemyCharacter>(HitResult.GetActor());
-		if (!EnemyCharacter || EnemyCharacter->IsDead() || LightAttackHitTargets.Contains(EnemyCharacter))
+		AActor* TargetActor = HitResult.GetActor();
+		ITunicCombatTargetInterface* CombatTarget = Cast<ITunicCombatTargetInterface>(TargetActor);
+		if (!TargetActor || !CombatTarget || !CombatTarget->IsCombatTargetAvailable() || LightAttackHitTargets.Contains(TargetActor))
 		{
 			continue;
 		}
 
-		LightAttackHitTargets.Add(EnemyCharacter);
-		ApplyLightAttackDebugDamage(EnemyCharacter);
+		LightAttackHitTargets.Add(TargetActor);
+		ApplyLightAttackDebugDamage(TargetActor, CombatTarget);
 		++AppliedHitCount;
 	}
 
@@ -677,18 +678,19 @@ void ATunicPlayerCharacter::LogLightAttackHitSweepDebug(const TArray<FHitResult>
 
 	for (const FHitResult& HitResult : HitResults)
 	{
-		const ATunicEnemyCharacter* TargetEnemy = Cast<ATunicEnemyCharacter>(HitResult.GetActor());
-		if (!TargetEnemy)
+		const AActor* TargetActor = HitResult.GetActor();
+		const ITunicCombatTargetInterface* CombatTarget = Cast<ITunicCombatTargetInterface>(TargetActor);
+		if (!TargetActor || !CombatTarget)
 		{
 			continue;
 		}
 
-		const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = TargetEnemy->GetTunicAbilitySystemComponent();
-		const UTunicAttributeSet* TargetAttributeSet = TargetEnemy->GetAttributeSet();
+		const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = CombatTarget->GetCombatTargetAbilitySystemComponent();
+		const UTunicAttributeSet* TargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
 
 		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack hit sweep target | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | TargetHealth=%.1f/%.1f | TargetStamina=%.1f/%.1f | ImpactPoint=%s | TargetLocalRole=%d | TargetRemoteRole=%d"),
 			*GetNameSafe(this),
-			*GetNameSafe(TargetEnemy),
+			*GetNameSafe(TargetActor),
 			*GetNameSafe(TargetAbilitySystemComponent),
 			*GetNameSafe(TargetAttributeSet),
 			TargetAttributeSet ? TargetAttributeSet->GetHealth() : 0.0f,
@@ -696,40 +698,40 @@ void ATunicPlayerCharacter::LogLightAttackHitSweepDebug(const TArray<FHitResult>
 			TargetAttributeSet ? TargetAttributeSet->GetStamina() : 0.0f,
 			TargetAttributeSet ? TargetAttributeSet->GetMaxStamina() : 0.0f,
 			*HitResult.ImpactPoint.ToCompactString(),
-			static_cast<int32>(TargetEnemy->GetLocalRole()),
-			static_cast<int32>(TargetEnemy->GetRemoteRole()));
+			static_cast<int32>(TargetActor->GetLocalRole()),
+			static_cast<int32>(TargetActor->GetRemoteRole()));
 	}
 }
 
-void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(ATunicEnemyCharacter* TargetEnemy)
+void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget)
 {
 	if (!bApplyLightAttackDebugDamage)
 	{
 		return;
 	}
 
-	if (!TargetEnemy)
+	if (!TargetActor || !CombatTarget)
 	{
 		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage skipped: no target | Character=%s"),
 			*GetNameSafe(this));
 		return;
 	}
 
-	if (TargetEnemy->IsDead())
+	if (!CombatTarget->IsCombatTargetAvailable())
 	{
-		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage skipped: target is dead | Character=%s | Target=%s"),
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage skipped: target unavailable | Character=%s | Target=%s"),
 			*GetNameSafe(this),
-			*GetNameSafe(TargetEnemy));
+			*GetNameSafe(TargetActor));
 		return;
 	}
 
-	UTunicAbilitySystemComponent* TargetAbilitySystemComponent = TargetEnemy->GetTunicAbilitySystemComponent();
-	UTunicAttributeSet* TargetAttributeSet = TargetEnemy->GetAttributeSet();
+	UTunicAbilitySystemComponent* TargetAbilitySystemComponent = CombatTarget->GetCombatTargetAbilitySystemComponent();
+	UTunicAttributeSet* TargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
 	if (!TargetAbilitySystemComponent || !TargetAttributeSet || !LightAttackDamageEffectClass)
 	{
 		UE_LOG(LogLpQuestGasDebug, Warning, TEXT("Light attack debug damage failed: missing target GAS data | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | EffectClass=%s"),
 			*GetNameSafe(this),
-			*GetNameSafe(TargetEnemy),
+			*GetNameSafe(TargetActor),
 			*GetNameSafe(TargetAbilitySystemComponent),
 			*GetNameSafe(TargetAttributeSet),
 			*GetNameSafe(LightAttackDamageEffectClass.Get()));
@@ -743,14 +745,14 @@ void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(ATunicEnemyCharacter* Ta
 	TargetAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(LightAttackDamageEffectClass, 1.0f, EffectContext);
 	const float HealthAfter = TargetAttributeSet->GetHealth();
 
-	if (HealthAfter < HealthBefore && HealthAfter > 0.0f && !TargetEnemy->IsDead())
+	if (HealthAfter < HealthBefore && HealthAfter > 0.0f && CombatTarget->IsCombatTargetAvailable())
 	{
-		TargetEnemy->HandleHitReaction(this);
+		CombatTarget->HandleCombatTargetHitReaction(this);
 	}
 
 	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage applied | Character=%s | Target=%s | EffectClass=%s | TargetHealth=%.1f->%.1f"),
 		*GetNameSafe(this),
-		*GetNameSafe(TargetEnemy),
+		*GetNameSafe(TargetActor),
 		*GetNameSafe(LightAttackDamageEffectClass.Get()),
 		HealthBefore,
 		HealthAfter);

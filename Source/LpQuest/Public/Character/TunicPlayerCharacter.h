@@ -13,10 +13,11 @@ class UGameplayEffect;
 class UInputAction;
 class UAnimMontage;
 class UTunicAbilitySystemComponent;
+class AActor;
 struct FInputActionValue;
 struct FHitResult;
 class USpringArmComponent;
-class ATunicEnemyCharacter;
+class ITunicCombatTargetInterface;
 
 UCLASS(Blueprintable)
 class LPQUEST_API ATunicPlayerCharacter : public ATunicCharacterBase
@@ -183,7 +184,7 @@ private:
 	void DrawAttributeDebug() const;
 	FVector GetLightAttackSweepPoint(const FVector& LocalOffset) const;
 	void LogLightAttackHitSweepDebug(const TArray<FHitResult>& HitResults, int32 AppliedHitCount) const;
-	void ApplyLightAttackDebugDamage(ATunicEnemyCharacter* TargetEnemy);
+	void ApplyLightAttackDebugDamage(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget);
 	void LogServerInputRequestDebug(const TCHAR* RequestName, bool bShouldLog) const;
 
 	UFUNCTION(Server, Reliable)
@@ -209,6 +210,6 @@ private:
 	bool bLightAttackHitWindowActive = false;
 	int32 LightAttackMontageActivationSerial = 0;
 	int32 LightAttackMontageHitWindowSerial = 0;
-	TSet<TWeakObjectPtr<ATunicEnemyCharacter>> LightAttackHitTargets;
+	TSet<TWeakObjectPtr<AActor>> LightAttackHitTargets;
 };
 
