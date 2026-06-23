@@ -76,6 +76,14 @@ For GAS/networking work, verify OwnerActor, AvatarActor, AttributeSet ownership,
 
 At the end of each stage, do a strict review pass before moving on. Run both a normal review and an adversarial review: first look for bugs, reliability risks, behavior regressions, missing validation, coupling problems, architecture debt, and multiplayer/GAS shortcuts; then defend the key design choices and mark anything that cannot be defended as a risk.
 
+## Planning Workflow
+
+For complex, multi-file, architecture-sensitive, networking-sensitive, or asset-heavy tasks, write a concrete plan before implementation. The plan should cover scope, affected systems/files, execution order, validation, documentation impact, and commit boundaries.
+
+Do not start implementing while the plan is still being discovered. If new information materially changes the plan, pause and explain the revised plan before continuing.
+
+Small single-file fixes, narrow documentation edits, and simple diagnostic commands may proceed with a short intent statement instead of a full plan.
+
 ## Documentation Roles
 
 - `README.md`: project overview, current status, and public-facing direction.
@@ -112,6 +120,22 @@ Do not claim that something was tested, built, deployed, packaged, or manually v
 Do not commit immediately after making changes. Stop after implementation and verification, summarize the diff and validation status, then wait for the user's explicit approval before committing.
 
 Pull requests should include a short summary, affected areas (`Source`, `Config`, or `Content`), build/test results, and screenshots or clips for visible gameplay/editor changes. Call out `.uasset` edits explicitly.
+
+## Git LFS & Asset Commits
+
+`.gitattributes` is the source of truth for Git LFS routing. Unreal assets and large external assets such as `.uasset`, `.umap`, `.fbx`, `.png`, and related binary media should be staged with normal Git commands so LFS filters run automatically.
+
+Do not disable Git LFS filters for `git add` or `git commit`. If local Git commands fail because of Git for Windows or shell issues, LFS-filter-disabling commands may be used only for read-only inspection such as `status`, `log`, `diff`, or `cat-file`.
+
+Before committing large asset batches, verify at least one staged binary asset is an LFS pointer, for example:
+
+```powershell
+git cat-file -p :Content/_Game/Characters/Player/Knight/BP_TunicPlayerCharacter.uasset
+```
+
+The output should begin with `version https://git-lfs.github.com/spec/v1`.
+
+Use `git add -A` only after the user confirms the whole working tree represents intentional project changes. Otherwise stage focused paths to keep commit intent clear.
 
 ## Agent-Specific Instructions
 
