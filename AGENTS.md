@@ -80,9 +80,27 @@ At the end of each stage, do a strict review pass before moving on. Run both a n
 
 For complex, multi-file, architecture-sensitive, networking-sensitive, or asset-heavy tasks, write a concrete plan before implementation. The plan should cover scope, affected systems/files, execution order, validation, documentation impact, and commit boundaries.
 
-Do not start implementing while the plan is still being discovered. If new information materially changes the plan, pause and explain the revised plan before continuing.
+The agent must do this proactively even if the user forgets to ask for a plan. Do not start implementing while the plan is still being discovered. If new information materially changes the plan, pause and explain the revised plan before continuing. If the task is borderline, default to writing the plan first and ask for user approval before editing files.
+
+Complex or cross-boundary tasks include:
+
+- multi-file C++ changes;
+- multiplayer, GAS, replication, RPC, GameplayAbility, or GameplayEffect changes;
+- Blueprint asset architecture changes;
+- Content asset reorganization;
+- architecture/documentation synchronization;
+- commits that include both source and `.uasset` changes;
+- any task that changes ownership boundaries, authority paths, or long-term extension points.
 
 Small single-file fixes, narrow documentation edits, and simple diagnostic commands may proceed with a short intent statement instead of a full plan.
+
+## Memory Review Hook
+
+During the code-writing to compile/runtime-validation loop, proactively query server-memory MCP when a compiler error, runtime error, repeated warning, or confusing tool failure appears. Use it to check for relevant prior error patterns and fixes before choosing a repair.
+
+If server-memory MCP is unavailable during error复盘, say so explicitly and include the memory lookup that would have been useful. Do not silently skip this step when fixing compile/runtime errors.
+
+Stage-end strict review does not need server-memory by default. It should focus on live source/assets, architecture boundaries, multiplayer/GAS authority, coupling, validation gaps, and long-term risk. Query server-memory during a review only if the review uncovers an actual error pattern or repeated failure mode that memory could help diagnose.
 
 ## Documentation Roles
 
@@ -113,7 +131,17 @@ If the repository has an explicit commit format, follow it. If not, use bilingua
 
 The Chinese title should describe the actual change. The English title should be concise and natural, not a rigid word-for-word translation. Keep titles short; put complex details in the body.
 
-Simple changes do not need a long body. For complex changes, the body should explain what changed, why it changed, and whether there are migration, compatibility, or validation notes.
+Simple changes do not need a long body. Use a title-only commit only for narrow changes such as one- or two-file edits, documentation-only wording updates, or small compile fixes.
+
+Use a commit body for complex changes, especially changes that include any of the following:
+
+- C++ plus `.uasset` changes;
+- multiplayer, GAS, replication, RPC, GameplayAbility, or GameplayEffect behavior;
+- architecture documentation updates;
+- stage-level feature checkpoints;
+- asset migrations, renames, or LFS-heavy updates.
+
+For complex changes, the body should explain what changed, why it changed, and whether there are migration, compatibility, or validation notes. If the user manually verified behavior, write that as `User confirmed ...`. If validation was not run or was blocked, say so directly instead of implying it passed.
 
 Do not claim that something was tested, built, deployed, packaged, or manually verified unless it was actually done or the user explicitly confirmed it. Do not repeat low-value details that are obvious from the diff.
 

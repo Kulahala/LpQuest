@@ -8,6 +8,7 @@
 
 class FLifetimeProperty;
 class AActor;
+class UAnimMontage;
 struct FOnAttributeChangeData;
 
 UCLASS(Blueprintable)
@@ -53,6 +54,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
 	bool bDrawAttributeDebug = true;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Presentation")
+	TObjectPtr<UAnimMontage> DefaultHitReactionMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Presentation")
+	TObjectPtr<UAnimMontage> DefaultDeathMontage;
+
 private:
 	UFUNCTION()
 	void OnRep_IsDead();
@@ -62,6 +69,7 @@ private:
 	void ApplyDeathState();
 	void LogEnemyAbilitySystemDebug() const;
 	void DrawAttributeDebug() const;
+	void PlayPresentationMontage(UAnimMontage* MontageToPlay, bool bStopAllMontages);
 
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastPlayHitReaction(AActor* InstigatorActor);

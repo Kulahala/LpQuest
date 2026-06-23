@@ -4,7 +4,9 @@
 
 #include "Ability/TunicAbilitySystemComponent.h"
 #include "Ability/TunicAttributeSet.h"
+#include "Animation/AnimInstance.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "DrawDebugHelpers.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameplayEffectTypes.h"
@@ -154,6 +156,7 @@ void ATunicEnemyCharacter::ApplyDeathState()
 	if (!bDeathPresentationApplied)
 	{
 		bDeathPresentationApplied = true;
+		PlayPresentationMontage(DefaultDeathMontage, true);
 		OnDeathStateChanged(bIsDead);
 	}
 }
@@ -201,6 +204,23 @@ void ATunicEnemyCharacter::DrawAttributeDebug() const
 	DrawDebugString(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 115.0f), DebugText, nullptr, bIsDead ? FColor::Silver : FColor::Red, 0.0f, true, 1.0f);
 }
 
+void ATunicEnemyCharacter::PlayPresentationMontage(UAnimMontage* MontageToPlay, bool bStopAllMontages)
+{
+	if (!MontageToPlay)
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* CharacterMesh = GetMesh();
+	UAnimInstance* AnimInstance = CharacterMesh ? CharacterMesh->GetAnimInstance() : nullptr;
+	if (!AnimInstance)
+	{
+		return;
+	}
+
+	AnimInstance->Montage_Play(MontageToPlay, 1.0f, bStopAllMontages ? EMontagePlayReturnType::MontageLength : EMontagePlayReturnType::Duration, 0.0f, bStopAllMontages);
+}
+
 void ATunicEnemyCharacter::MulticastPlayHitReaction_Implementation(AActor* InstigatorActor)
 {
 	if (bIsDead)
@@ -218,6 +238,7 @@ void ATunicEnemyCharacter::MulticastPlayHitReaction_Implementation(AActor* Insti
 			static_cast<int32>(GetRemoteRole()));
 	}
 
+	PlayPresentationMontage(DefaultHitReactionMontage, false);
 	OnHitReaction(InstigatorActor);
 }
 
