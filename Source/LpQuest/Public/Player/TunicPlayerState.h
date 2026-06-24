@@ -13,6 +13,7 @@ class UTunicAttributeSet;
 class FLifetimeProperty;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicPendingRunUpgradeChoicesChangedSignature, int32, PendingChoices);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FTunicRunUpgradeChoiceConsumedSignature);
 
 UCLASS(Blueprintable)
 class LPQUEST_API ATunicPlayerState : public APlayerState, public IAbilitySystemInterface
@@ -37,11 +38,18 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
 	FTunicPendingRunUpgradeChoicesChangedSignature OnPendingRunUpgradeChoicesChangedEvent;
 
+	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
+	FTunicRunUpgradeChoiceConsumedSignature OnRunUpgradeChoiceConsumedEvent;
+
 	void AddPendingRunUpgradeChoices(int32 Amount);
+	bool TryConsumePendingRunUpgradeChoice();
 
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
 	void OnPendingRunUpgradeChoicesChanged(int32 PendingChoices);
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
+	void OnRunUpgradeChoiceConsumed();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Ability")
 	TObjectPtr<UTunicAbilitySystemComponent> AbilitySystemComponent;

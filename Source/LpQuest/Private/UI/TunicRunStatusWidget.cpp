@@ -3,8 +3,10 @@
 #include "UI/TunicRunStatusWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
+#include "Controller/TunicPlayerController.h"
 #include "Engine/World.h"
 #include "Player/TunicPlayerState.h"
 
@@ -14,11 +16,19 @@ void UTunicRunStatusWidget::NativeConstruct()
 
 	BindGameState();
 	BindPlayerState();
+	if (SelectUpgradeButton)
+	{
+		SelectUpgradeButton->OnClicked.AddUniqueDynamic(this, &UTunicRunStatusWidget::HandleSelectUpgradeClicked);
+	}
 	RefreshRunStatus();
 }
 
 void UTunicRunStatusWidget::NativeDestruct()
 {
+	if (SelectUpgradeButton)
+	{
+		SelectUpgradeButton->OnClicked.RemoveDynamic(this, &UTunicRunStatusWidget::HandleSelectUpgradeClicked);
+	}
 	UnbindPlayerState();
 	UnbindGameState();
 
@@ -37,6 +47,8 @@ TSharedRef<SWidget> UTunicRunStatusWidget::RebuildWidget()
 		SharedExperienceText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SharedExperienceText"));
 		SharedLevelText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SharedLevelText"));
 		PendingUpgradeText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("PendingUpgradeText"));
+		SelectUpgradeButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("SelectUpgradeButton"));
+		SelectUpgradeButtonText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SelectUpgradeButtonText"));
 
 		if (FloorText)
 		{
@@ -66,6 +78,14 @@ TSharedRef<SWidget> UTunicRunStatusWidget::RebuildWidget()
 		{
 			PendingUpgradeText->SetText(FText::FromString(TEXT("Upgrade Available: 0")));
 			RootBox->AddChildToVerticalBox(PendingUpgradeText);
+		}
+
+		if (SelectUpgradeButton && SelectUpgradeButtonText)
+		{
+			SelectUpgradeButtonText->SetText(FText::FromString(TEXT("Select Upgrade")));
+			SelectUpgradeButton->SetContent(SelectUpgradeButtonText);
+			SelectUpgradeButton->SetIsEnabled(false);
+			RootBox->AddChildToVerticalBox(SelectUpgradeButton);
 		}
 	}
 
@@ -108,6 +128,11 @@ void UTunicRunStatusWidget::RefreshRunStatus()
 		PendingUpgradeText->SetText(FText::Format(NSLOCTEXT("TunicRunStatus", "PendingUpgradeFormat", "Upgrade Available: {0}"), PendingUpgradeChoices));
 	}
 
+	if (SelectUpgradeButton)
+	{
+		SelectUpgradeButton->SetIsEnabled(PendingUpgradeChoices > 0);
+	}
+
 	OnRunStatusRefreshed(FloorIndex, RunState, SharedRunExperience, SharedRunLevel, PendingUpgradeChoices);
 }
 
@@ -138,6 +163,17 @@ void UTunicRunStatusWidget::HandleSharedRunLevelChanged(int32)
 void UTunicRunStatusWidget::HandlePendingRunUpgradeChoicesChanged(int32)
 {
 	RefreshRunStatus();
+}
+
+void UTunicRunStatusWidget::HandleSelectUpgradeClicked()
+{
+	ATunicPlayerController* TunicPlayerController = Cast<ATunicPlayerController>(GetOwningPlayer());
+	if (!TunicPlayerController)
+	{
+		return;
+	}
+
+	TunicPlayerController->RequestSelectRunUpgradeStub();
 }
 
 void UTunicRunStatusWidget::BindGameState()

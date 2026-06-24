@@ -9,6 +9,7 @@
 #include "TunicRunStatusWidget.generated.h"
 
 class UTextBlock;
+class UButton;
 class UVerticalBox;
 class ATunicPlayerState;
 
@@ -41,6 +42,12 @@ protected:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Tunic|Run")
 	TObjectPtr<UTextBlock> PendingUpgradeText;
 
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Tunic|Run")
+	TObjectPtr<UButton> SelectUpgradeButton;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Tunic|Run")
+	TObjectPtr<UTextBlock> SelectUpgradeButtonText;
+
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
 	void OnRunStatusRefreshed(int32 FloorIndex, ETunicRunState RunState, int32 SharedRunExperience, int32 SharedRunLevel, int32 PendingUpgradeChoices);
 
@@ -59,6 +66,9 @@ private:
 
 	UFUNCTION()
 	void HandlePendingRunUpgradeChoicesChanged(int32 PendingChoices);
+
+	UFUNCTION()
+	void HandleSelectUpgradeClicked();
 
 	void BindGameState();
 	void UnbindGameState();

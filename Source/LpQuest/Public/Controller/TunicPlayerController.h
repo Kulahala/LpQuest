@@ -17,6 +17,9 @@ class LPQUEST_API ATunicPlayerController : public APlayerController
 public:
 	ATunicPlayerController();
 
+	UFUNCTION(BlueprintCallable, Category = "Tunic|Run")
+	void RequestSelectRunUpgradeStub();
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -31,5 +34,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTunicRunStatusWidget> RunStatusWidget;
+
+private:
+	UFUNCTION(Server, Reliable)
+	void ServerRequestSelectRunUpgradeStub();
 };
 

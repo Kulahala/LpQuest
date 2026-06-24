@@ -56,7 +56,26 @@ void ATunicPlayerState::AddPendingRunUpgradeChoices(int32 Amount)
 	OnPendingRunUpgradeChoicesChanged(PendingRunUpgradeChoices);
 }
 
+bool ATunicPlayerState::TryConsumePendingRunUpgradeChoice()
+{
+	if (!HasAuthority() || PendingRunUpgradeChoices <= 0)
+	{
+		return false;
+	}
+
+	--PendingRunUpgradeChoices;
+	OnPendingRunUpgradeChoicesChangedEvent.Broadcast(PendingRunUpgradeChoices);
+	OnPendingRunUpgradeChoicesChanged(PendingRunUpgradeChoices);
+	OnRunUpgradeChoiceConsumedEvent.Broadcast();
+	OnRunUpgradeChoiceConsumed();
+	return true;
+}
+
 void ATunicPlayerState::OnPendingRunUpgradeChoicesChanged_Implementation(int32)
+{
+}
+
+void ATunicPlayerState::OnRunUpgradeChoiceConsumed_Implementation()
 {
 }
 
