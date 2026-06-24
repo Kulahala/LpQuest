@@ -47,7 +47,7 @@ The first vertical slice should prove:
 - Portal v1 is validated: a placed portal actor activates after encounter clear, charges while all living players stand in range, and then marks floor transition ready without loading a new map or granting rewards.
 - Floor Transition Stub v1 is validated: after portal readiness, the server advances a replicated floor index, resets placed portals, and returns the run state to combat without granting rewards or loading a new map.
 - Spawner v1 is implemented in C++: a placed encounter spawner can spawn fixed waves from authored spawn point actors, track current encounter membership, clean up prior-floor enemies, and let GameMode clear the encounter from spawned members rather than every enemy in the level.
-- Shared XP v1 is implemented in C++: spawned encounter enemy deaths can add enemy-configured XP into a replicated GameState shared run XP pool, derive a shared run level, and display floor, run state, XP, and level in a minimal local HUD for PIE validation.
+- Shared XP v1 is implemented in C++: spawned encounter enemy deaths can add enemy-configured XP into a replicated GameState shared run XP pool, derive a shared run level, grant per-player pending upgrade choices, and display floor, run state, XP, level, and upgrade availability in a minimal local HUD for PIE validation.
 - Formal weapon/socket traces, final hit-reaction animation/content polish, dodge invulnerability, bow projectiles, final HUD/settings UI, revive/respawn, final death presentation polish, equipment drops, real floor loading, and StateTree enemy behavior are not implemented yet.
 
 ## Documentation

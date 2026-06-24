@@ -30,5 +30,6 @@ private:
 	class ATunicEncounterSpawner* FindEncounterSpawner() const;
 	void SpawnEncounterForCurrentFloor();
 	void CompleteFloorTransitionStub();
+	void GrantPendingRunUpgradeChoices(int32 LevelDelta);
 };
 

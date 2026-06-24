@@ -6,17 +6,20 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Engine/World.h"
+#include "Player/TunicPlayerState.h"
 
 void UTunicRunStatusWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
 	BindGameState();
+	BindPlayerState();
 	RefreshRunStatus();
 }
 
 void UTunicRunStatusWidget::NativeDestruct()
 {
+	UnbindPlayerState();
 	UnbindGameState();
 
 	Super::NativeDestruct();
@@ -33,6 +36,7 @@ TSharedRef<SWidget> UTunicRunStatusWidget::RebuildWidget()
 		RunStateText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("RunStateText"));
 		SharedExperienceText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SharedExperienceText"));
 		SharedLevelText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SharedLevelText"));
+		PendingUpgradeText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("PendingUpgradeText"));
 
 		if (FloorText)
 		{
@@ -57,6 +61,12 @@ TSharedRef<SWidget> UTunicRunStatusWidget::RebuildWidget()
 			SharedLevelText->SetText(FText::FromString(TEXT("Level: 1")));
 			RootBox->AddChildToVerticalBox(SharedLevelText);
 		}
+
+		if (PendingUpgradeText)
+		{
+			PendingUpgradeText->SetText(FText::FromString(TEXT("Upgrade Available: 0")));
+			RootBox->AddChildToVerticalBox(PendingUpgradeText);
+		}
 	}
 
 	return Super::RebuildWidget();
@@ -65,11 +75,13 @@ TSharedRef<SWidget> UTunicRunStatusWidget::RebuildWidget()
 void UTunicRunStatusWidget::RefreshRunStatus()
 {
 	BindGameState();
+	BindPlayerState();
 
 	const int32 FloorIndex = BoundGameState ? BoundGameState->GetCurrentFloorIndex() : 1;
 	const ETunicRunState RunState = BoundGameState ? BoundGameState->GetRunState() : ETunicRunState::CombatActive;
 	const int32 SharedRunExperience = BoundGameState ? BoundGameState->GetSharedRunExperience() : 0;
 	const int32 SharedRunLevel = BoundGameState ? BoundGameState->GetSharedRunLevel() : 1;
+	const int32 PendingUpgradeChoices = BoundPlayerState ? BoundPlayerState->GetPendingRunUpgradeChoices() : 0;
 
 	if (FloorText)
 	{
@@ -91,10 +103,15 @@ void UTunicRunStatusWidget::RefreshRunStatus()
 		SharedLevelText->SetText(FText::Format(NSLOCTEXT("TunicRunStatus", "SharedLevelFormat", "Level: {0}"), SharedRunLevel));
 	}
 
-	OnRunStatusRefreshed(FloorIndex, RunState, SharedRunExperience, SharedRunLevel);
+	if (PendingUpgradeText)
+	{
+		PendingUpgradeText->SetText(FText::Format(NSLOCTEXT("TunicRunStatus", "PendingUpgradeFormat", "Upgrade Available: {0}"), PendingUpgradeChoices));
+	}
+
+	OnRunStatusRefreshed(FloorIndex, RunState, SharedRunExperience, SharedRunLevel, PendingUpgradeChoices);
 }
 
-void UTunicRunStatusWidget::OnRunStatusRefreshed_Implementation(int32, ETunicRunState, int32, int32)
+void UTunicRunStatusWidget::OnRunStatusRefreshed_Implementation(int32, ETunicRunState, int32, int32, int32)
 {
 }
 
@@ -114,6 +131,11 @@ void UTunicRunStatusWidget::HandleSharedRunExperienceChanged(int32, int32, AActo
 }
 
 void UTunicRunStatusWidget::HandleSharedRunLevelChanged(int32)
+{
+	RefreshRunStatus();
+}
+
+void UTunicRunStatusWidget::HandlePendingRunUpgradeChoicesChanged(int32)
 {
 	RefreshRunStatus();
 }
@@ -147,6 +169,32 @@ void UTunicRunStatusWidget::UnbindGameState()
 	BoundGameState->OnSharedRunExperienceChangedEvent.RemoveDynamic(this, &UTunicRunStatusWidget::HandleSharedRunExperienceChanged);
 	BoundGameState->OnSharedRunLevelChangedEvent.RemoveDynamic(this, &UTunicRunStatusWidget::HandleSharedRunLevelChanged);
 	BoundGameState = nullptr;
+}
+
+void UTunicRunStatusWidget::BindPlayerState()
+{
+	APlayerController* OwningPlayerController = GetOwningPlayer();
+	ATunicPlayerState* TunicPlayerState = OwningPlayerController ? OwningPlayerController->GetPlayerState<ATunicPlayerState>() : nullptr;
+	if (!TunicPlayerState || BoundPlayerState == TunicPlayerState)
+	{
+		return;
+	}
+
+	UnbindPlayerState();
+
+	BoundPlayerState = TunicPlayerState;
+	BoundPlayerState->OnPendingRunUpgradeChoicesChangedEvent.AddUniqueDynamic(this, &UTunicRunStatusWidget::HandlePendingRunUpgradeChoicesChanged);
+}
+
+void UTunicRunStatusWidget::UnbindPlayerState()
+{
+	if (!BoundPlayerState)
+	{
+		return;
+	}
+
+	BoundPlayerState->OnPendingRunUpgradeChoicesChangedEvent.RemoveDynamic(this, &UTunicRunStatusWidget::HandlePendingRunUpgradeChoicesChanged);
+	BoundPlayerState = nullptr;
 }
 
 FText UTunicRunStatusWidget::GetRunStateText(ETunicRunState RunState)

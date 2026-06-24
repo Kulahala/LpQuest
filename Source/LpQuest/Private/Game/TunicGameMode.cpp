@@ -9,6 +9,7 @@
 #include "Game/TunicEncounterSpawner.h"
 #include "Game/TunicGameState.h"
 #include "Game/TunicPortalActor.h"
+#include "GameFramework/GameStateBase.h"
 #include "Player/TunicPlayerState.h"
 #include "TimerManager.h"
 
@@ -134,7 +135,14 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 	if (bIsEncounterEnemy)
 	{
 		const int32 ExperienceReward = DeadEnemy->GetExperienceReward();
+		const int32 OldSharedRunLevel = TunicGameState->GetSharedRunLevel();
 		TunicGameState->AddSharedRunExperience(ExperienceReward, DeadEnemy);
+		const int32 NewSharedRunLevel = TunicGameState->GetSharedRunLevel();
+		if (NewSharedRunLevel > OldSharedRunLevel)
+		{
+			GrantPendingRunUpgradeChoices(NewSharedRunLevel - OldSharedRunLevel);
+		}
+
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP awarded | Enemy=%s | Amount=%d | TotalSharedXP=%d"),
 			*GetNameSafe(DeadEnemy),
 			ExperienceReward,
@@ -260,5 +268,30 @@ void ATunicGameMode::SpawnEncounterForCurrentFloor()
 	}
 
 	EncounterSpawner->SpawnEncounterForFloor(TunicGameState->GetCurrentFloorIndex());
+}
+
+void ATunicGameMode::GrantPendingRunUpgradeChoices(int32 LevelDelta)
+{
+	if (!HasAuthority() || LevelDelta <= 0 || !GameState)
+	{
+		return;
+	}
+
+	int32 GrantedPlayerCount = 0;
+	for (APlayerState* PlayerState : GameState->PlayerArray)
+	{
+		ATunicPlayerState* TunicPlayerState = Cast<ATunicPlayerState>(PlayerState);
+		if (!TunicPlayerState)
+		{
+			continue;
+		}
+
+		TunicPlayerState->AddPendingRunUpgradeChoices(LevelDelta);
+		++GrantedPlayerCount;
+	}
+
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Pending run upgrade choices granted | LevelDelta=%d | Players=%d"),
+		LevelDelta,
+		GrantedPlayerCount);
 }
 

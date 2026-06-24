@@ -10,6 +10,7 @@
 
 class UTextBlock;
 class UVerticalBox;
+class ATunicPlayerState;
 
 UCLASS(Blueprintable)
 class LPQUEST_API UTunicRunStatusWidget : public UUserWidget
@@ -37,8 +38,11 @@ protected:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Tunic|Run")
 	TObjectPtr<UTextBlock> SharedLevelText;
 
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Tunic|Run")
+	TObjectPtr<UTextBlock> PendingUpgradeText;
+
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
-	void OnRunStatusRefreshed(int32 FloorIndex, ETunicRunState RunState, int32 SharedRunExperience, int32 SharedRunLevel);
+	void OnRunStatusRefreshed(int32 FloorIndex, ETunicRunState RunState, int32 SharedRunExperience, int32 SharedRunLevel, int32 PendingUpgradeChoices);
 
 private:
 	UFUNCTION()
@@ -53,10 +57,18 @@ private:
 	UFUNCTION()
 	void HandleSharedRunLevelChanged(int32 NewLevel);
 
+	UFUNCTION()
+	void HandlePendingRunUpgradeChoicesChanged(int32 PendingChoices);
+
 	void BindGameState();
 	void UnbindGameState();
+	void BindPlayerState();
+	void UnbindPlayerState();
 	static FText GetRunStateText(ETunicRunState RunState);
 
 	UPROPERTY(Transient)
 	TObjectPtr<ATunicGameState> BoundGameState;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ATunicPlayerState> BoundPlayerState;
 };

@@ -4,6 +4,7 @@
 
 #include "Ability/TunicAbilitySystemComponent.h"
 #include "Ability/TunicAttributeSet.h"
+#include "Net/UnrealNetwork.h"
 
 ATunicPlayerState::ATunicPlayerState()
 {
@@ -13,6 +14,13 @@ ATunicPlayerState::ATunicPlayerState()
 
 	AttributeSet = CreateDefaultSubobject<UTunicAttributeSet>(TEXT("AttributeSet"));
 	SetNetUpdateFrequency(100.0f);
+}
+
+void ATunicPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ATunicPlayerState, PendingRunUpgradeChoices);
 }
 
 UAbilitySystemComponent* ATunicPlayerState::GetAbilitySystemComponent() const
@@ -28,6 +36,34 @@ UTunicAbilitySystemComponent* ATunicPlayerState::GetTunicAbilitySystemComponent(
 UTunicAttributeSet* ATunicPlayerState::GetAttributeSet() const
 {
 	return AttributeSet;
+}
+
+int32 ATunicPlayerState::GetPendingRunUpgradeChoices() const
+{
+	return PendingRunUpgradeChoices;
+}
+
+void ATunicPlayerState::AddPendingRunUpgradeChoices(int32 Amount)
+{
+	if (!HasAuthority() || Amount <= 0)
+	{
+		return;
+	}
+
+	const int64 NewPendingChoices = static_cast<int64>(PendingRunUpgradeChoices) + static_cast<int64>(Amount);
+	PendingRunUpgradeChoices = static_cast<int32>(FMath::Clamp<int64>(NewPendingChoices, 0, MAX_int32));
+	OnPendingRunUpgradeChoicesChangedEvent.Broadcast(PendingRunUpgradeChoices);
+	OnPendingRunUpgradeChoicesChanged(PendingRunUpgradeChoices);
+}
+
+void ATunicPlayerState::OnPendingRunUpgradeChoicesChanged_Implementation(int32)
+{
+}
+
+void ATunicPlayerState::OnRep_PendingRunUpgradeChoices()
+{
+	OnPendingRunUpgradeChoicesChangedEvent.Broadcast(PendingRunUpgradeChoices);
+	OnPendingRunUpgradeChoicesChanged(PendingRunUpgradeChoices);
 }
 
 
