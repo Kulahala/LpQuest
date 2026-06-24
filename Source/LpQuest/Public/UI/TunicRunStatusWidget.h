@@ -34,8 +34,11 @@ protected:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Tunic|Run")
 	TObjectPtr<UTextBlock> SharedExperienceText;
 
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Tunic|Run")
+	TObjectPtr<UTextBlock> SharedLevelText;
+
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
-	void OnRunStatusRefreshed(int32 FloorIndex, ETunicRunState RunState, int32 SharedRunExperience);
+	void OnRunStatusRefreshed(int32 FloorIndex, ETunicRunState RunState, int32 SharedRunExperience, int32 SharedRunLevel);
 
 private:
 	UFUNCTION()
@@ -46,6 +49,9 @@ private:
 
 	UFUNCTION()
 	void HandleSharedRunExperienceChanged(int32 NewValue, int32 Delta, AActor* SourceActor);
+
+	UFUNCTION()
+	void HandleSharedRunLevelChanged(int32 NewLevel);
 
 	void BindGameState();
 	void UnbindGameState();

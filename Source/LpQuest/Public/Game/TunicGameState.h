@@ -21,6 +21,7 @@ enum class ETunicRunState : uint8
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicRunStateChangedSignature, ETunicRunState, NewRunState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicFloorIndexChangedSignature, int32, NewFloorIndex);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FTunicSharedRunExperienceChangedSignature, int32, NewValue, int32, Delta, AActor*, SourceActor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicSharedRunLevelChangedSignature, int32, NewLevel);
 
 UCLASS(Blueprintable)
 class LPQUEST_API ATunicGameState : public AGameStateBase
@@ -40,6 +41,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
 	int32 GetSharedRunExperience() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
+	int32 GetSharedRunLevel() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
 	bool IsCombatActive() const;
@@ -62,6 +66,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
 	FTunicSharedRunExperienceChangedSignature OnSharedRunExperienceChangedEvent;
 
+	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
+	FTunicSharedRunLevelChangedSignature OnSharedRunLevelChangedEvent;
+
 	void SetRunState(ETunicRunState NewRunState);
 	void SetCurrentFloorIndex(int32 NewFloorIndex);
 	void AddSharedRunExperience(int32 Amount, AActor* SourceActor);
@@ -76,7 +83,12 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
 	void OnSharedRunExperienceChanged(int32 NewValue, int32 Delta, AActor* SourceActor);
 
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
+	void OnSharedRunLevelChanged(int32 NewLevel);
+
 private:
+	void RecalculateSharedRunLevel();
+
 	UFUNCTION()
 	void OnRep_RunState();
 
@@ -86,6 +98,9 @@ private:
 	UFUNCTION()
 	void OnRep_SharedRunExperience(int32 OldSharedRunExperience);
 
+	UFUNCTION()
+	void OnRep_SharedRunLevel();
+
 	UPROPERTY(ReplicatedUsing = OnRep_RunState)
 	ETunicRunState RunState = ETunicRunState::CombatActive;
 
@@ -94,5 +109,11 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_SharedRunExperience)
 	int32 SharedRunExperience = 0;
+
+	UPROPERTY(ReplicatedUsing = OnRep_SharedRunLevel)
+	int32 SharedRunLevel = 1;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Tunic|Run", meta = (ClampMin = "1"))
+	int32 SharedExperiencePerLevel = 5;
 };
 

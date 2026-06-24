@@ -32,6 +32,7 @@ TSharedRef<SWidget> UTunicRunStatusWidget::RebuildWidget()
 		FloorText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FloorText"));
 		RunStateText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("RunStateText"));
 		SharedExperienceText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SharedExperienceText"));
+		SharedLevelText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SharedLevelText"));
 
 		if (FloorText)
 		{
@@ -50,6 +51,12 @@ TSharedRef<SWidget> UTunicRunStatusWidget::RebuildWidget()
 			SharedExperienceText->SetText(FText::FromString(TEXT("XP: 0")));
 			RootBox->AddChildToVerticalBox(SharedExperienceText);
 		}
+
+		if (SharedLevelText)
+		{
+			SharedLevelText->SetText(FText::FromString(TEXT("Level: 1")));
+			RootBox->AddChildToVerticalBox(SharedLevelText);
+		}
 	}
 
 	return Super::RebuildWidget();
@@ -62,6 +69,7 @@ void UTunicRunStatusWidget::RefreshRunStatus()
 	const int32 FloorIndex = BoundGameState ? BoundGameState->GetCurrentFloorIndex() : 1;
 	const ETunicRunState RunState = BoundGameState ? BoundGameState->GetRunState() : ETunicRunState::CombatActive;
 	const int32 SharedRunExperience = BoundGameState ? BoundGameState->GetSharedRunExperience() : 0;
+	const int32 SharedRunLevel = BoundGameState ? BoundGameState->GetSharedRunLevel() : 1;
 
 	if (FloorText)
 	{
@@ -78,10 +86,15 @@ void UTunicRunStatusWidget::RefreshRunStatus()
 		SharedExperienceText->SetText(FText::Format(NSLOCTEXT("TunicRunStatus", "SharedExperienceFormat", "XP: {0}"), SharedRunExperience));
 	}
 
-	OnRunStatusRefreshed(FloorIndex, RunState, SharedRunExperience);
+	if (SharedLevelText)
+	{
+		SharedLevelText->SetText(FText::Format(NSLOCTEXT("TunicRunStatus", "SharedLevelFormat", "Level: {0}"), SharedRunLevel));
+	}
+
+	OnRunStatusRefreshed(FloorIndex, RunState, SharedRunExperience, SharedRunLevel);
 }
 
-void UTunicRunStatusWidget::OnRunStatusRefreshed_Implementation(int32, ETunicRunState, int32)
+void UTunicRunStatusWidget::OnRunStatusRefreshed_Implementation(int32, ETunicRunState, int32, int32)
 {
 }
 
@@ -100,6 +113,11 @@ void UTunicRunStatusWidget::HandleSharedRunExperienceChanged(int32, int32, AActo
 	RefreshRunStatus();
 }
 
+void UTunicRunStatusWidget::HandleSharedRunLevelChanged(int32)
+{
+	RefreshRunStatus();
+}
+
 void UTunicRunStatusWidget::BindGameState()
 {
 	ATunicGameState* TunicGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
@@ -114,6 +132,7 @@ void UTunicRunStatusWidget::BindGameState()
 	BoundGameState->OnRunStateChangedEvent.AddUniqueDynamic(this, &UTunicRunStatusWidget::HandleRunStateChanged);
 	BoundGameState->OnFloorIndexChangedEvent.AddUniqueDynamic(this, &UTunicRunStatusWidget::HandleFloorIndexChanged);
 	BoundGameState->OnSharedRunExperienceChangedEvent.AddUniqueDynamic(this, &UTunicRunStatusWidget::HandleSharedRunExperienceChanged);
+	BoundGameState->OnSharedRunLevelChangedEvent.AddUniqueDynamic(this, &UTunicRunStatusWidget::HandleSharedRunLevelChanged);
 }
 
 void UTunicRunStatusWidget::UnbindGameState()
@@ -126,6 +145,7 @@ void UTunicRunStatusWidget::UnbindGameState()
 	BoundGameState->OnRunStateChangedEvent.RemoveDynamic(this, &UTunicRunStatusWidget::HandleRunStateChanged);
 	BoundGameState->OnFloorIndexChangedEvent.RemoveDynamic(this, &UTunicRunStatusWidget::HandleFloorIndexChanged);
 	BoundGameState->OnSharedRunExperienceChangedEvent.RemoveDynamic(this, &UTunicRunStatusWidget::HandleSharedRunExperienceChanged);
+	BoundGameState->OnSharedRunLevelChangedEvent.RemoveDynamic(this, &UTunicRunStatusWidget::HandleSharedRunLevelChanged);
 	BoundGameState = nullptr;
 }
 

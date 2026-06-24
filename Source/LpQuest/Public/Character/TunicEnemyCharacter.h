@@ -129,7 +129,7 @@ protected:
 	TSubclassOf<UGameplayAbility> DefaultMeleeAttackAbilityClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Rewards", meta = (ClampMin = "0"))
-	int32 ExperienceReward = 1;
+	int32 ExperienceReward = 5;
 
 private:
 	UFUNCTION()

@@ -15,6 +15,7 @@ void ATunicGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(ATunicGameState, RunState);
 	DOREPLIFETIME(ATunicGameState, CurrentFloorIndex);
 	DOREPLIFETIME(ATunicGameState, SharedRunExperience);
+	DOREPLIFETIME(ATunicGameState, SharedRunLevel);
 }
 
 ETunicRunState ATunicGameState::GetRunState() const
@@ -30,6 +31,11 @@ int32 ATunicGameState::GetCurrentFloorIndex() const
 int32 ATunicGameState::GetSharedRunExperience() const
 {
 	return SharedRunExperience;
+}
+
+int32 ATunicGameState::GetSharedRunLevel() const
+{
+	return SharedRunLevel;
 }
 
 bool ATunicGameState::IsCombatActive() const
@@ -94,6 +100,7 @@ void ATunicGameState::AddSharedRunExperience(int32 Amount, AActor* SourceActor)
 	SharedRunExperience = static_cast<int32>(FMath::Clamp<int64>(NewSharedRunExperience, 0, MAX_int32));
 	OnSharedRunExperienceChangedEvent.Broadcast(SharedRunExperience, SharedRunExperience - OldSharedRunExperience, SourceActor);
 	OnSharedRunExperienceChanged(SharedRunExperience, SharedRunExperience - OldSharedRunExperience, SourceActor);
+	RecalculateSharedRunLevel();
 }
 
 void ATunicGameState::OnRunStateChanged_Implementation(ETunicRunState)
@@ -106,6 +113,29 @@ void ATunicGameState::OnFloorIndexChanged_Implementation(int32)
 
 void ATunicGameState::OnSharedRunExperienceChanged_Implementation(int32, int32, AActor*)
 {
+}
+
+void ATunicGameState::OnSharedRunLevelChanged_Implementation(int32)
+{
+}
+
+void ATunicGameState::RecalculateSharedRunLevel()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	const int32 ExperiencePerLevel = FMath::Max(1, SharedExperiencePerLevel);
+	const int32 NewSharedRunLevel = FMath::Max(1, 1 + SharedRunExperience / ExperiencePerLevel);
+	if (SharedRunLevel == NewSharedRunLevel)
+	{
+		return;
+	}
+
+	SharedRunLevel = NewSharedRunLevel;
+	OnSharedRunLevelChangedEvent.Broadcast(SharedRunLevel);
+	OnSharedRunLevelChanged(SharedRunLevel);
 }
 
 void ATunicGameState::OnRep_RunState()
@@ -124,5 +154,11 @@ void ATunicGameState::OnRep_SharedRunExperience(int32 OldSharedRunExperience)
 {
 	OnSharedRunExperienceChangedEvent.Broadcast(SharedRunExperience, SharedRunExperience - OldSharedRunExperience, nullptr);
 	OnSharedRunExperienceChanged(SharedRunExperience, SharedRunExperience - OldSharedRunExperience, nullptr);
+}
+
+void ATunicGameState::OnRep_SharedRunLevel()
+{
+	OnSharedRunLevelChangedEvent.Broadcast(SharedRunLevel);
+	OnSharedRunLevelChanged(SharedRunLevel);
 }
 
