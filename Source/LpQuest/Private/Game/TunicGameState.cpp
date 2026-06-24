@@ -13,11 +13,17 @@ void ATunicGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ATunicGameState, RunState);
+	DOREPLIFETIME(ATunicGameState, CurrentFloorIndex);
 }
 
 ETunicRunState ATunicGameState::GetRunState() const
 {
 	return RunState;
+}
+
+int32 ATunicGameState::GetCurrentFloorIndex() const
+{
+	return CurrentFloorIndex;
 }
 
 bool ATunicGameState::IsCombatActive() const
@@ -51,12 +57,38 @@ void ATunicGameState::SetRunState(ETunicRunState NewRunState)
 	OnRunStateChanged(RunState);
 }
 
+void ATunicGameState::SetCurrentFloorIndex(int32 NewFloorIndex)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	const int32 ClampedFloorIndex = FMath::Max(1, NewFloorIndex);
+	if (CurrentFloorIndex == ClampedFloorIndex)
+	{
+		return;
+	}
+
+	CurrentFloorIndex = ClampedFloorIndex;
+	OnFloorIndexChanged(CurrentFloorIndex);
+}
+
 void ATunicGameState::OnRunStateChanged_Implementation(ETunicRunState)
+{
+}
+
+void ATunicGameState::OnFloorIndexChanged_Implementation(int32)
 {
 }
 
 void ATunicGameState::OnRep_RunState()
 {
 	OnRunStateChanged(RunState);
+}
+
+void ATunicGameState::OnRep_CurrentFloorIndex()
+{
+	OnFloorIndexChanged(CurrentFloorIndex);
 }
 

@@ -41,6 +41,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|Portal")
 	int32 GetPresentLivingPlayerCount() const;
 
+	void ResetPortalForNextFloorStub();
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Portal")
 	TObjectPtr<USceneComponent> SceneRoot;
@@ -69,6 +71,9 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Portal")
 	void OnPortalReady();
 
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Portal")
+	void OnPortalReset();
+
 private:
 	void TryActivatePortalFromRunState();
 	void EvaluatePortalCharge(float DeltaSeconds);
@@ -93,6 +98,9 @@ private:
 	UFUNCTION()
 	void OnRep_ActivationProgress();
 
+	UFUNCTION()
+	void OnRep_PortalResetSerial();
+
 	UPROPERTY(ReplicatedUsing = OnRep_IsPortalActive)
 	bool bIsPortalActive = false;
 
@@ -110,4 +118,7 @@ private:
 
 	UPROPERTY(Replicated)
 	int32 PresentLivingPlayerCount = 0;
+
+	UPROPERTY(ReplicatedUsing = OnRep_PortalResetSerial)
+	int32 PortalResetSerial = 0;
 };

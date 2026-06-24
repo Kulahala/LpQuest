@@ -19,5 +19,15 @@ public:
 	void EvaluatePartyWipe();
 	void EvaluateEncounterClear();
 	void MarkFloorTransitionReady();
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Run", meta = (ClampMin = "0.0", Units = "s"))
+	float FloorTransitionStubDelay = 2.0f;
+
+private:
+	void CompleteFloorTransitionStub();
+
+	int32 EvaluatedFloorIndex = 1;
+	bool bHasSeenLivingEnemyThisFloor = false;
 };
 

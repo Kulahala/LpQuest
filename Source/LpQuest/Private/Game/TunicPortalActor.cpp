@@ -68,6 +68,7 @@ void ATunicPortalActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ATunicPortalActor, ActivationProgress);
 	DOREPLIFETIME(ATunicPortalActor, RequiredLivingPlayerCount);
 	DOREPLIFETIME(ATunicPortalActor, PresentLivingPlayerCount);
+	DOREPLIFETIME(ATunicPortalActor, PortalResetSerial);
 }
 
 bool ATunicPortalActor::IsPortalActive() const
@@ -100,6 +101,29 @@ int32 ATunicPortalActor::GetPresentLivingPlayerCount() const
 	return PresentLivingPlayerCount;
 }
 
+void ATunicPortalActor::ResetPortalForNextFloorStub()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	SetPortalCharging(false);
+	SetPortalReady(false);
+	SetPortalActive(false);
+	SetActivationProgress(0.0f);
+	SetPortalPlayerCounts(0, 0);
+
+	++PortalResetSerial;
+	if (bLogPortalState)
+	{
+		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal reset for next floor stub | Portal=%s | ResetSerial=%d"),
+			*GetNameSafe(this),
+			PortalResetSerial);
+	}
+	OnPortalReset();
+}
+
 void ATunicPortalActor::OnPortalActivated_Implementation()
 {
 }
@@ -113,6 +137,10 @@ void ATunicPortalActor::OnPortalChargeChanged_Implementation(float)
 }
 
 void ATunicPortalActor::OnPortalReady_Implementation()
+{
+}
+
+void ATunicPortalActor::OnPortalReset_Implementation()
 {
 }
 
@@ -334,4 +362,9 @@ void ATunicPortalActor::OnRep_IsPortalReady()
 void ATunicPortalActor::OnRep_ActivationProgress()
 {
 	OnPortalChargeChanged(ActivationProgress);
+}
+
+void ATunicPortalActor::OnRep_PortalResetSerial()
+{
+	OnPortalReset();
 }

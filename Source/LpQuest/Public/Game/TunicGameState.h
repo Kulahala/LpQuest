@@ -31,6 +31,9 @@ public:
 	ETunicRunState GetRunState() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
+	int32 GetCurrentFloorIndex() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
 	bool IsCombatActive() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
@@ -43,16 +46,26 @@ public:
 	bool IsFloorTransitionReady() const;
 
 	void SetRunState(ETunicRunState NewRunState);
+	void SetCurrentFloorIndex(int32 NewFloorIndex);
 
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
 	void OnRunStateChanged(ETunicRunState NewRunState);
 
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
+	void OnFloorIndexChanged(int32 NewFloorIndex);
+
 private:
 	UFUNCTION()
 	void OnRep_RunState();
 
+	UFUNCTION()
+	void OnRep_CurrentFloorIndex();
+
 	UPROPERTY(ReplicatedUsing = OnRep_RunState)
 	ETunicRunState RunState = ETunicRunState::CombatActive;
+
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentFloorIndex)
+	int32 CurrentFloorIndex = 1;
 };
 

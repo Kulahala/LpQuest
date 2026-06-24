@@ -7,7 +7,9 @@
 #include "Controller/TunicPlayerController.h"
 #include "EngineUtils.h"
 #include "Game/TunicGameState.h"
+#include "Game/TunicPortalActor.h"
 #include "Player/TunicPlayerState.h"
+#include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLpQuestRunState, Log, All);
 
@@ -85,6 +87,13 @@ void ATunicGameMode::EvaluateEncounterClear()
 		return;
 	}
 
+	const int32 CurrentFloorIndex = TunicGameState->GetCurrentFloorIndex();
+	if (EvaluatedFloorIndex != CurrentFloorIndex)
+	{
+		EvaluatedFloorIndex = CurrentFloorIndex;
+		bHasSeenLivingEnemyThisFloor = false;
+	}
+
 	int32 TotalEnemyCount = 0;
 	int32 AliveEnemyCount = 0;
 
@@ -103,11 +112,18 @@ void ATunicGameMode::EvaluateEncounterClear()
 		}
 	}
 
-	const bool bEncounterCleared = TotalEnemyCount > 0 && AliveEnemyCount == 0;
+	if (AliveEnemyCount > 0)
+	{
+		bHasSeenLivingEnemyThisFloor = true;
+	}
 
-	UE_LOG(LogLpQuestRunState, Display, TEXT("Encounter clear evaluation | TotalEnemies=%d | AliveEnemies=%d | Triggered=%s"),
+	const bool bEncounterCleared = bHasSeenLivingEnemyThisFloor && TotalEnemyCount > 0 && AliveEnemyCount == 0;
+
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Encounter clear evaluation | Floor=%d | TotalEnemies=%d | AliveEnemies=%d | SeenLivingEnemyThisFloor=%s | Triggered=%s"),
+		CurrentFloorIndex,
 		TotalEnemyCount,
 		AliveEnemyCount,
+		bHasSeenLivingEnemyThisFloor ? TEXT("true") : TEXT("false"),
 		bEncounterCleared ? TEXT("true") : TEXT("false"));
 
 	if (bEncounterCleared)
@@ -127,5 +143,47 @@ void ATunicGameMode::MarkFloorTransitionReady()
 
 	TunicGameState->SetRunState(ETunicRunState::FloorTransitionReady);
 	UE_LOG(LogLpQuestRunState, Display, TEXT("Run state changed to FloorTransitionReady"));
+
+	if (FloorTransitionStubDelay <= UE_SMALL_NUMBER)
+	{
+		CompleteFloorTransitionStub();
+		return;
+	}
+
+	FTimerHandle TimerHandle;
+	GetWorldTimerManager().SetTimer(TimerHandle, this, &ATunicGameMode::CompleteFloorTransitionStub, FloorTransitionStubDelay, false);
+}
+
+void ATunicGameMode::CompleteFloorTransitionStub()
+{
+	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
+	if (!HasAuthority() || !TunicGameState || !TunicGameState->IsFloorTransitionReady())
+	{
+		return;
+	}
+
+	const int32 PreviousFloorIndex = TunicGameState->GetCurrentFloorIndex();
+	const int32 NewFloorIndex = PreviousFloorIndex + 1;
+
+	int32 ResetPortalCount = 0;
+	for (TActorIterator<ATunicPortalActor> PortalIt(GetWorld()); PortalIt; ++PortalIt)
+	{
+		ATunicPortalActor* PortalActor = *PortalIt;
+		if (!PortalActor)
+		{
+			continue;
+		}
+
+		PortalActor->ResetPortalForNextFloorStub();
+		++ResetPortalCount;
+	}
+
+	TunicGameState->SetCurrentFloorIndex(NewFloorIndex);
+	TunicGameState->SetRunState(ETunicRunState::CombatActive);
+
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Floor transition stub completed | PreviousFloor=%d | NewFloor=%d | ResetPortals=%d"),
+		PreviousFloorIndex,
+		NewFloorIndex,
+		ResetPortalCount);
 }
 

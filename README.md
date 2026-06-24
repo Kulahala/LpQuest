@@ -45,6 +45,7 @@ The first vertical slice should prove:
 - Player Death Policy v1 is validated: enemies can kill players through the server-authoritative GameplayEffect path, dead players cannot act, and dead players are no longer available combat targets.
 - Run State Foundation v1 has initial Party Wipe, Encounter Clear, and Portal readiness paths in C++: GameMode evaluates all current players dead, all current enemies dead, and portal completion, while GameState replicates `CombatActive` / `PartyWiped` / `EncounterCleared` / `FloorTransitionReady` state for clients and Blueprint presentation.
 - Portal v1 is validated: a placed portal actor activates after encounter clear, charges while all living players stand in range, and then marks floor transition ready without loading a new map or granting rewards.
+- Floor Transition Stub v1 is validated: after portal readiness, the server advances a replicated floor index, resets placed portals, and returns the run state to combat without spawning enemies, granting rewards, or loading a new map. A post-review guard prevents old dead enemies from immediately clearing the placeholder next floor.
 - Formal weapon/socket traces, final hit-reaction animation/content polish, dodge invulnerability, bow projectiles, final HUD/settings UI, revive/respawn, final death presentation polish, rewards/progression, real floor loading, and StateTree enemy behavior are not implemented yet.
 
 ## Documentation
