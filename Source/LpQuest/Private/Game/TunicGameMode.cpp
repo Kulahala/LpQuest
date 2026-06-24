@@ -6,6 +6,7 @@
 #include "Character/TunicPlayerCharacter.h"
 #include "Controller/TunicPlayerController.h"
 #include "EngineUtils.h"
+#include "Game/TunicEncounterSpawner.h"
 #include "Game/TunicGameState.h"
 #include "Game/TunicPortalActor.h"
 #include "Player/TunicPlayerState.h"
@@ -19,6 +20,13 @@ ATunicGameMode::ATunicGameMode()
 	PlayerControllerClass = ATunicPlayerController::StaticClass();
 	PlayerStateClass = ATunicPlayerState::StaticClass();
 	GameStateClass = ATunicGameState::StaticClass();
+}
+
+void ATunicGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+
+	SpawnEncounterForCurrentFloor();
 }
 
 void ATunicGameMode::Logout(AController* Exiting)
@@ -87,43 +95,23 @@ void ATunicGameMode::EvaluateEncounterClear()
 		return;
 	}
 
-	const int32 CurrentFloorIndex = TunicGameState->GetCurrentFloorIndex();
-	if (EvaluatedFloorIndex != CurrentFloorIndex)
+	ATunicEncounterSpawner* EncounterSpawner = FindEncounterSpawner();
+	if (!EncounterSpawner || !EncounterSpawner->HasSpawnedEncounter())
 	{
-		EvaluatedFloorIndex = CurrentFloorIndex;
-		bHasSeenLivingEnemyThisFloor = false;
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Encounter clear evaluation skipped: no active encounter spawner | Floor=%d"),
+			TunicGameState->GetCurrentFloorIndex());
+		return;
 	}
 
 	int32 TotalEnemyCount = 0;
 	int32 AliveEnemyCount = 0;
+	const bool bEncounterCleared = EncounterSpawner->EvaluateEncounterClear(TotalEnemyCount, AliveEnemyCount);
 
-	for (TActorIterator<ATunicEnemyCharacter> EnemyIt(GetWorld()); EnemyIt; ++EnemyIt)
-	{
-		const ATunicEnemyCharacter* EnemyCharacter = *EnemyIt;
-		if (!EnemyCharacter)
-		{
-			continue;
-		}
-
-		++TotalEnemyCount;
-		if (!EnemyCharacter->IsDead())
-		{
-			++AliveEnemyCount;
-		}
-	}
-
-	if (AliveEnemyCount > 0)
-	{
-		bHasSeenLivingEnemyThisFloor = true;
-	}
-
-	const bool bEncounterCleared = bHasSeenLivingEnemyThisFloor && TotalEnemyCount > 0 && AliveEnemyCount == 0;
-
-	UE_LOG(LogLpQuestRunState, Display, TEXT("Encounter clear evaluation | Floor=%d | TotalEnemies=%d | AliveEnemies=%d | SeenLivingEnemyThisFloor=%s | Triggered=%s"),
-		CurrentFloorIndex,
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Encounter clear evaluation | Floor=%d | Spawner=%s | TotalEnemies=%d | AliveEnemies=%d | Triggered=%s"),
+		TunicGameState->GetCurrentFloorIndex(),
+		*GetNameSafe(EncounterSpawner),
 		TotalEnemyCount,
 		AliveEnemyCount,
-		bHasSeenLivingEnemyThisFloor ? TEXT("true") : TEXT("false"),
 		bEncounterCleared ? TEXT("true") : TEXT("false"));
 
 	if (bEncounterCleared)
@@ -178,12 +166,71 @@ void ATunicGameMode::CompleteFloorTransitionStub()
 		++ResetPortalCount;
 	}
 
+	int32 ResetSpawnerCount = 0;
+	for (TActorIterator<ATunicEncounterSpawner> SpawnerIt(GetWorld()); SpawnerIt; ++SpawnerIt)
+	{
+		ATunicEncounterSpawner* EncounterSpawner = *SpawnerIt;
+		if (!EncounterSpawner)
+		{
+			continue;
+		}
+
+		EncounterSpawner->ResetEncounterForNextFloor();
+		++ResetSpawnerCount;
+	}
+
 	TunicGameState->SetCurrentFloorIndex(NewFloorIndex);
 	TunicGameState->SetRunState(ETunicRunState::CombatActive);
+	SpawnEncounterForCurrentFloor();
 
-	UE_LOG(LogLpQuestRunState, Display, TEXT("Floor transition stub completed | PreviousFloor=%d | NewFloor=%d | ResetPortals=%d"),
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Floor transition stub completed | PreviousFloor=%d | NewFloor=%d | ResetPortals=%d | ResetSpawners=%d"),
 		PreviousFloorIndex,
 		NewFloorIndex,
-		ResetPortalCount);
+		ResetPortalCount,
+		ResetSpawnerCount);
+}
+
+ATunicEncounterSpawner* ATunicGameMode::FindEncounterSpawner() const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	for (TActorIterator<ATunicEncounterSpawner> SpawnerIt(World); SpawnerIt; ++SpawnerIt)
+	{
+		ATunicEncounterSpawner* EncounterSpawner = *SpawnerIt;
+		if (EncounterSpawner)
+		{
+			return EncounterSpawner;
+		}
+	}
+
+	return nullptr;
+}
+
+void ATunicGameMode::SpawnEncounterForCurrentFloor()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
+	if (!TunicGameState || !TunicGameState->IsCombatActive())
+	{
+		return;
+	}
+
+	ATunicEncounterSpawner* EncounterSpawner = FindEncounterSpawner();
+	if (!EncounterSpawner)
+	{
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Encounter spawn skipped: no encounter spawner | Floor=%d"),
+			TunicGameState->GetCurrentFloorIndex());
+		return;
+	}
+
+	EncounterSpawner->SpawnEncounterForFloor(TunicGameState->GetCurrentFloorIndex());
 }
 

@@ -14,6 +14,7 @@ class LPQUEST_API ATunicGameMode : public AGameModeBase
 public:
 	ATunicGameMode();
 
+	virtual void BeginPlay() override;
 	virtual void Logout(AController* Exiting) override;
 
 	void EvaluatePartyWipe();
@@ -25,9 +26,8 @@ protected:
 	float FloorTransitionStubDelay = 2.0f;
 
 private:
+	class ATunicEncounterSpawner* FindEncounterSpawner() const;
+	void SpawnEncounterForCurrentFloor();
 	void CompleteFloorTransitionStub();
-
-	int32 EvaluatedFloorIndex = 1;
-	bool bHasSeenLivingEnemyThisFloor = false;
 };
 
