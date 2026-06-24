@@ -45,6 +45,7 @@ public:
 	void SpawnEncounterForFloor(int32 FloorIndex);
 	void ResetEncounterForNextFloor();
 	bool EvaluateEncounterClear(int32& OutTotalEnemyCount, int32& OutAliveEnemyCount);
+	bool IsEncounterEnemy(const ATunicEnemyCharacter* EnemyCharacter) const;
 
 protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Tunic|Spawner")

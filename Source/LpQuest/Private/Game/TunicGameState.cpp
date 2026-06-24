@@ -14,6 +14,7 @@ void ATunicGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 	DOREPLIFETIME(ATunicGameState, RunState);
 	DOREPLIFETIME(ATunicGameState, CurrentFloorIndex);
+	DOREPLIFETIME(ATunicGameState, SharedRunExperience);
 }
 
 ETunicRunState ATunicGameState::GetRunState() const
@@ -24,6 +25,11 @@ ETunicRunState ATunicGameState::GetRunState() const
 int32 ATunicGameState::GetCurrentFloorIndex() const
 {
 	return CurrentFloorIndex;
+}
+
+int32 ATunicGameState::GetSharedRunExperience() const
+{
+	return SharedRunExperience;
 }
 
 bool ATunicGameState::IsCombatActive() const
@@ -74,11 +80,28 @@ void ATunicGameState::SetCurrentFloorIndex(int32 NewFloorIndex)
 	OnFloorIndexChanged(CurrentFloorIndex);
 }
 
+void ATunicGameState::AddSharedRunExperience(int32 Amount, AActor* SourceActor)
+{
+	if (!HasAuthority() || Amount <= 0)
+	{
+		return;
+	}
+
+	const int32 OldSharedRunExperience = SharedRunExperience;
+	const int64 NewSharedRunExperience = static_cast<int64>(SharedRunExperience) + static_cast<int64>(Amount);
+	SharedRunExperience = static_cast<int32>(FMath::Clamp<int64>(NewSharedRunExperience, 0, MAX_int32));
+	OnSharedRunExperienceChanged(SharedRunExperience, SharedRunExperience - OldSharedRunExperience, SourceActor);
+}
+
 void ATunicGameState::OnRunStateChanged_Implementation(ETunicRunState)
 {
 }
 
 void ATunicGameState::OnFloorIndexChanged_Implementation(int32)
+{
+}
+
+void ATunicGameState::OnSharedRunExperienceChanged_Implementation(int32, int32, AActor*)
 {
 }
 
@@ -90,5 +113,10 @@ void ATunicGameState::OnRep_RunState()
 void ATunicGameState::OnRep_CurrentFloorIndex()
 {
 	OnFloorIndexChanged(CurrentFloorIndex);
+}
+
+void ATunicGameState::OnRep_SharedRunExperience(int32 OldSharedRunExperience)
+{
+	OnSharedRunExperienceChanged(SharedRunExperience, SharedRunExperience - OldSharedRunExperience, nullptr);
 }
 

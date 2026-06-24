@@ -78,6 +78,11 @@ bool ATunicEnemyCharacter::IsDead() const
 	return bIsDead;
 }
 
+int32 ATunicEnemyCharacter::GetExperienceReward() const
+{
+	return FMath::Max(0, ExperienceReward);
+}
+
 void ATunicEnemyCharacter::TryActivateEnemyMeleeAttack()
 {
 	if (!HasAuthority() || bIsDead || !AbilitySystemComponent)
@@ -310,7 +315,7 @@ void ATunicEnemyCharacter::SetDead(bool bNewIsDead)
 	{
 		if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
 		{
-			TunicGameMode->EvaluateEncounterClear();
+			TunicGameMode->HandleEnemyDeath(this);
 		}
 	}
 }

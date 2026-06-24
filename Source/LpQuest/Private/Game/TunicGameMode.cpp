@@ -121,6 +121,34 @@ void ATunicGameMode::EvaluateEncounterClear()
 	}
 }
 
+void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
+{
+	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
+	if (!HasAuthority() || !TunicGameState || !TunicGameState->IsCombatActive() || !DeadEnemy)
+	{
+		return;
+	}
+
+	ATunicEncounterSpawner* EncounterSpawner = FindEncounterSpawner();
+	const bool bIsEncounterEnemy = EncounterSpawner && EncounterSpawner->IsEncounterEnemy(DeadEnemy);
+	if (bIsEncounterEnemy)
+	{
+		const int32 ExperienceReward = DeadEnemy->GetExperienceReward();
+		TunicGameState->AddSharedRunExperience(ExperienceReward, DeadEnemy);
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP awarded | Enemy=%s | Amount=%d | TotalSharedXP=%d"),
+			*GetNameSafe(DeadEnemy),
+			ExperienceReward,
+			TunicGameState->GetSharedRunExperience());
+	}
+	else
+	{
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP skipped: enemy is not part of active encounter | Enemy=%s"),
+			*GetNameSafe(DeadEnemy));
+	}
+
+	EvaluateEncounterClear();
+}
+
 void ATunicGameMode::MarkFloorTransitionReady()
 {
 	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();

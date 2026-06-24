@@ -30,6 +30,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|Combat")
 	bool IsDead() const;
 
+	UFUNCTION(BlueprintPure, Category = "Tunic|Rewards")
+	int32 GetExperienceReward() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Combat")
 	void TryActivateEnemyMeleeAttack();
 
@@ -124,6 +127,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities")
 	TSubclassOf<UGameplayAbility> DefaultMeleeAttackAbilityClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Rewards", meta = (ClampMin = "0"))
+	int32 ExperienceReward = 1;
 
 private:
 	UFUNCTION()

@@ -176,6 +176,24 @@ bool ATunicEncounterSpawner::EvaluateEncounterClear(int32& OutTotalEnemyCount, i
 	return bEncounterCleared;
 }
 
+bool ATunicEncounterSpawner::IsEncounterEnemy(const ATunicEnemyCharacter* EnemyCharacter) const
+{
+	if (!EnemyCharacter)
+	{
+		return false;
+	}
+
+	for (const TWeakObjectPtr<ATunicEnemyCharacter>& EnemyPtr : SpawnedEncounterEnemies)
+	{
+		if (EnemyPtr.Get() == EnemyCharacter)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void ATunicEncounterSpawner::OnEncounterSpawned_Implementation(int32)
 {
 }

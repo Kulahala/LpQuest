@@ -20,6 +20,7 @@ public:
 	void EvaluatePartyWipe();
 	void EvaluateEncounterClear();
 	void MarkFloorTransitionReady();
+	void HandleEnemyDeath(class ATunicEnemyCharacter* DeadEnemy);
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Run", meta = (ClampMin = "0.0", Units = "s"))

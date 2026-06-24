@@ -7,6 +7,7 @@
 #include "TunicGameState.generated.h"
 
 class FLifetimeProperty;
+class AActor;
 
 UENUM(BlueprintType)
 enum class ETunicRunState : uint8
@@ -34,6 +35,9 @@ public:
 	int32 GetCurrentFloorIndex() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
+	int32 GetSharedRunExperience() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
 	bool IsCombatActive() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
@@ -47,6 +51,7 @@ public:
 
 	void SetRunState(ETunicRunState NewRunState);
 	void SetCurrentFloorIndex(int32 NewFloorIndex);
+	void AddSharedRunExperience(int32 Amount, AActor* SourceActor);
 
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
@@ -55,6 +60,9 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
 	void OnFloorIndexChanged(int32 NewFloorIndex);
 
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
+	void OnSharedRunExperienceChanged(int32 NewValue, int32 Delta, AActor* SourceActor);
+
 private:
 	UFUNCTION()
 	void OnRep_RunState();
@@ -62,10 +70,16 @@ private:
 	UFUNCTION()
 	void OnRep_CurrentFloorIndex();
 
+	UFUNCTION()
+	void OnRep_SharedRunExperience(int32 OldSharedRunExperience);
+
 	UPROPERTY(ReplicatedUsing = OnRep_RunState)
 	ETunicRunState RunState = ETunicRunState::CombatActive;
 
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentFloorIndex)
 	int32 CurrentFloorIndex = 1;
+
+	UPROPERTY(ReplicatedUsing = OnRep_SharedRunExperience)
+	int32 SharedRunExperience = 0;
 };
 
