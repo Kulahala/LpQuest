@@ -2,8 +2,10 @@
 
 #include "Game/TunicGameMode.h"
 
+#include "Character/TunicEnemyCharacter.h"
 #include "Character/TunicPlayerCharacter.h"
 #include "Controller/TunicPlayerController.h"
+#include "EngineUtils.h"
 #include "Game/TunicGameState.h"
 #include "Player/TunicPlayerState.h"
 
@@ -27,7 +29,7 @@ void ATunicGameMode::Logout(AController* Exiting)
 void ATunicGameMode::EvaluatePartyWipe()
 {
 	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
-	if (!HasAuthority() || !TunicGameState || TunicGameState->IsPartyWiped())
+	if (!HasAuthority() || !TunicGameState || !TunicGameState->IsCombatActive())
 	{
 		return;
 	}
@@ -72,6 +74,46 @@ void ATunicGameMode::EvaluatePartyWipe()
 	{
 		TunicGameState->SetRunState(ETunicRunState::PartyWiped);
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Run state changed to PartyWiped"));
+	}
+}
+
+void ATunicGameMode::EvaluateEncounterClear()
+{
+	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
+	if (!HasAuthority() || !TunicGameState || !TunicGameState->IsCombatActive())
+	{
+		return;
+	}
+
+	int32 TotalEnemyCount = 0;
+	int32 AliveEnemyCount = 0;
+
+	for (TActorIterator<ATunicEnemyCharacter> EnemyIt(GetWorld()); EnemyIt; ++EnemyIt)
+	{
+		const ATunicEnemyCharacter* EnemyCharacter = *EnemyIt;
+		if (!EnemyCharacter)
+		{
+			continue;
+		}
+
+		++TotalEnemyCount;
+		if (!EnemyCharacter->IsDead())
+		{
+			++AliveEnemyCount;
+		}
+	}
+
+	const bool bEncounterCleared = TotalEnemyCount > 0 && AliveEnemyCount == 0;
+
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Encounter clear evaluation | TotalEnemies=%d | AliveEnemies=%d | Triggered=%s"),
+		TotalEnemyCount,
+		AliveEnemyCount,
+		bEncounterCleared ? TEXT("true") : TEXT("false"));
+
+	if (bEncounterCleared)
+	{
+		TunicGameState->SetRunState(ETunicRunState::EncounterCleared);
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Run state changed to EncounterCleared"));
 	}
 }
 

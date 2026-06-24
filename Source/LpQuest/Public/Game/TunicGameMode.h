@@ -17,5 +17,6 @@ public:
 	virtual void Logout(AController* Exiting) override;
 
 	void EvaluatePartyWipe();
+	void EvaluateEncounterClear();
 };
 

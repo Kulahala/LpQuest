@@ -20,9 +20,19 @@ ETunicRunState ATunicGameState::GetRunState() const
 	return RunState;
 }
 
+bool ATunicGameState::IsCombatActive() const
+{
+	return RunState == ETunicRunState::CombatActive;
+}
+
 bool ATunicGameState::IsPartyWiped() const
 {
 	return RunState == ETunicRunState::PartyWiped;
+}
+
+bool ATunicGameState::IsEncounterCleared() const
+{
+	return RunState == ETunicRunState::EncounterCleared;
 }
 
 void ATunicGameState::SetRunState(ETunicRunState NewRunState)

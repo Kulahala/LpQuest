@@ -12,7 +12,8 @@ UENUM(BlueprintType)
 enum class ETunicRunState : uint8
 {
 	CombatActive,
-	PartyWiped
+	PartyWiped,
+	EncounterCleared
 };
 
 UCLASS(Blueprintable)
@@ -29,7 +30,13 @@ public:
 	ETunicRunState GetRunState() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
+	bool IsCombatActive() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
 	bool IsPartyWiped() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
+	bool IsEncounterCleared() const;
 
 	void SetRunState(ETunicRunState NewRunState);
 

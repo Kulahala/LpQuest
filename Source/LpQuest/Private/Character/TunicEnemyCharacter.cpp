@@ -19,6 +19,7 @@
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Game/TunicGameMode.h"
 #include "GameplayAbilitySpec.h"
 #include "GameplayEffect.h"
 #include "GameplayEffectTypes.h"
@@ -304,6 +305,14 @@ void ATunicEnemyCharacter::SetDead(bool bNewIsDead)
 
 	bIsDead = bNewIsDead;
 	ApplyDeathState();
+
+	if (bIsDead)
+	{
+		if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
+		{
+			TunicGameMode->EvaluateEncounterClear();
+		}
+	}
 }
 
 void ATunicEnemyCharacter::ApplyDeathState()
