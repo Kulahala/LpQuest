@@ -18,5 +18,6 @@ public:
 
 	void EvaluatePartyWipe();
 	void EvaluateEncounterClear();
+	void MarkFloorTransitionReady();
 };
 

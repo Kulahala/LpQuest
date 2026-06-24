@@ -117,3 +117,15 @@ void ATunicGameMode::EvaluateEncounterClear()
 	}
 }
 
+void ATunicGameMode::MarkFloorTransitionReady()
+{
+	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
+	if (!HasAuthority() || !TunicGameState || !TunicGameState->IsEncounterCleared())
+	{
+		return;
+	}
+
+	TunicGameState->SetRunState(ETunicRunState::FloorTransitionReady);
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Run state changed to FloorTransitionReady"));
+}
+

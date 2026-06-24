@@ -13,7 +13,8 @@ enum class ETunicRunState : uint8
 {
 	CombatActive,
 	PartyWiped,
-	EncounterCleared
+	EncounterCleared,
+	FloorTransitionReady
 };
 
 UCLASS(Blueprintable)
@@ -37,6 +38,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
 	bool IsEncounterCleared() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
+	bool IsFloorTransitionReady() const;
 
 	void SetRunState(ETunicRunState NewRunState);
 

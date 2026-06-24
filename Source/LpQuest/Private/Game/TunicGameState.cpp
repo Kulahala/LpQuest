@@ -35,6 +35,11 @@ bool ATunicGameState::IsEncounterCleared() const
 	return RunState == ETunicRunState::EncounterCleared;
 }
 
+bool ATunicGameState::IsFloorTransitionReady() const
+{
+	return RunState == ETunicRunState::FloorTransitionReady;
+}
+
 void ATunicGameState::SetRunState(ETunicRunState NewRunState)
 {
 	if (!HasAuthority() || RunState == NewRunState)
