@@ -12,6 +12,8 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Combat/TunicCombatRules.h"
 #include "Combat/TunicCombatTargetInterface.h"
 #include "DrawDebugHelpers.h"
@@ -24,8 +26,10 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameplayAbilitySpec.h"
 #include "GameplayEffect.h"
+#include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
 #include "InputActionValue.h"
+#include "Net/UnrealNetwork.h"
 #include "Player/TunicPlayerState.h"
 #include "TimerManager.h"
 
@@ -71,6 +75,13 @@ void ATunicPlayerCharacter::OnRep_PlayerState()
 	Super::OnRep_PlayerState();
 
 	InitializePlayerAbilitySystem();
+}
+
+void ATunicPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ATunicPlayerCharacter, bIsDead);
 }
 
 void ATunicPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -125,13 +136,16 @@ void ATunicPlayerCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	UpdateFacingToMouse(DeltaSeconds, false);
+	if (!bIsDead)
+	{
+		UpdateFacingToMouse(DeltaSeconds, false);
+	}
 	DrawAttributeDebug();
 }
 
 bool ATunicPlayerCharacter::IsCombatTargetAvailable() const
 {
-	return GetTunicAbilitySystemComponent() && GetAttributeSet();
+	return !bIsDead && GetTunicAbilitySystemComponent() && GetAttributeSet();
 }
 
 ETunicCombatTeam ATunicPlayerCharacter::GetCombatTargetTeam() const
@@ -151,7 +165,7 @@ UTunicAttributeSet* ATunicPlayerCharacter::GetCombatTargetAttributeSet() const
 
 void ATunicPlayerCharacter::HandleCombatTargetHitReaction(AActor* InstigatorActor)
 {
-	if (!HasAuthority())
+	if (!HasAuthority() || bIsDead)
 	{
 		return;
 	}
@@ -177,7 +191,7 @@ void ATunicPlayerCharacter::EndCombatHitWindow(FName)
 void ATunicPlayerCharacter::Move(const FInputActionValue& Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
-	if (!Controller || MovementVector.IsNearlyZero())
+	if (bIsDead || !Controller || MovementVector.IsNearlyZero())
 	{
 		return;
 	}
@@ -192,37 +206,72 @@ void ATunicPlayerCharacter::Move(const FInputActionValue& Value)
 
 void ATunicPlayerCharacter::StartDodge(const FInputActionValue& Value)
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	RequestDodge();
 }
 
 void ATunicPlayerCharacter::LightAttack(const FInputActionValue& Value)
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	UpdateFacingToMouse(0.0f, true);
 	RequestLightAttack();
 }
 
 void ATunicPlayerCharacter::HeavyAttack(const FInputActionValue& Value)
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	OnHeavyAttackRequested();
 }
 
 void ATunicPlayerCharacter::StartAim(const FInputActionValue& Value)
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	OnAimStarted();
 }
 
 void ATunicPlayerCharacter::StopAim(const FInputActionValue& Value)
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	OnAimStopped();
 }
 
 void ATunicPlayerCharacter::Interact(const FInputActionValue& Value)
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	OnInteractRequested();
 }
 
 void ATunicPlayerCharacter::SwitchWeapon(const FInputActionValue& Value)
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	OnSwitchWeaponRequested();
 }
 
@@ -235,6 +284,10 @@ void ATunicPlayerCharacter::OnLightAttackRequested_Implementation()
 }
 
 void ATunicPlayerCharacter::OnHitReaction_Implementation(AActor*)
+{
+}
+
+void ATunicPlayerCharacter::OnDeathStateChanged_Implementation(bool)
 {
 }
 
@@ -355,6 +408,11 @@ void ATunicPlayerCharacter::GetFixedViewMovementDirections(FVector& OutScreenUpD
 
 void ATunicPlayerCharacter::ServerSetFacingYaw_Implementation(float NewYaw, bool bSnap)
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	if (!FMath::IsFinite(NewYaw))
 	{
 		return;
@@ -371,7 +429,7 @@ void ATunicPlayerCharacter::ServerSetFacingYaw_Implementation(float NewYaw, bool
 
 void ATunicPlayerCharacter::UpdateFacingToMouse(float DeltaSeconds, bool bForceServerUpdate)
 {
-	if (!bFaceMouseOnAttack || !IsLocallyControlled())
+	if (bIsDead || !bFaceMouseOnAttack || !IsLocallyControlled())
 	{
 		return;
 	}
@@ -412,9 +470,26 @@ void ATunicPlayerCharacter::InitializePlayerAbilitySystem()
 
 	PlayerAbilitySystemComponent->InitAbilityActorInfo(TunicPlayerState, this);
 	SetAbilitySystemReferences(PlayerAbilitySystemComponent, PlayerAttributeSet);
+	BindHealthChangeDelegate(PlayerAbilitySystemComponent);
+	if (HasAuthority() && !bIsDead && PlayerAttributeSet->GetHealth() <= 0.0f)
+	{
+		SetDead(true);
+	}
 	GrantDefaultAbilities(PlayerAbilitySystemComponent);
 	ApplyDefaultEffects(PlayerAbilitySystemComponent);
 	LogPlayerAbilitySystemDebug(TunicPlayerState, PlayerAbilitySystemComponent, PlayerAttributeSet);
+}
+
+void ATunicPlayerCharacter::BindHealthChangeDelegate(UTunicAbilitySystemComponent* PlayerAbilitySystemComponent)
+{
+	if (!HasAuthority() || !PlayerAbilitySystemComponent)
+	{
+		return;
+	}
+
+	FOnGameplayAttributeValueChange& HealthChangeDelegate = PlayerAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UTunicAttributeSet::GetHealthAttribute());
+	HealthChangeDelegate.RemoveAll(this);
+	HealthChangeDelegate.AddUObject(this, &ATunicPlayerCharacter::HandleHealthChanged);
 }
 
 void ATunicPlayerCharacter::GrantDefaultAbilities(UTunicAbilitySystemComponent* PlayerAbilitySystemComponent)
@@ -489,6 +564,11 @@ void ATunicPlayerCharacter::LogPlayerAbilitySystemDebug(const ATunicPlayerState*
 
 void ATunicPlayerCharacter::RequestLightAttack()
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	const bool bShouldUseAbility = GetTunicAbilitySystemComponent() && LightAttackAbilityClass;
 	if (bShouldUseAbility)
 	{
@@ -507,12 +587,17 @@ void ATunicPlayerCharacter::RequestLightAttack()
 
 void ATunicPlayerCharacter::ServerRequestLightAttack_Implementation()
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	HandleLightAttackRequest();
 }
 
 void ATunicPlayerCharacter::HandleLightAttackRequest()
 {
-	if (!HasAuthority())
+	if (!HasAuthority() || bIsDead)
 	{
 		return;
 	}
@@ -530,11 +615,21 @@ void ATunicPlayerCharacter::HandleLightAttackRequest()
 
 void ATunicPlayerCharacter::ExecuteLightAttackAbility()
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	HandleLightAttackRequest();
 }
 
 bool ATunicPlayerCharacter::TryActivateLightAttackAbility()
 {
+	if (bIsDead)
+	{
+		return false;
+	}
+
 	UTunicAbilitySystemComponent* PlayerAbilitySystemComponent = GetTunicAbilitySystemComponent();
 	if (!PlayerAbilitySystemComponent)
 	{
@@ -556,7 +651,7 @@ bool ATunicPlayerCharacter::TryActivateLightAttackAbility()
 
 bool ATunicPlayerCharacter::PlayLightAttackMontage()
 {
-	if (!HasAuthority() || !LightAttackMontage)
+	if (!HasAuthority() || bIsDead || !LightAttackMontage)
 	{
 		return false;
 	}
@@ -582,7 +677,7 @@ bool ATunicPlayerCharacter::PlayLightAttackMontage()
 
 void ATunicPlayerCharacter::MulticastPlayLightAttackMontage_Implementation(UAnimMontage* MontageToPlay)
 {
-	if (!MontageToPlay)
+	if (bIsDead || !MontageToPlay)
 	{
 		return;
 	}
@@ -599,6 +694,11 @@ void ATunicPlayerCharacter::MulticastPlayLightAttackMontage_Implementation(UAnim
 
 void ATunicPlayerCharacter::MulticastPlayHitReaction_Implementation(AActor* InstigatorActor)
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	if (bLogHitReaction)
 	{
 		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Player hit reaction | Character=%s | Instigator=%s | Authority=%s | LocalRole=%d | RemoteRole=%d"),
@@ -647,18 +747,19 @@ void ATunicPlayerCharacter::DrawAttributeDebug() const
 	}
 
 	const FString DebugText = FString::Printf(
-		TEXT("Player\nHP %.0f/%.0f\nSTA %.0f/%.0f"),
+		TEXT("Player%s\nHP %.0f/%.0f\nSTA %.0f/%.0f"),
+		bIsDead ? TEXT(" DEAD") : TEXT(""),
 		AttributeSet->GetHealth(),
 		AttributeSet->GetMaxHealth(),
 		AttributeSet->GetStamina(),
 		AttributeSet->GetMaxStamina());
 
-	DrawDebugString(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 130.0f), DebugText, nullptr, FColor::Cyan, 0.0f, true, 1.1f);
+	DrawDebugString(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 130.0f), DebugText, nullptr, bIsDead ? FColor::Silver : FColor::Cyan, 0.0f, true, 1.1f);
 }
 
 void ATunicPlayerCharacter::BeginLightAttackHitWindow()
 {
-	if (!HasAuthority())
+	if (!HasAuthority() || bIsDead)
 	{
 		return;
 	}
@@ -670,7 +771,7 @@ void ATunicPlayerCharacter::BeginLightAttackHitWindow()
 
 void ATunicPlayerCharacter::ProcessLightAttackHitWindow()
 {
-	if (!HasAuthority() || !bLightAttackHitWindowActive)
+	if (!HasAuthority() || !bLightAttackHitWindowActive || bIsDead)
 	{
 		return;
 	}
@@ -863,6 +964,11 @@ void ATunicPlayerCharacter::HandleLightAttackTargetHit(AActor* TargetActor, ITun
 
 void ATunicPlayerCharacter::RequestDodge()
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	if (HasAuthority())
 	{
 		HandleDodgeRequest();
@@ -874,12 +980,17 @@ void ATunicPlayerCharacter::RequestDodge()
 
 void ATunicPlayerCharacter::ServerRequestDodge_Implementation()
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	HandleDodgeRequest();
 }
 
 void ATunicPlayerCharacter::HandleDodgeRequest()
 {
-	if (!HasAuthority())
+	if (!HasAuthority() || bIsDead)
 	{
 		return;
 	}
@@ -912,5 +1023,107 @@ void ATunicPlayerCharacter::LogServerInputRequestDebug(const TCHAR* RequestName,
 		GetAttributeSet() ? GetAttributeSet()->GetMaxStamina() : 0.0f,
 		static_cast<int32>(GetLocalRole()),
 		static_cast<int32>(GetRemoteRole()));
+}
+
+bool ATunicPlayerCharacter::IsDead() const
+{
+	return bIsDead;
+}
+
+void ATunicPlayerCharacter::OnRep_IsDead()
+{
+	ApplyDeathState();
+}
+
+void ATunicPlayerCharacter::HandleHealthChanged(const FOnAttributeChangeData& ChangeData)
+{
+	if (!HasAuthority() || bIsDead || ChangeData.NewValue > 0.0f)
+	{
+		return;
+	}
+
+	SetDead(true);
+}
+
+void ATunicPlayerCharacter::SetDead(bool bNewIsDead)
+{
+	if (!HasAuthority() || bIsDead == bNewIsDead)
+	{
+		return;
+	}
+
+	bIsDead = bNewIsDead;
+	ApplyDeathState();
+}
+
+void ATunicPlayerCharacter::ApplyDeathState()
+{
+	if (!bIsDead)
+	{
+		return;
+	}
+
+	bLightAttackHitWindowActive = false;
+	LightAttackHitTargets.Reset();
+
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->StopMovementImmediately();
+		MovementComponent->DisableMovement();
+	}
+
+	UTunicAbilitySystemComponent* PlayerAbilitySystemComponent = GetTunicAbilitySystemComponent();
+	if (HasAuthority() && PlayerAbilitySystemComponent)
+	{
+		const FGameplayTag DeadTag = FGameplayTag::RequestGameplayTag(TEXT("State.Dead"), false);
+		if (DeadTag.IsValid())
+		{
+			PlayerAbilitySystemComponent->SetLooseGameplayTagCount(DeadTag, 1, EGameplayTagReplicationState::TagAndCountToAll);
+		}
+	}
+
+	if (bLogDeathState)
+	{
+		const UTunicAttributeSet* PlayerAttributeSet = GetAttributeSet();
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Player entered death state | Character=%s | PlayerState=%s | ASC=%s | AttributeSet=%s | Health=%.1f/%.1f | Authority=%s | LocalRole=%d | RemoteRole=%d"),
+			*GetNameSafe(this),
+			*GetNameSafe(GetPlayerState()),
+			*GetNameSafe(PlayerAbilitySystemComponent),
+			*GetNameSafe(PlayerAttributeSet),
+			PlayerAttributeSet ? PlayerAttributeSet->GetHealth() : 0.0f,
+			PlayerAttributeSet ? PlayerAttributeSet->GetMaxHealth() : 0.0f,
+			HasAuthority() ? TEXT("true") : TEXT("false"),
+			static_cast<int32>(GetLocalRole()),
+			static_cast<int32>(GetRemoteRole()));
+	}
+
+	if (!bDeathPresentationApplied)
+	{
+		bDeathPresentationApplied = true;
+		PlayPresentationMontage(DefaultDeathMontage, true);
+		OnDeathStateChanged(bIsDead);
+	}
+}
+
+void ATunicPlayerCharacter::PlayPresentationMontage(UAnimMontage* MontageToPlay, bool bStopAllMontages)
+{
+	if (!MontageToPlay)
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* CharacterMesh = GetMesh();
+	UAnimInstance* AnimInstance = CharacterMesh ? CharacterMesh->GetAnimInstance() : nullptr;
+	if (!AnimInstance)
+	{
+		return;
+	}
+
+	AnimInstance->Montage_Play(MontageToPlay, 1.0f, bStopAllMontages ? EMontagePlayReturnType::MontageLength : EMontagePlayReturnType::Duration, 0.0f, bStopAllMontages);
 }
 

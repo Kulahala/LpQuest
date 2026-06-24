@@ -16,7 +16,9 @@ class UInputAction;
 class UAnimMontage;
 class UTunicAbilitySystemComponent;
 class AActor;
+class FLifetimeProperty;
 struct FInputActionValue;
+struct FOnAttributeChangeData;
 struct FHitResult;
 class USpringArmComponent;
 
@@ -30,6 +32,7 @@ public:
 
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual bool IsCombatTargetAvailable() const override;
@@ -51,6 +54,9 @@ public:
 	void EndLightAttackHitWindow();
 
 	void ExecuteLightAttackAbility();
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|Combat")
+	bool IsDead() const;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Camera")
@@ -98,6 +104,9 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Combat")
 	void OnHitReaction(AActor* InstigatorActor);
 
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Combat")
+	void OnDeathStateChanged(bool bNewIsDead);
+
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Input")
 	void OnHeavyAttackRequested();
 
@@ -130,6 +139,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
 	bool bLogHitReaction = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
+	bool bLogDeathState = true;
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
 	void SetLightAttackRequestLoggingEnabled(bool bEnabled);
@@ -176,6 +188,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Presentation")
 	TObjectPtr<UAnimMontage> DefaultHitReactionMontage;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Presentation")
+	TObjectPtr<UAnimMontage> DefaultDeathMontage;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities")
 	TSubclassOf<UGameplayAbility> LightAttackAbilityClass;
 
@@ -187,9 +202,14 @@ private:
 	void GetFixedViewMovementDirections(FVector& OutScreenUpDirection, FVector& OutScreenRightDirection) const;
 	void UpdateFacingToMouse(float DeltaSeconds, bool bForceServerUpdate);
 	void InitializePlayerAbilitySystem();
+	void BindHealthChangeDelegate(UTunicAbilitySystemComponent* PlayerAbilitySystemComponent);
 	void GrantDefaultAbilities(UTunicAbilitySystemComponent* PlayerAbilitySystemComponent);
 	void ApplyDefaultEffects(UTunicAbilitySystemComponent* PlayerAbilitySystemComponent);
 	void LogPlayerAbilitySystemDebug(const class ATunicPlayerState* TunicPlayerState, const class UTunicAbilitySystemComponent* PlayerAbilitySystemComponent, const class UTunicAttributeSet* PlayerAttributeSet) const;
+	void HandleHealthChanged(const FOnAttributeChangeData& ChangeData);
+	void SetDead(bool bNewIsDead);
+	void ApplyDeathState();
+	void PlayPresentationMontage(UAnimMontage* MontageToPlay, bool bStopAllMontages);
 	void RequestDodge();
 	void HandleDodgeRequest();
 	void LogDodgeRequestDebug() const;
@@ -221,6 +241,9 @@ private:
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastPlayHitReaction(AActor* InstigatorActor);
 
+	UFUNCTION()
+	void OnRep_IsDead();
+
 	UPROPERTY(EditAnywhere, Category = "Tunic|Combat|Facing")
 	bool bFaceMouseOnAttack = true;
 
@@ -230,8 +253,12 @@ private:
 	FActiveGameplayEffectHandle StaminaRegenEffectHandle;
 	float TimeSinceLastMouseFacingServerUpdate = 0.0f;
 	bool bLightAttackHitWindowActive = false;
+	bool bDeathPresentationApplied = false;
 	int32 LightAttackMontageActivationSerial = 0;
 	int32 LightAttackMontageHitWindowSerial = 0;
 	TSet<TWeakObjectPtr<AActor>> LightAttackHitTargets;
+
+	UPROPERTY(ReplicatedUsing = OnRep_IsDead)
+	bool bIsDead = false;
 };
 

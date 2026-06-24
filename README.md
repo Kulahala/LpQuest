@@ -10,6 +10,7 @@ LpQuest is a UE 5.8 C++ lowpoly multiplayer PvE action-combat prototype inspired
 - StateTree-driven enemy AI, executed on the server.
 - V1 player kit starts with sword, bow, dodge, interact, and weapon switching.
 - V1 elemental design: Fire, Ice, and Lightning.
+- Run structure leans toward co-op PvE room/floor progression: players fight randomly spawned enemy waves, pick up experience or equipment drops, clear the encounter, then move to the next floor.
 - KayKit assets are prototype art only.
 
 ## V1 Target
@@ -41,7 +42,8 @@ The first vertical slice should prove:
 - Stage 3 death reliability is complete: Health/Stamina clamping, minimal replicated enemy death state, dead-target filtering, Blueprint death-state hook wiring, initial GameplayTags registration, a minimal light attack GameplayAbility entry point, native light-attack Stamina/cooldown gates, minimal GAS Stamina regeneration, and temporary world debug draw for player/enemy attributes are implemented.
 - Stage 4 animation-timed light attack validation is complete for the prototype path: the player uses fixed-view movement with continuous mouse-facing, light attack plays a Montage from the server-authoritative GAS path, a combat hit-window Notify drives the server-side hit sweep during the Montage window, damage still flows through GameplayEffects, and the temporary sword mesh is visual-only with collision disabled.
 - Stage 5 combat feedback hardening has a validated minimal path: confirmed non-lethal enemy hits now have a server-triggered multicast presentation hook visible to both listen-server PIE windows, enemy hit/death presentation can use configured default Montages plus Blueprint extension hooks, friendly player hit reaction works without friendly damage, and the light attack path routes targets through a narrow combat target interface with separate hit-reaction and damage permission. Enemy Attack Path v1 is validated with the shared `Tunic Combat Hit Window` Notify: enemies can attack players through the server-authoritative GameplayAbility / GameplayEffect path while same-team hits remain no-damage presentation feedback.
-- Formal weapon/socket traces, final hit-reaction animation/content polish, dodge invulnerability, bow projectiles, final HUD/settings UI, final death presentation polish, and StateTree enemy behavior are not implemented yet.
+- Player Death Policy v1 is validated: enemies can kill players through the server-authoritative GameplayEffect path, dead players cannot act, and dead players are no longer available combat targets.
+- Formal weapon/socket traces, final hit-reaction animation/content polish, dodge invulnerability, bow projectiles, final HUD/settings UI, revive/respawn, party wipe handling, final death presentation polish, and StateTree enemy behavior are not implemented yet.
 
 ## Documentation
 
