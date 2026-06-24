@@ -54,6 +54,7 @@ public:
 	void EndLightAttackHitWindow();
 
 	void ExecuteLightAttackAbility();
+	void ExecuteDodgeAbility();
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Combat")
 	bool IsDead() const;
@@ -191,8 +192,26 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Presentation")
 	TObjectPtr<UAnimMontage> DefaultDeathMontage;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Animation")
+	TObjectPtr<UAnimMontage> DodgeMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0.0", Units = "cm"))
+	float DodgeDistance = 300.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0.01", Units = "s"))
+	float DodgeDuration = 0.32f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0"))
+	int32 DodgeRootMotionSourcePriority = 500;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0.0", Units = "s"))
+	float DodgeMovementInputDirectionGraceTime = 0.12f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities")
 	TSubclassOf<UGameplayAbility> LightAttackAbilityClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities")
+	TSubclassOf<UGameplayAbility> DodgeAbilityClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities")
 	TSubclassOf<UGameplayEffect> StaminaRegenEffectClass;
@@ -212,6 +231,10 @@ private:
 	void PlayPresentationMontage(UAnimMontage* MontageToPlay, bool bStopAllMontages);
 	void RequestDodge();
 	void HandleDodgeRequest();
+	bool TryActivateDodgeAbility();
+	bool PlayDodgeMontage();
+	bool StartManualDodgeMovement();
+	FVector GetDodgeDirection() const;
 	void LogDodgeRequestDebug() const;
 	void RequestLightAttack();
 	void HandleLightAttackRequest();
@@ -227,7 +250,7 @@ private:
 	void LogServerInputRequestDebug(const TCHAR* RequestName, bool bShouldLog) const;
 
 	UFUNCTION(Server, Reliable)
-	void ServerRequestDodge();
+	void ServerRequestDodge(FVector RequestedDodgeDirection);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestLightAttack();
@@ -237,6 +260,9 @@ private:
 
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastPlayLightAttackMontage(UAnimMontage* MontageToPlay);
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastPlayDodgeMontage(UAnimMontage* MontageToPlay);
 
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastPlayHitReaction(AActor* InstigatorActor);
@@ -256,6 +282,8 @@ private:
 	bool bDeathPresentationApplied = false;
 	int32 LightAttackMontageActivationSerial = 0;
 	int32 LightAttackMontageHitWindowSerial = 0;
+	FVector LastNonZeroMovementInputWorldDirection = FVector::ZeroVector;
+	float LastMovementInputDirectionUpdateTime = -1.0f;
 	TSet<TWeakObjectPtr<AActor>> LightAttackHitTargets;
 
 	UPROPERTY(ReplicatedUsing = OnRep_IsDead)
