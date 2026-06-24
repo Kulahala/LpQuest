@@ -13,5 +13,9 @@ class LPQUEST_API ATunicGameMode : public AGameModeBase
 
 public:
 	ATunicGameMode();
+
+	virtual void Logout(AController* Exiting) override;
+
+	void EvaluatePartyWipe();
 };
 

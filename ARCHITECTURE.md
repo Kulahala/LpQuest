@@ -67,7 +67,9 @@ Current enemy GAS validation is debug-only: enemy initialization logs ASC, Owner
 
 `ATunicGameMode` sets the default Pawn to `ATunicPlayerCharacter`, PlayerController to `ATunicPlayerController`, PlayerStateClass to `ATunicPlayerState`, and GameStateClass to `ATunicGameState`.
 
-`ATunicGameState` is the replicated PvE session/encounter state placeholder.
+`ATunicGameMode` owns the current server-authoritative run-state decision point. Party Wipe v1 is evaluated on the server by scanning the current `GameState->PlayerArray` for controlled `ATunicPlayerCharacter` pawns and checking their replicated character death state. Characters expose their own death state, but they do not decide whole-party failure.
+
+`ATunicGameState` owns the replicated run state surface through `ETunicRunState`. The first implemented states are `CombatActive` and `PartyWiped`. `ATunicGameState` replicates the state to clients and exposes a Blueprint presentation hook for state changes; it does not decide when the party is wiped.
 
 `GameMode` remains server-only. `PlayerController` owns local input setup. `PlayerState` owns replicated player gameplay state.
 

@@ -24,6 +24,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Game/TunicGameMode.h"
 #include "GameplayAbilitySpec.h"
 #include "GameplayEffect.h"
 #include "GameplayEffectTypes.h"
@@ -1054,6 +1055,14 @@ void ATunicPlayerCharacter::SetDead(bool bNewIsDead)
 
 	bIsDead = bNewIsDead;
 	ApplyDeathState();
+
+	if (bIsDead)
+	{
+		if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
+		{
+			TunicGameMode->EvaluatePartyWipe();
+		}
+	}
 }
 
 void ATunicPlayerCharacter::ApplyDeathState()
