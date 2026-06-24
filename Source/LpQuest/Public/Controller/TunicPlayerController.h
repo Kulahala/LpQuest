@@ -7,6 +7,7 @@
 #include "TunicPlayerController.generated.h"
 
 class UInputMappingContext;
+class UTunicRunStatusWidget;
 
 UCLASS(Blueprintable)
 class LPQUEST_API ATunicPlayerController : public APlayerController
@@ -24,5 +25,11 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Input")
 	int32 DefaultMappingPriority = 0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|UI")
+	TSubclassOf<UTunicRunStatusWidget> RunStatusWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTunicRunStatusWidget> RunStatusWidget;
 };
 

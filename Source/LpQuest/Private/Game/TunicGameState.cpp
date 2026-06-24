@@ -60,6 +60,7 @@ void ATunicGameState::SetRunState(ETunicRunState NewRunState)
 	}
 
 	RunState = NewRunState;
+	OnRunStateChangedEvent.Broadcast(RunState);
 	OnRunStateChanged(RunState);
 }
 
@@ -77,6 +78,7 @@ void ATunicGameState::SetCurrentFloorIndex(int32 NewFloorIndex)
 	}
 
 	CurrentFloorIndex = ClampedFloorIndex;
+	OnFloorIndexChangedEvent.Broadcast(CurrentFloorIndex);
 	OnFloorIndexChanged(CurrentFloorIndex);
 }
 
@@ -90,6 +92,7 @@ void ATunicGameState::AddSharedRunExperience(int32 Amount, AActor* SourceActor)
 	const int32 OldSharedRunExperience = SharedRunExperience;
 	const int64 NewSharedRunExperience = static_cast<int64>(SharedRunExperience) + static_cast<int64>(Amount);
 	SharedRunExperience = static_cast<int32>(FMath::Clamp<int64>(NewSharedRunExperience, 0, MAX_int32));
+	OnSharedRunExperienceChangedEvent.Broadcast(SharedRunExperience, SharedRunExperience - OldSharedRunExperience, SourceActor);
 	OnSharedRunExperienceChanged(SharedRunExperience, SharedRunExperience - OldSharedRunExperience, SourceActor);
 }
 
@@ -107,16 +110,19 @@ void ATunicGameState::OnSharedRunExperienceChanged_Implementation(int32, int32, 
 
 void ATunicGameState::OnRep_RunState()
 {
+	OnRunStateChangedEvent.Broadcast(RunState);
 	OnRunStateChanged(RunState);
 }
 
 void ATunicGameState::OnRep_CurrentFloorIndex()
 {
+	OnFloorIndexChangedEvent.Broadcast(CurrentFloorIndex);
 	OnFloorIndexChanged(CurrentFloorIndex);
 }
 
 void ATunicGameState::OnRep_SharedRunExperience(int32 OldSharedRunExperience)
 {
+	OnSharedRunExperienceChangedEvent.Broadcast(SharedRunExperience, SharedRunExperience - OldSharedRunExperience, nullptr);
 	OnSharedRunExperienceChanged(SharedRunExperience, SharedRunExperience - OldSharedRunExperience, nullptr);
 }
 

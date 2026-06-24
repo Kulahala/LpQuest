@@ -18,6 +18,10 @@ enum class ETunicRunState : uint8
 	FloorTransitionReady
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicRunStateChangedSignature, ETunicRunState, NewRunState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicFloorIndexChangedSignature, int32, NewFloorIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FTunicSharedRunExperienceChangedSignature, int32, NewValue, int32, Delta, AActor*, SourceActor);
+
 UCLASS(Blueprintable)
 class LPQUEST_API ATunicGameState : public AGameStateBase
 {
@@ -48,6 +52,15 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
 	bool IsFloorTransitionReady() const;
+
+	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
+	FTunicRunStateChangedSignature OnRunStateChangedEvent;
+
+	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
+	FTunicFloorIndexChangedSignature OnFloorIndexChangedEvent;
+
+	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
+	FTunicSharedRunExperienceChangedSignature OnSharedRunExperienceChangedEvent;
 
 	void SetRunState(ETunicRunState NewRunState);
 	void SetCurrentFloorIndex(int32 NewFloorIndex);
