@@ -28,6 +28,7 @@ public:
 
 	void HandleHitReaction(AActor* InstigatorActor);
 	virtual bool IsCombatTargetAvailable() const override;
+	virtual ETunicCombatTeam GetCombatTargetTeam() const override;
 	virtual UTunicAbilitySystemComponent* GetCombatTargetAbilitySystemComponent() const override;
 	virtual UTunicAttributeSet* GetCombatTargetAttributeSet() const override;
 	virtual void HandleCombatTargetHitReaction(AActor* InstigatorActor) override;

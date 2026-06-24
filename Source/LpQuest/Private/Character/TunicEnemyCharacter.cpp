@@ -64,6 +64,11 @@ bool ATunicEnemyCharacter::IsCombatTargetAvailable() const
 	return !IsDead();
 }
 
+ETunicCombatTeam ATunicEnemyCharacter::GetCombatTargetTeam() const
+{
+	return ETunicCombatTeam::Enemy;
+}
+
 UTunicAbilitySystemComponent* ATunicEnemyCharacter::GetCombatTargetAbilitySystemComponent() const
 {
 	return GetTunicAbilitySystemComponent();

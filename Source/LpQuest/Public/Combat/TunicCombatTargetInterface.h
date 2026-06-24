@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Combat/TunicCombatTypes.h"
 #include "UObject/Interface.h"
 #include "TunicCombatTargetInterface.generated.h"
 
@@ -22,6 +23,7 @@ class LPQUEST_API ITunicCombatTargetInterface
 
 public:
 	virtual bool IsCombatTargetAvailable() const = 0;
+	virtual ETunicCombatTeam GetCombatTargetTeam() const = 0;
 	virtual UTunicAbilitySystemComponent* GetCombatTargetAbilitySystemComponent() const = 0;
 	virtual UTunicAttributeSet* GetCombatTargetAttributeSet() const = 0;
 	virtual void HandleCombatTargetHitReaction(AActor* InstigatorActor) = 0;

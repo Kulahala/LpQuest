@@ -12,6 +12,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Camera/CameraComponent.h"
+#include "Combat/TunicCombatRules.h"
 #include "Combat/TunicCombatTargetInterface.h"
 #include "DrawDebugHelpers.h"
 #include "EnhancedInputComponent.h"
@@ -128,6 +129,36 @@ void ATunicPlayerCharacter::Tick(float DeltaSeconds)
 	DrawAttributeDebug();
 }
 
+bool ATunicPlayerCharacter::IsCombatTargetAvailable() const
+{
+	return GetTunicAbilitySystemComponent() && GetAttributeSet();
+}
+
+ETunicCombatTeam ATunicPlayerCharacter::GetCombatTargetTeam() const
+{
+	return ETunicCombatTeam::Player;
+}
+
+UTunicAbilitySystemComponent* ATunicPlayerCharacter::GetCombatTargetAbilitySystemComponent() const
+{
+	return GetTunicAbilitySystemComponent();
+}
+
+UTunicAttributeSet* ATunicPlayerCharacter::GetCombatTargetAttributeSet() const
+{
+	return GetAttributeSet();
+}
+
+void ATunicPlayerCharacter::HandleCombatTargetHitReaction(AActor* InstigatorActor)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	MulticastPlayHitReaction(InstigatorActor);
+}
+
 void ATunicPlayerCharacter::Move(const FInputActionValue& Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
@@ -185,6 +216,10 @@ void ATunicPlayerCharacter::OnDodgeRequested_Implementation()
 }
 
 void ATunicPlayerCharacter::OnLightAttackRequested_Implementation()
+{
+}
+
+void ATunicPlayerCharacter::OnHitReaction_Implementation(AActor*)
 {
 }
 
@@ -547,6 +582,31 @@ void ATunicPlayerCharacter::MulticastPlayLightAttackMontage_Implementation(UAnim
 	AnimInstance->Montage_Play(MontageToPlay);
 }
 
+void ATunicPlayerCharacter::MulticastPlayHitReaction_Implementation(AActor* InstigatorActor)
+{
+	if (bLogHitReaction)
+	{
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Player hit reaction | Character=%s | Instigator=%s | Authority=%s | LocalRole=%d | RemoteRole=%d"),
+			*GetNameSafe(this),
+			*GetNameSafe(InstigatorActor),
+			HasAuthority() ? TEXT("true") : TEXT("false"),
+			static_cast<int32>(GetLocalRole()),
+			static_cast<int32>(GetRemoteRole()));
+	}
+
+	if (DefaultHitReactionMontage)
+	{
+		USkeletalMeshComponent* CharacterMesh = GetMesh();
+		UAnimInstance* AnimInstance = CharacterMesh ? CharacterMesh->GetAnimInstance() : nullptr;
+		if (AnimInstance)
+		{
+			AnimInstance->Montage_Play(DefaultHitReactionMontage);
+		}
+	}
+
+	OnHitReaction(InstigatorActor);
+}
+
 void ATunicPlayerCharacter::CheckLightAttackMontageHitWindowTriggered(int32 MontageSerial)
 {
 	if (!HasAuthority() || !LightAttackMontage || LightAttackMontageActivationSerial != MontageSerial || LightAttackMontageHitWindowSerial == MontageSerial)
@@ -621,22 +681,22 @@ void ATunicPlayerCharacter::ProcessLightAttackHitWindow()
 		SweepShape,
 		QueryParams);
 
-	int32 AppliedHitCount = 0;
+	int32 ProcessedHitCount = 0;
 	for (const FHitResult& HitResult : HitResults)
 	{
 		AActor* TargetActor = HitResult.GetActor();
 		ITunicCombatTargetInterface* CombatTarget = Cast<ITunicCombatTargetInterface>(TargetActor);
-		if (!TargetActor || !CombatTarget || !CombatTarget->IsCombatTargetAvailable() || LightAttackHitTargets.Contains(TargetActor))
+		if (!TargetActor || !CombatTarget || !CombatTarget->IsCombatTargetAvailable() || LightAttackHitTargets.Contains(TargetActor) || FTunicCombatRules::IsSelfHit(this, TargetActor))
 		{
 			continue;
 		}
 
 		LightAttackHitTargets.Add(TargetActor);
-		ApplyLightAttackDebugDamage(TargetActor, CombatTarget);
-		++AppliedHitCount;
+		HandleLightAttackTargetHit(TargetActor, CombatTarget);
+		++ProcessedHitCount;
 	}
 
-	LogLightAttackHitSweepDebug(HitResults, AppliedHitCount);
+	LogLightAttackHitSweepDebug(HitResults, ProcessedHitCount);
 }
 
 void ATunicPlayerCharacter::EndLightAttackHitWindow()
@@ -655,19 +715,19 @@ FVector ATunicPlayerCharacter::GetLightAttackSweepPoint(const FVector& LocalOffs
 	return GetActorLocation() + GetActorRotation().RotateVector(LocalOffset);
 }
 
-void ATunicPlayerCharacter::LogLightAttackHitSweepDebug(const TArray<FHitResult>& HitResults, int32 AppliedHitCount) const
+void ATunicPlayerCharacter::LogLightAttackHitSweepDebug(const TArray<FHitResult>& HitResults, int32 ProcessedHitCount) const
 {
 	if (!bLogLightAttackHitSweep)
 	{
 		return;
 	}
 
-	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack hit sweep completed | Character=%s | SweepStart=%s | SweepEnd=%s | HitCount=%d | AppliedHitCount=%d | Radius=%.1f | HalfHeight=%.1f"),
+	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack hit sweep completed | Character=%s | SweepStart=%s | SweepEnd=%s | HitCount=%d | ProcessedHitCount=%d | Radius=%.1f | HalfHeight=%.1f"),
 		*GetNameSafe(this),
 		*GetLightAttackSweepPoint(LightAttackSweepStartOffset).ToCompactString(),
 		*GetLightAttackSweepPoint(LightAttackSweepEndOffset).ToCompactString(),
 		HitResults.Num(),
-		AppliedHitCount,
+		ProcessedHitCount,
 		LightAttackSweepRadius,
 		LightAttackSweepHalfHeight);
 
@@ -745,17 +805,45 @@ void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(AActor* TargetActor, ITu
 	TargetAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(LightAttackDamageEffectClass, 1.0f, EffectContext);
 	const float HealthAfter = TargetAttributeSet->GetHealth();
 
-	if (HealthAfter < HealthBefore && HealthAfter > 0.0f && CombatTarget->IsCombatTargetAvailable())
-	{
-		CombatTarget->HandleCombatTargetHitReaction(this);
-	}
-
 	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage applied | Character=%s | Target=%s | EffectClass=%s | TargetHealth=%.1f->%.1f"),
 		*GetNameSafe(this),
 		*GetNameSafe(TargetActor),
 		*GetNameSafe(LightAttackDamageEffectClass.Get()),
 		HealthBefore,
 		HealthAfter);
+}
+
+void ATunicPlayerCharacter::HandleLightAttackTargetHit(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget)
+{
+	if (!TargetActor || !CombatTarget)
+	{
+		return;
+	}
+
+	const bool bCanApplyDamage = FTunicCombatRules::CanApplyDamage(this, TargetActor, *CombatTarget);
+	const bool bCanTriggerHitReaction = FTunicCombatRules::CanTriggerHitReaction(this, TargetActor, *CombatTarget);
+	const UTunicAttributeSet* TargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
+	const float HealthBefore = TargetAttributeSet ? TargetAttributeSet->GetHealth() : 0.0f;
+
+	if (bCanApplyDamage)
+	{
+		ApplyLightAttackDebugDamage(TargetActor, CombatTarget);
+	}
+	else
+	{
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack hit target without damage | Character=%s | Target=%s | SourceTeam=%d | TargetTeam=%d"),
+			*GetNameSafe(this),
+			*GetNameSafe(TargetActor),
+			static_cast<int32>(FTunicCombatRules::GetSourceTeam(this)),
+			static_cast<int32>(CombatTarget->GetCombatTargetTeam()));
+	}
+
+	const UTunicAttributeSet* UpdatedTargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
+	const float HealthAfter = UpdatedTargetAttributeSet ? UpdatedTargetAttributeSet->GetHealth() : HealthBefore;
+	if (bCanTriggerHitReaction && CombatTarget->IsCombatTargetAvailable() && (!bCanApplyDamage || HealthAfter < HealthBefore) && HealthAfter > 0.0f)
+	{
+		CombatTarget->HandleCombatTargetHitReaction(this);
+	}
 }
 
 void ATunicPlayerCharacter::RequestDodge()

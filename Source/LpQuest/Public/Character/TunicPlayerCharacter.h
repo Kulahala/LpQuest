@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "ActiveGameplayEffectHandle.h"
 #include "Character/TunicCharacterBase.h"
+#include "Combat/TunicCombatTargetInterface.h"
 #include "TunicPlayerCharacter.generated.h"
 
 class UCameraComponent;
@@ -17,10 +18,9 @@ class AActor;
 struct FInputActionValue;
 struct FHitResult;
 class USpringArmComponent;
-class ITunicCombatTargetInterface;
 
 UCLASS(Blueprintable)
-class LPQUEST_API ATunicPlayerCharacter : public ATunicCharacterBase
+class LPQUEST_API ATunicPlayerCharacter : public ATunicCharacterBase, public ITunicCombatTargetInterface
 {
 	GENERATED_BODY()
 
@@ -31,6 +31,11 @@ public:
 	virtual void OnRep_PlayerState() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	virtual void Tick(float DeltaSeconds) override;
+	virtual bool IsCombatTargetAvailable() const override;
+	virtual ETunicCombatTeam GetCombatTargetTeam() const override;
+	virtual UTunicAbilitySystemComponent* GetCombatTargetAbilitySystemComponent() const override;
+	virtual UTunicAttributeSet* GetCombatTargetAttributeSet() const override;
+	virtual void HandleCombatTargetHitReaction(AActor* InstigatorActor) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Combat")
 	void BeginLightAttackHitWindow();
@@ -86,6 +91,9 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Input")
 	void OnLightAttackRequested();
 
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Combat")
+	void OnHitReaction(AActor* InstigatorActor);
+
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Input")
 	void OnHeavyAttackRequested();
 
@@ -115,6 +123,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
 	bool bLogLightAttackRequests = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug")
+	bool bLogHitReaction = true;
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug")
 	void SetLightAttackRequestLoggingEnabled(bool bEnabled);
@@ -158,6 +169,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Animation")
 	TObjectPtr<UAnimMontage> LightAttackMontage;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Presentation")
+	TObjectPtr<UAnimMontage> DefaultHitReactionMontage;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities")
 	TSubclassOf<UGameplayAbility> LightAttackAbilityClass;
 
@@ -183,8 +197,9 @@ private:
 	void LogLightAttackRequestDebug() const;
 	void DrawAttributeDebug() const;
 	FVector GetLightAttackSweepPoint(const FVector& LocalOffset) const;
-	void LogLightAttackHitSweepDebug(const TArray<FHitResult>& HitResults, int32 AppliedHitCount) const;
+	void LogLightAttackHitSweepDebug(const TArray<FHitResult>& HitResults, int32 ProcessedHitCount) const;
 	void ApplyLightAttackDebugDamage(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget);
+	void HandleLightAttackTargetHit(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget);
 	void LogServerInputRequestDebug(const TCHAR* RequestName, bool bShouldLog) const;
 
 	UFUNCTION(Server, Reliable)
@@ -198,6 +213,9 @@ private:
 
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastPlayLightAttackMontage(UAnimMontage* MontageToPlay);
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastPlayHitReaction(AActor* InstigatorActor);
 
 	UPROPERTY(EditAnywhere, Category = "Tunic|Combat|Facing")
 	bool bFaceMouseOnAttack = true;

@@ -55,3 +55,11 @@ enum class ETunicElementType : uint8
 	Lightning
 };
 
+UENUM(BlueprintType)
+enum class ETunicCombatTeam : uint8
+{
+	Neutral,
+	Player,
+	Enemy
+};
+
