@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "ActiveGameplayEffectHandle.h"
 #include "Character/TunicCharacterBase.h"
+#include "Combat/TunicCombatHitWindowSourceInterface.h"
 #include "Combat/TunicCombatTargetInterface.h"
 #include "TunicPlayerCharacter.generated.h"
 
@@ -20,7 +21,7 @@ struct FHitResult;
 class USpringArmComponent;
 
 UCLASS(Blueprintable)
-class LPQUEST_API ATunicPlayerCharacter : public ATunicCharacterBase, public ITunicCombatTargetInterface
+class LPQUEST_API ATunicPlayerCharacter : public ATunicCharacterBase, public ITunicCombatTargetInterface, public ITunicCombatHitWindowSourceInterface
 {
 	GENERATED_BODY()
 
@@ -36,6 +37,9 @@ public:
 	virtual UTunicAbilitySystemComponent* GetCombatTargetAbilitySystemComponent() const override;
 	virtual UTunicAttributeSet* GetCombatTargetAttributeSet() const override;
 	virtual void HandleCombatTargetHitReaction(AActor* InstigatorActor) override;
+	virtual void BeginCombatHitWindow(FName HitWindowName) override;
+	virtual void ProcessCombatHitWindow(FName HitWindowName) override;
+	virtual void EndCombatHitWindow(FName HitWindowName) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Combat")
 	void BeginLightAttackHitWindow();

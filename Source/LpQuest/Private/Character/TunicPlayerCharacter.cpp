@@ -159,6 +159,21 @@ void ATunicPlayerCharacter::HandleCombatTargetHitReaction(AActor* InstigatorActo
 	MulticastPlayHitReaction(InstigatorActor);
 }
 
+void ATunicPlayerCharacter::BeginCombatHitWindow(FName)
+{
+	BeginLightAttackHitWindow();
+}
+
+void ATunicPlayerCharacter::ProcessCombatHitWindow(FName)
+{
+	ProcessLightAttackHitWindow();
+}
+
+void ATunicPlayerCharacter::EndCombatHitWindow(FName)
+{
+	EndLightAttackHitWindow();
+}
+
 void ATunicPlayerCharacter::Move(const FInputActionValue& Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
