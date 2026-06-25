@@ -111,7 +111,9 @@ For multiplayer PvE, authoritative hit confirmation, projectile spawning, damage
 
 Enemy AI should use StateTree from the start. AI and StateTree execution should be server-authoritative. Clients observe replicated movement, combat state, montage/cue presentation, and death state.
 
-StateTree decides intent: idle, patrol, alert, chase, combat, attack, recover, hit react, dead. GameplayAbilities execute concrete actions. The current prototype auto attack on enemies is only a validation trigger for the enemy melee path; StateTree should replace that decision layer without taking over final hit confirmation or damage application.
+`ATunicEnemyAIController` is the first enemy AI controller. It owns a `UStateTreeAIComponent` brain that is started only on the server when a valid enemy pawn and StateTree asset are present. The controller owns AI intent helpers such as target acquisition, current target storage, range checks, focus, stopping movement, and requesting the current target melee attack. Target acquisition currently scans `GameState->PlayerArray` and filters players through `ITunicCombatTargetInterface::IsCombatTargetAvailable()`.
+
+StateTree decides intent: idle, patrol, alert, chase, combat, attack, recover, hit react, dead. GameplayAbilities execute concrete actions. Native Tunic StateTree nodes may find player targets, check attack range, and ask the enemy AI controller to request melee attack activation. They must not directly mutate Health, RunState, XP, GameplayTags, or final combat state. The current prototype auto attack on enemies is only a debug validation trigger for the enemy melee path and is not the main AI path.
 
 ### Assets
 

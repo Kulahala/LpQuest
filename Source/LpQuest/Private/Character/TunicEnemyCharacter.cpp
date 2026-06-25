@@ -2,6 +2,7 @@
 
 #include "Character/TunicEnemyCharacter.h"
 
+#include "AI/TunicEnemyAIController.h"
 #include "Ability/TunicAbilitySystemComponent.h"
 #include "Ability/TunicAttributeSet.h"
 #include "Ability/TunicDamageGameplayEffect.h"
@@ -40,6 +41,17 @@ ATunicEnemyCharacter::ATunicEnemyCharacter(const FObjectInitializer& ObjectIniti
 	SetAbilitySystemReferences(EnemyAbilitySystemComponent, EnemyAttributeSet);
 
 	PrimaryActorTick.bCanEverTick = true;
+	AIControllerClass = ATunicEnemyAIController::StaticClass();
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->DefaultLandMovementMode = MOVE_Walking;
+		MovementComponent->MaxWalkSpeed = 300.0f;
+		MovementComponent->bOrientRotationToMovement = true;
+		MovementComponent->bUseControllerDesiredRotation = false;
+		MovementComponent->RotationRate = FRotator(0.0f, 360.0f, 0.0f);
+	}
 
 	DefaultMeleeAttackAbilityClass = UTunicGameplayAbility_EnemyMeleeAttack::StaticClass();
 	MeleeAttackDamageEffectClass = UTunicDamageGameplayEffect::StaticClass();
@@ -56,6 +68,7 @@ void ATunicEnemyCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	EnsureLiveEnemyMovementMode();
 	DrawAttributeDebug();
 	UpdatePrototypeAutoAttack(DeltaSeconds);
 }
@@ -63,6 +76,8 @@ void ATunicEnemyCharacter::Tick(float DeltaSeconds)
 void ATunicEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	EnsureLiveEnemyMovementMode();
 
 	if (AbilitySystemComponent)
 	{
@@ -83,11 +98,11 @@ int32 ATunicEnemyCharacter::GetExperienceReward() const
 	return FMath::Max(0, ExperienceReward);
 }
 
-void ATunicEnemyCharacter::TryActivateEnemyMeleeAttack()
+bool ATunicEnemyCharacter::TryActivateEnemyMeleeAttack()
 {
 	if (!HasAuthority() || bIsDead || !AbilitySystemComponent)
 	{
-		return;
+		return false;
 	}
 
 	if (const FGameplayTag EnemyMeleeAttackTag = FGameplayTag::RequestGameplayTag(TEXT("Ability.Attack.Enemy.Melee"), false); EnemyMeleeAttackTag.IsValid())
@@ -96,14 +111,16 @@ void ATunicEnemyCharacter::TryActivateEnemyMeleeAttack()
 		EnemyMeleeAttackTags.AddTag(EnemyMeleeAttackTag);
 		if (AbilitySystemComponent->TryActivateAbilitiesByTag(EnemyMeleeAttackTags))
 		{
-			return;
+			return true;
 		}
 	}
 
 	if (DefaultMeleeAttackAbilityClass)
 	{
-		AbilitySystemComponent->TryActivateAbilityByClass(DefaultMeleeAttackAbilityClass);
+		return AbilitySystemComponent->TryActivateAbilityByClass(DefaultMeleeAttackAbilityClass);
 	}
+
+	return false;
 }
 
 void ATunicEnemyCharacter::BeginEnemyMeleeHitWindow()
@@ -313,6 +330,11 @@ void ATunicEnemyCharacter::SetDead(bool bNewIsDead)
 
 	if (bIsDead)
 	{
+		if (ATunicEnemyAIController* EnemyAIController = Cast<ATunicEnemyAIController>(GetController()))
+		{
+			EnemyAIController->StopEnemyAILogic();
+		}
+
 		if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
 		{
 			TunicGameMode->HandleEnemyDeath(this);
@@ -639,6 +661,17 @@ void ATunicEnemyCharacter::LogEnemyMeleeHitSweepDebug(const TArray<FHitResult>& 
 			static_cast<int32>(TargetActor->GetLocalRole()),
 			static_cast<int32>(TargetActor->GetRemoteRole()));
 	}
+}
+
+void ATunicEnemyCharacter::EnsureLiveEnemyMovementMode()
+{
+	UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+	if (!HasAuthority() || bIsDead || !MovementComponent || MovementComponent->MovementMode != MOVE_None)
+	{
+		return;
+	}
+
+	MovementComponent->SetMovementMode(MOVE_Walking);
 }
 
 void ATunicEnemyCharacter::PlayPresentationMontage(UAnimMontage* MontageToPlay, bool bStopAllMontages)

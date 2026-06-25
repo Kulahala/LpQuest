@@ -49,7 +49,8 @@ The first vertical slice should prove:
 - Floor Transition Stub v1 is validated: after portal readiness, the server advances a replicated floor index, resets placed portals, and returns the run state to combat without granting rewards or loading a new map.
 - Spawner v1 is implemented in C++: a placed encounter spawner can spawn fixed waves from authored spawn point actors, track current encounter membership, clean up prior-floor enemies, and let GameMode clear the encounter from spawned members rather than every enemy in the level.
 - Shared XP v1 is implemented in C++: spawned encounter enemy deaths can add enemy-configured XP into a replicated GameState shared run XP pool, derive a shared run level, grant per-player pending upgrade choices, and display floor, run state, XP, level, and upgrade availability in a minimal local HUD with a stub selection button that consumes pending choices.
-- Formal weapon/socket traces, final hit-reaction animation/content polish, dodge invulnerability, bow projectiles, final HUD/settings UI, revive/respawn, final death presentation polish, equipment drops, real floor loading, and StateTree enemy behavior are not implemented yet.
+- Enemy AI v1 has the C++ StateTree chase/attack loop in place: enemies default to a server AIController with a StateTree AI brain, native StateTree nodes can acquire player targets and request existing enemy melee attacks, and the prototype auto-attack switch is no longer the intended AI path.
+- Formal weapon/socket traces, final hit-reaction animation/content polish, dodge invulnerability, bow projectiles, final HUD/settings UI, revive/respawn, final death presentation polish, equipment drops, real floor loading, and fully authored enemy StateTree assets are not implemented yet.
 
 ## Documentation
 

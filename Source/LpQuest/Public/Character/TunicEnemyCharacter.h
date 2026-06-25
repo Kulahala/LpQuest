@@ -34,7 +34,7 @@ public:
 	int32 GetExperienceReward() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Combat")
-	void TryActivateEnemyMeleeAttack();
+	bool TryActivateEnemyMeleeAttack();
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Combat")
 	void BeginEnemyMeleeHitWindow();
@@ -139,6 +139,7 @@ private:
 	void GrantDefaultAbilities();
 	void SetDead(bool bNewIsDead);
 	void ApplyDeathState();
+	void EnsureLiveEnemyMovementMode();
 	void LogEnemyAbilitySystemDebug() const;
 	void DrawAttributeDebug() const;
 	void UpdatePrototypeAutoAttack(float DeltaSeconds);
@@ -167,4 +168,3 @@ private:
 	float PrototypeAutoAttackElapsedTime = 0.0f;
 	TSet<TWeakObjectPtr<AActor>> EnemyMeleeHitTargets;
 };
-

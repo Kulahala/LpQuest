@@ -6,7 +6,10 @@ Saved/
 .vs/
 
 # Local agent / editor indexes
+.agents/
+.cache/
 .codegraph/
+.codex/
 .serena/
 compile_commands.json
 

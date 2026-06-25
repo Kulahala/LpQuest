@@ -79,10 +79,6 @@
 			"Enabled": true
 		},
 		{
-			"Name": "ModelContextProtocol",
-			"Enabled": true
-		},
-		{
 			"Name": "PhysicsToolsets",
 			"Enabled": true
 		},
@@ -96,6 +92,14 @@
 		},
 		{
 			"Name": "AnimationAssistantToolset",
+			"Enabled": true
+		},
+		{
+			"Name": "AllToolsets",
+			"Enabled": true
+		},
+		{
+			"Name": "ModelContextProtocol",
 			"Enabled": true
 		}
 	]

@@ -82,6 +82,8 @@ For complex, multi-file, architecture-sensitive, networking-sensitive, or asset-
 
 The agent must do this proactively even if the user forgets to ask for a plan. Do not start implementing while the plan is still being discovered. If new information materially changes the plan, pause and explain the revised plan before continuing. If the task is borderline, default to writing the plan first and ask for user approval before editing files.
 
+Plans and roadmap constraints are defaults for deliberate work, not permanent bans. If the user's actual requirement conflicts with the current plan or reveals that a planned architecture no longer fits, adjust the plan deliberately: explain the mismatch, compare the viable options, update the relevant docs, and then implement the revised plan after approval.
+
 Complex or cross-boundary tasks include:
 
 - multi-file C++ changes;
@@ -173,15 +175,15 @@ If a user request is vague, directionally unclear, or has multiple plausible int
 
 If a requested approach is technically unsound, high-risk, likely to damage the existing architecture, or clearly worse than another path, push back directly with the technical reason and propose a better alternative.
 
-If Rider MCP is available, use it for IDE/solution-level context such as listing opened solution projects or opening files in Rider. Do not assume Rider MCP replaces source-level code intelligence unless the required Rider tools are actually exposed.
+Default code-navigation architecture:
 
-If Serena MCP is available, it may be used for symbol-level navigation and reference lookup. In this UE C++ project, treat empty or stale Serena symbol results as non-authoritative because UHT, generated headers, UBT include paths, and changing `compile_commands.json` can make the LSP index incomplete.
+- `CodeGraph`: primary source for code structure, call chains, and blast-radius checks.
+- `ARCHITECTURE.md`: architecture boundaries, responsibility ownership, and design intent.
+- `rg` plus direct source reads: final fallback for exact text, implementation details, and stale-index checks.
+- Rider: IDE-side semantic checks, navigation, and human verification. Do not assume Rider MCP replaces source-level code intelligence unless the required Rider tools are actually exposed.
+- Unreal MCP: live Editor work for assets, Blueprints, levels, actors, gameplay tags, materials, widgets, and runtime/editor state.
 
-If a Serena call fails or cannot find known project symbols, report the concrete reason instead of silently falling back. Include the failing operation, the error or symptom, and the most likely fix, such as reactivating the project, restarting the MCP/client, regenerating `compile_commands.json`, rebuilding the editor target, or refreshing the LSP index. Then immediately fall back to CodeGraph, `rg`, direct source reads, compiler output, and local UE Engine headers.
-
-If `.codegraph/` exists, try CodeGraph before text search for code navigation, call paths, and blast-radius checks. If CodeGraph service fails, mention the failure and fall back to `rg` / direct file reads.
-
-If Serena or CodeGraph results appear stale, mention it and suggest reactivation, restart, or re-indexing. After adding/removing C++ files or changing module dependencies, remind the user that `compile_commands.json` may need regeneration for Serena/clangd accuracy.
+If `.codegraph/` exists, try CodeGraph before text search for code navigation, call paths, and blast-radius checks. If CodeGraph service fails or appears stale, mention the failure and fall back to `rg` / direct file reads.
 
 For live Unreal Editor work such as inspecting or changing levels, actors, assets, Blueprints, Gameplay Tags, GAS assets, materials, or widgets, use the `unreal-mcp` skill when the MCP server is available. Discover tools through `list_toolsets` / `describe_toolset`, dispatch through `call_tool`, keep calls sequential, and confirm the user has a save/recovery point before bulk or hard-to-undo asset edits.
 
