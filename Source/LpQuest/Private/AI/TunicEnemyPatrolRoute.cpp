@@ -36,11 +36,15 @@ void ATunicEnemyPatrolRoute::OnConstruction(const FTransform& Transform)
 		PatrolSplineComponent->SetSelectedSplineSegmentColor(DebugColor);
 #endif
 	}
+
+	RebuildSampledPatrolLocations();
 }
 
 void ATunicEnemyPatrolRoute::BeginPlay()
 {
 	Super::BeginPlay();
+
+	RebuildSampledPatrolLocations();
 
 	if (bDrawRuntimeDebugRoute)
 	{
@@ -55,25 +59,19 @@ FName ATunicEnemyPatrolRoute::GetRouteId() const
 
 int32 ATunicEnemyPatrolRoute::GetPatrolPointCount() const
 {
-	return PatrolSplineComponent ? PatrolSplineComponent->GetNumberOfSplinePoints() : 0;
+	return SampledPatrolLocations.Num();
 }
 
 FVector ATunicEnemyPatrolRoute::GetPatrolPointLocation(int32 PointIndex) const
 {
-	if (!PatrolSplineComponent)
-	{
-		return GetActorLocation();
-	}
-
-	const int32 PointCount = PatrolSplineComponent->GetNumberOfSplinePoints();
+	const int32 PointCount = SampledPatrolLocations.Num();
 	if (PointCount <= 0)
 	{
 		return GetActorLocation();
 	}
 
 	const int32 SafePointIndex = FMath::Clamp(PointIndex, 0, PointCount - 1);
-	const FVector RawLocation = PatrolSplineComponent->GetLocationAtSplinePoint(SafePointIndex, ESplineCoordinateSpace::World);
-	return ProjectLocationToNavigation(RawLocation);
+	return SampledPatrolLocations[SafePointIndex];
 }
 
 bool ATunicEnemyPatrolRoute::IsLoopRoute() const
@@ -84,6 +82,67 @@ bool ATunicEnemyPatrolRoute::IsLoopRoute() const
 USplineComponent* ATunicEnemyPatrolRoute::GetPatrolSplineComponent() const
 {
 	return PatrolSplineComponent;
+}
+
+void ATunicEnemyPatrolRoute::RebuildSampledPatrolLocations()
+{
+	SampledPatrolLocations.Reset();
+
+	if (!PatrolSplineComponent)
+	{
+		AddSampledPatrolLocation(GetActorLocation());
+		return;
+	}
+
+	const int32 SplinePointCount = PatrolSplineComponent->GetNumberOfSplinePoints();
+	if (SplinePointCount <= 0)
+	{
+		AddSampledPatrolLocation(GetActorLocation());
+		return;
+	}
+
+	PatrolSplineComponent->SetClosedLoop(bLoopRoute, false);
+
+	const float SplineLength = PatrolSplineComponent->GetSplineLength();
+	const float SafeSampleDistance = FMath::Max(1.0f, PatrolSampleDistance);
+	if (SplineLength <= KINDA_SMALL_NUMBER)
+	{
+		for (int32 PointIndex = 0; PointIndex < SplinePointCount; ++PointIndex)
+		{
+			AddSampledPatrolLocation(PatrolSplineComponent->GetLocationAtSplinePoint(PointIndex, ESplineCoordinateSpace::World));
+		}
+		return;
+	}
+
+	for (float Distance = 0.0f; Distance < SplineLength; Distance += SafeSampleDistance)
+	{
+		AddSampledPatrolLocation(PatrolSplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World));
+	}
+
+	if (bLoopRoute && SampledPatrolLocations.Num() < 2)
+	{
+		AddSampledPatrolLocation(PatrolSplineComponent->GetLocationAtDistanceAlongSpline(SplineLength * 0.5f, ESplineCoordinateSpace::World));
+	}
+
+	if (!bLoopRoute)
+	{
+		AddSampledPatrolLocation(PatrolSplineComponent->GetLocationAtDistanceAlongSpline(SplineLength, ESplineCoordinateSpace::World));
+	}
+	else if (SampledPatrolLocations.Num() <= 0)
+	{
+		AddSampledPatrolLocation(PatrolSplineComponent->GetLocationAtDistanceAlongSpline(0.0f, ESplineCoordinateSpace::World));
+	}
+}
+
+void ATunicEnemyPatrolRoute::AddSampledPatrolLocation(const FVector& RawLocation)
+{
+	const FVector ProjectedLocation = ProjectLocationToNavigation(RawLocation);
+	if (SampledPatrolLocations.Num() > 0 && FVector::DistSquared(SampledPatrolLocations.Last(), ProjectedLocation) <= FMath::Square(1.0f))
+	{
+		return;
+	}
+
+	SampledPatrolLocations.Add(ProjectedLocation);
 }
 
 FVector ATunicEnemyPatrolRoute::ProjectLocationToNavigation(const FVector& RawLocation) const
@@ -117,30 +176,43 @@ void ATunicEnemyPatrolRoute::DrawRuntimeDebugRoute() const
 		return;
 	}
 
-	const int32 PointCount = PatrolSplineComponent->GetNumberOfSplinePoints();
-	if (PointCount <= 0)
+	const int32 SampleCount = SampledPatrolLocations.Num();
+	if (SampleCount <= 0)
 	{
 		return;
 	}
 
 	const FColor DrawColor = DebugColor.ToFColor(true);
+	const FColor SampleColor = FLinearColor::Yellow.ToFColor(true);
 	const bool bPersistent = RuntimeDebugDrawDuration <= 0.0f;
 	const float LifeTime = bPersistent ? -1.0f : RuntimeDebugDrawDuration;
-	const float SphereRadius = 24.0f;
-	const float LineThickness = 3.0f;
+	const float SplineLineThickness = 2.0f;
+	const float SampleLineThickness = 4.0f;
+	const float SampleSphereRadius = 28.0f;
 
-	for (int32 PointIndex = 0; PointIndex < PointCount; ++PointIndex)
+	const int32 SplineDrawSteps = FMath::Max(8, FMath::CeilToInt(PatrolSplineComponent->GetSplineLength() / 150.0f));
+	FVector PreviousSplineLocation = PatrolSplineComponent->GetLocationAtDistanceAlongSpline(0.0f, ESplineCoordinateSpace::World);
+	for (int32 StepIndex = 1; StepIndex <= SplineDrawSteps; ++StepIndex)
+	{
+		const float Alpha = static_cast<float>(StepIndex) / static_cast<float>(SplineDrawSteps);
+		const float Distance = PatrolSplineComponent->GetSplineLength() * Alpha;
+		const FVector SplineLocation = PatrolSplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+		DrawDebugLine(World, PreviousSplineLocation, SplineLocation, DrawColor, bPersistent, LifeTime, 0, SplineLineThickness);
+		PreviousSplineLocation = SplineLocation;
+	}
+
+	for (int32 PointIndex = 0; PointIndex < SampleCount; ++PointIndex)
 	{
 		const FVector PointLocation = GetPatrolPointLocation(PointIndex);
-		DrawDebugSphere(World, PointLocation, SphereRadius, 12, DrawColor, bPersistent, LifeTime, 0, LineThickness);
-		DrawDebugString(World, PointLocation + FVector(0.0f, 0.0f, 48.0f), FString::Printf(TEXT("%s:%d"), *RouteId.ToString(), PointIndex), nullptr, DrawColor, LifeTime, true);
+		DrawDebugSphere(World, PointLocation, SampleSphereRadius, 12, SampleColor, bPersistent, LifeTime, 0, SampleLineThickness);
+		DrawDebugString(World, PointLocation + FVector(0.0f, 0.0f, 48.0f), FString::Printf(TEXT("%s:S%d"), *RouteId.ToString(), PointIndex), nullptr, SampleColor, LifeTime, true);
 
-		const bool bHasNextPoint = PointIndex + 1 < PointCount;
+		const bool bHasNextPoint = PointIndex + 1 < SampleCount;
 		if (bHasNextPoint || bLoopRoute)
 		{
 			const int32 NextPointIndex = bHasNextPoint ? PointIndex + 1 : 0;
 			const FVector NextPointLocation = GetPatrolPointLocation(NextPointIndex);
-			DrawDebugLine(World, PointLocation, NextPointLocation, DrawColor, bPersistent, LifeTime, 0, LineThickness);
+			DrawDebugLine(World, PointLocation, NextPointLocation, SampleColor, bPersistent, LifeTime, 0, SampleLineThickness);
 		}
 	}
 }

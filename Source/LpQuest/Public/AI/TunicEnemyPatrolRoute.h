@@ -48,6 +48,9 @@ protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Tunic|AI|Patrol")
 	FLinearColor DebugColor = FLinearColor::Green;
 
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Tunic|AI|Patrol", meta = (ClampMin = "1.0", Units = "cm"))
+	float PatrolSampleDistance = 800.0f;
+
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Tunic|AI|Patrol", meta = (ClampMin = "0.0", Units = "cm"))
 	float NavProjectionExtentXY = 120.0f;
 
@@ -61,6 +64,8 @@ protected:
 	float RuntimeDebugDrawDuration = 0.0f;
 
 private:
+	void RebuildSampledPatrolLocations();
+	void AddSampledPatrolLocation(const FVector& RawLocation);
 	FVector ProjectLocationToNavigation(const FVector& RawLocation) const;
 	void DrawRuntimeDebugRoute() const;
 
@@ -69,4 +74,7 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|AI|Patrol", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USplineComponent> PatrolSplineComponent;
+
+	UPROPERTY(Transient)
+	TArray<FVector> SampledPatrolLocations;
 };
