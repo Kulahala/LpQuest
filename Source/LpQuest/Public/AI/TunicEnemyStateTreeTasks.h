@@ -14,30 +14,6 @@ class ATunicEnemyAIController;
 struct FStateTreeLinker;
 
 USTRUCT(BlueprintType)
-struct LPQUEST_API FTunicStateTreeFindNearestEnemyTargetTaskInstanceData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Output")
-	TObjectPtr<AActor> TargetActor = nullptr;
-};
-
-USTRUCT(meta = (DisplayName = "Find Nearest Tunic Enemy Target", Category = "Tunic|AI"))
-struct LPQUEST_API FTunicStateTreeFindNearestEnemyTargetTask : public FStateTreeAITaskBase
-{
-	GENERATED_BODY()
-
-	using FInstanceDataType = FTunicStateTreeFindNearestEnemyTargetTaskInstanceData;
-
-	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
-	virtual bool Link(FStateTreeLinker& Linker) override;
-	virtual EStateTreeRunStatus EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
-
-private:
-	TStateTreeExternalDataHandle<AAIController> AIControllerHandle;
-};
-
-USTRUCT(BlueprintType)
 struct LPQUEST_API FTunicStateTreeGetCurrentEnemyTargetTaskInstanceData
 {
 	GENERATED_BODY()
@@ -62,20 +38,20 @@ private:
 };
 
 USTRUCT(BlueprintType)
-struct LPQUEST_API FTunicStateTreeGetCurrentPatrolTargetTaskInstanceData
+struct LPQUEST_API FTunicStateTreeGetCurrentPatrolLocationTaskInstanceData
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Output")
-	TObjectPtr<AActor> PatrolTargetActor = nullptr;
+	FVector PatrolLocation = FVector::ZeroVector;
 };
 
-USTRUCT(meta = (DisplayName = "Get Current Tunic Patrol Target", Category = "Tunic|AI"))
-struct LPQUEST_API FTunicStateTreeGetCurrentPatrolTargetTask : public FStateTreeAITaskBase
+USTRUCT(meta = (DisplayName = "Get Current Tunic Patrol Location", Category = "Tunic|AI"))
+struct LPQUEST_API FTunicStateTreeGetCurrentPatrolLocationTask : public FStateTreeAITaskBase
 {
 	GENERATED_BODY()
 
-	using FInstanceDataType = FTunicStateTreeGetCurrentPatrolTargetTaskInstanceData;
+	using FInstanceDataType = FTunicStateTreeGetCurrentPatrolLocationTaskInstanceData;
 
 	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
 	virtual bool Link(FStateTreeLinker& Linker) override;

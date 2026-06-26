@@ -171,6 +171,8 @@ Use `git add -A` only after the user confirms the whole working tree represents 
 
 Read real project files before changing behavior. Keep edits small and aligned with the single-module structure. Do not delete generated folders or user assets unless explicitly requested.
 
+When a new system replaces an old system and the project is still early, prefer converging on one clear path instead of keeping multiple similar gameplay systems active through hidden fallbacks. Keep temporary migration paths only when there is a concrete migration window and a documented removal condition.
+
 If a user request is vague, directionally unclear, or has multiple plausible interpretations that would affect architecture, assets, commits, or gameplay behavior, ask a concise clarifying question before editing.
 
 If a requested approach is technically unsound, high-risk, likely to damage the existing architecture, or clearly worse than another path, push back directly with the technical reason and propose a better alternative.

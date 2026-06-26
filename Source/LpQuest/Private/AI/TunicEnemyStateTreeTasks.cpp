@@ -9,36 +9,6 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogLpQuestEnemyStateTree, Log, All);
 
-bool FTunicStateTreeFindNearestEnemyTargetTask::Link(FStateTreeLinker& Linker)
-{
-	Linker.LinkExternalData(AIControllerHandle);
-	return true;
-}
-
-EStateTreeRunStatus FTunicStateTreeFindNearestEnemyTargetTask::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult&) const
-{
-	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
-	InstanceData.TargetActor = nullptr;
-
-	ATunicEnemyAIController* EnemyAIController = Cast<ATunicEnemyAIController>(&Context.GetExternalData(AIControllerHandle));
-	if (!EnemyAIController)
-	{
-		UE_LOG(LogLpQuestEnemyStateTree, Warning, TEXT("Enemy StateTree find target failed: missing AI controller"));
-		return EStateTreeRunStatus::Failed;
-	}
-
-	AActor* TargetActor = EnemyAIController->FindNearestAvailableCombatTarget();
-	if (!TargetActor)
-	{
-		EnemyAIController->ClearCurrentCombatTarget();
-		return EStateTreeRunStatus::Failed;
-	}
-
-	EnemyAIController->SetCurrentCombatTarget(TargetActor);
-	InstanceData.TargetActor = TargetActor;
-	return EStateTreeRunStatus::Succeeded;
-}
-
 bool FTunicStateTreeGetCurrentEnemyTargetTask::Link(FStateTreeLinker& Linker)
 {
 	Linker.LinkExternalData(AIControllerHandle);
@@ -57,7 +27,7 @@ EStateTreeRunStatus FTunicStateTreeGetCurrentEnemyTargetTask::EnterState(FStateT
 		return EStateTreeRunStatus::Failed;
 	}
 
-	EnemyAIController->RefreshCurrentCombatTargetFromPerception();
+	EnemyAIController->RefreshCurrentCombatTargetFromAwareness();
 
 	AActor* TargetActor = EnemyAIController->GetCurrentCombatTarget();
 	if (!TargetActor)
@@ -69,31 +39,30 @@ EStateTreeRunStatus FTunicStateTreeGetCurrentEnemyTargetTask::EnterState(FStateT
 	return EStateTreeRunStatus::Succeeded;
 }
 
-bool FTunicStateTreeGetCurrentPatrolTargetTask::Link(FStateTreeLinker& Linker)
+bool FTunicStateTreeGetCurrentPatrolLocationTask::Link(FStateTreeLinker& Linker)
 {
 	Linker.LinkExternalData(AIControllerHandle);
 	return true;
 }
 
-EStateTreeRunStatus FTunicStateTreeGetCurrentPatrolTargetTask::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult&) const
+EStateTreeRunStatus FTunicStateTreeGetCurrentPatrolLocationTask::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult&) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
-	InstanceData.PatrolTargetActor = nullptr;
+	InstanceData.PatrolLocation = FVector::ZeroVector;
 
-	ATunicEnemyAIController* EnemyAIController = Cast<ATunicEnemyAIController>(&Context.GetExternalData(AIControllerHandle));
+	const ATunicEnemyAIController* EnemyAIController = Cast<ATunicEnemyAIController>(&Context.GetExternalData(AIControllerHandle));
 	if (!EnemyAIController)
 	{
-		UE_LOG(LogLpQuestEnemyStateTree, Warning, TEXT("Enemy StateTree patrol target failed: missing AI controller"));
+		UE_LOG(LogLpQuestEnemyStateTree, Warning, TEXT("Enemy StateTree patrol location failed: missing AI controller"));
 		return EStateTreeRunStatus::Failed;
 	}
 
-	AActor* PatrolTargetActor = EnemyAIController->GetCurrentPatrolTarget();
-	if (!PatrolTargetActor)
+	if (!EnemyAIController->HasPatrolRoute())
 	{
 		return EStateTreeRunStatus::Failed;
 	}
 
-	InstanceData.PatrolTargetActor = PatrolTargetActor;
+	InstanceData.PatrolLocation = EnemyAIController->GetCurrentPatrolLocation();
 	return EStateTreeRunStatus::Succeeded;
 }
 

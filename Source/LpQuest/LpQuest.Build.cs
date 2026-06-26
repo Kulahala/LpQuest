@@ -26,6 +26,9 @@ public class LpQuest : ModuleRules
 			"SlateCore"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"NavigationSystem"
+		});
 	}
 }

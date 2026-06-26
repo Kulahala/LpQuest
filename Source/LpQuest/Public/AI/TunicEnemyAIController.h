@@ -9,6 +9,7 @@
 #include "TunicEnemyAIController.generated.h"
 
 class ATunicEnemyCharacter;
+class ATunicEnemyPatrolRoute;
 class UAIPerceptionComponent;
 class UAISenseConfig_Sight;
 class UStateTree;
@@ -36,12 +37,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|AI")
 	UStateTreeAIComponent* GetEnemyStateTreeComponent() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Tunic|AI")
-	AActor* FindNearestAvailableCombatTarget() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Tunic|AI")
-	void RefreshCurrentCombatTargetFromPerception();
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|AI")
 	void RefreshCurrentCombatTargetFromAwareness();
@@ -77,7 +72,7 @@ public:
 	bool HasPatrolRoute() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|AI")
-	AActor* GetCurrentPatrolTarget() const;
+	FVector GetCurrentPatrolLocation() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|AI")
 	bool AdvancePatrolTarget();
@@ -88,9 +83,6 @@ public:
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|AI")
 	TObjectPtr<UStateTree> DefaultEnemyStateTree;
-
-	UPROPERTY()
-	float TargetSearchRadius_DEPRECATED = 2000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI", meta = (ClampMin = "0.0", Units = "cm"))
 	float AttackActivationRange = 260.0f;
@@ -159,7 +151,9 @@ private:
 	UPROPERTY(Transient)
 	TWeakObjectPtr<AActor> CurrentCombatTarget;
 
-	TArray<TWeakObjectPtr<AActor>> PatrolRoutePoints;
+	UPROPERTY(Transient)
+	TWeakObjectPtr<ATunicEnemyPatrolRoute> PatrolRouteActor;
+
 	int32 CurrentPatrolPointIndex = 0;
 	FVector HomeLocation = FVector::ZeroVector;
 	double CurrentTargetLostTimeSeconds = 0.0;

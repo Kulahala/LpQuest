@@ -2,7 +2,7 @@
 
 #include "AI/TunicEnemyAIController.h"
 
-#include "AI/TunicEnemyPatrolPoint.h"
+#include "AI/TunicEnemyPatrolRoute.h"
 #include "Character/TunicEnemyCharacter.h"
 #include "Character/TunicPlayerCharacter.h"
 #include "Combat/TunicCombatTargetInterface.h"
@@ -69,7 +69,7 @@ void ATunicEnemyAIController::OnPossess(APawn* InPawn)
 	Super::OnPossess(InPawn);
 
 	CurrentCombatTarget.Reset();
-	PatrolRoutePoints.Reset();
+	PatrolRouteActor.Reset();
 	CurrentPatrolPointIndex = 0;
 	HomeLocation = InPawn ? InPawn->GetActorLocation() : FVector::ZeroVector;
 	CurrentTargetLostTimeSeconds = 0.0;
@@ -108,7 +108,7 @@ void ATunicEnemyAIController::OnUnPossess()
 	}
 
 	StopEnemyAILogic();
-	PatrolRoutePoints.Reset();
+	PatrolRouteActor.Reset();
 	CurrentPatrolPointIndex = 0;
 	Super::OnUnPossess();
 }
@@ -116,37 +116,6 @@ void ATunicEnemyAIController::OnUnPossess()
 UStateTreeAIComponent* ATunicEnemyAIController::GetEnemyStateTreeComponent() const
 {
 	return StateTreeAIComponent;
-}
-
-AActor* ATunicEnemyAIController::FindNearestAvailableCombatTarget() const
-{
-	if (!CanRunEnemyAI())
-	{
-		return nullptr;
-	}
-
-	if (AwarenessPolicy != ETunicEnemyAwarenessPolicy::CombatSpawnAggro || bCombatSpawnAggroReady)
-	{
-		if (AActor* PerceivedTarget = FindBestPerceivedCombatTarget())
-		{
-			return PerceivedTarget;
-		}
-	}
-
-	if (AwarenessPolicy == ETunicEnemyAwarenessPolicy::SightAndProximity || (AwarenessPolicy == ETunicEnemyAwarenessPolicy::CombatSpawnAggro && bCombatSpawnAggroReady))
-	{
-		if (AActor* ProximityTarget = FindBestProximityCombatTarget(ProximityAggroRadius))
-		{
-			return ProximityTarget;
-		}
-	}
-
-	return nullptr;
-}
-
-void ATunicEnemyAIController::RefreshCurrentCombatTargetFromPerception()
-{
-	RefreshCurrentCombatTargetFromAwareness();
 }
 
 void ATunicEnemyAIController::RefreshCurrentCombatTargetFromAwareness()
@@ -325,46 +294,48 @@ float ATunicEnemyAIController::GetAttackActivationRange() const
 
 bool ATunicEnemyAIController::HasPatrolRoute() const
 {
-	for (const TWeakObjectPtr<AActor>& PatrolPoint : PatrolRoutePoints)
-	{
-		if (PatrolPoint.IsValid())
-		{
-			return true;
-		}
-	}
-
-	return false;
+	const ATunicEnemyPatrolRoute* PatrolRoute = PatrolRouteActor.Get();
+	return PatrolRoute && PatrolRoute->GetPatrolPointCount() > 0;
 }
 
-AActor* ATunicEnemyAIController::GetCurrentPatrolTarget() const
+FVector ATunicEnemyAIController::GetCurrentPatrolLocation() const
 {
-	if (PatrolRoutePoints.IsEmpty())
+	if (const ATunicEnemyPatrolRoute* PatrolRoute = PatrolRouteActor.Get())
 	{
-		return nullptr;
+		return PatrolRoute->GetPatrolPointLocation(CurrentPatrolPointIndex);
 	}
 
-	const int32 PatrolPointCount = PatrolRoutePoints.Num();
-	for (int32 Offset = 0; Offset < PatrolPointCount; ++Offset)
-	{
-		const int32 CandidateIndex = (CurrentPatrolPointIndex + Offset) % PatrolPointCount;
-		if (AActor* PatrolPoint = PatrolRoutePoints[CandidateIndex].Get())
-		{
-			return PatrolPoint;
-		}
-	}
-
-	return nullptr;
+	return HomeLocation;
 }
 
 bool ATunicEnemyAIController::AdvancePatrolTarget()
 {
-	if (!HasAuthority() || PatrolRoutePoints.IsEmpty())
+	if (!HasAuthority())
 	{
 		return false;
 	}
 
-	CurrentPatrolPointIndex = (CurrentPatrolPointIndex + 1) % PatrolRoutePoints.Num();
-	return GetCurrentPatrolTarget() != nullptr;
+	if (const ATunicEnemyPatrolRoute* PatrolRoute = PatrolRouteActor.Get())
+	{
+		const int32 PointCount = PatrolRoute->GetPatrolPointCount();
+		if (PointCount <= 0)
+		{
+			return false;
+		}
+
+		if (PatrolRoute->IsLoopRoute())
+		{
+			CurrentPatrolPointIndex = (CurrentPatrolPointIndex + 1) % PointCount;
+		}
+		else
+		{
+			CurrentPatrolPointIndex = FMath::Min(CurrentPatrolPointIndex + 1, PointCount - 1);
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 FVector ATunicEnemyAIController::GetHomeLocation() const
@@ -601,47 +572,54 @@ void ATunicEnemyAIController::ConfigureSightPerception()
 
 void ATunicEnemyAIController::RebuildPatrolRoute()
 {
-	PatrolRoutePoints.Reset();
+	PatrolRouteActor.Reset();
 	CurrentPatrolPointIndex = 0;
 
 	UWorld* World = GetWorld();
 	if (!HasAuthority() || !World || PatrolRouteId.IsNone())
 	{
+		if (HasAuthority() && PatrolRouteId.IsNone())
+		{
+			UE_LOG(LogLpQuestEnemyAI, Verbose, TEXT("Enemy AI patrol route disabled: PatrolRouteId is None | Controller=%s | Enemy=%s"),
+				*GetNameSafe(this),
+				*GetNameSafe(GetPawn()));
+		}
 		return;
 	}
 
-	TArray<ATunicEnemyPatrolPoint*> MatchedPatrolPoints;
-	for (TActorIterator<ATunicEnemyPatrolPoint> It(World); It; ++It)
+	TArray<FString> AvailableRouteIds;
+	for (TActorIterator<ATunicEnemyPatrolRoute> It(World); It; ++It)
 	{
-		ATunicEnemyPatrolPoint* PatrolPoint = *It;
-		if (PatrolPoint && PatrolPoint->GetRouteId() == PatrolRouteId)
+		ATunicEnemyPatrolRoute* PatrolRoute = *It;
+		if (!PatrolRoute)
 		{
-			MatchedPatrolPoints.Add(PatrolPoint);
+			continue;
+		}
+
+		AvailableRouteIds.Add(FString::Printf(TEXT("%s(%s:%d)"),
+			*GetNameSafe(PatrolRoute),
+			*PatrolRoute->GetRouteId().ToString(),
+			PatrolRoute->GetPatrolPointCount()));
+
+		if (PatrolRoute && PatrolRoute->GetRouteId() == PatrolRouteId && PatrolRoute->GetPatrolPointCount() > 0)
+		{
+			PatrolRouteActor = PatrolRoute;
+			UE_LOG(LogLpQuestEnemyAI, Display, TEXT("Enemy AI patrol route bound | Controller=%s | Enemy=%s | PatrolRoute=%s | PatrolRouteId=%s | PointCount=%d | Loop=%s"),
+				*GetNameSafe(this),
+				*GetNameSafe(GetPawn()),
+				*GetNameSafe(PatrolRoute),
+				*PatrolRouteId.ToString(),
+				PatrolRoute->GetPatrolPointCount(),
+				PatrolRoute->IsLoopRoute() ? TEXT("true") : TEXT("false"));
+			return;
 		}
 	}
 
-	MatchedPatrolPoints.Sort([](const ATunicEnemyPatrolPoint& Left, const ATunicEnemyPatrolPoint& Right)
-	{
-		if (Left.GetOrderIndex() == Right.GetOrderIndex())
-		{
-			return Left.GetName() < Right.GetName();
-		}
-
-		return Left.GetOrderIndex() < Right.GetOrderIndex();
-	});
-
-	for (ATunicEnemyPatrolPoint* PatrolPoint : MatchedPatrolPoints)
-	{
-		PatrolRoutePoints.Add(PatrolPoint);
-	}
-
-	if (PatrolRoutePoints.IsEmpty())
-	{
-		UE_LOG(LogLpQuestEnemyAI, Display, TEXT("Enemy AI patrol route empty | Controller=%s | Enemy=%s | PatrolRouteId=%s"),
-			*GetNameSafe(this),
-			*GetNameSafe(GetPawn()),
-			*PatrolRouteId.ToString());
-	}
+	UE_LOG(LogLpQuestEnemyAI, Display, TEXT("Enemy AI patrol route empty | Controller=%s | Enemy=%s | PatrolRouteId=%s | AvailableRoutes=[%s]"),
+		*GetNameSafe(this),
+		*GetNameSafe(GetPawn()),
+		*PatrolRouteId.ToString(),
+		*FString::Join(AvailableRouteIds, TEXT(", ")));
 }
 
 void ATunicEnemyAIController::StartEnemyStateTree()
