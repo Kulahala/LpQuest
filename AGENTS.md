@@ -145,6 +145,8 @@ Use a commit body for complex changes, especially changes that include any of th
 
 For complex changes, the body should explain what changed, why it changed, and whether there are migration, compatibility, or validation notes. If the user manually verified behavior, write that as `User confirmed ...`. If validation was not run or was blocked, say so directly instead of implying it passed.
 
+阶段型 gameplay 提交的正文要像阶段收尾摘要，而不是抽象概括。优先写清：实现了什么行为、关键默认值或调参、哪些 API/StateTree/权责边界保持不变、验证状态、strict review 中修了什么或接受了什么后续 TODO。提交正文应该让以后只看 Git 也能明白本阶段做了什么，不需要回翻聊天记录。
+
 Do not claim that something was tested, built, deployed, packaged, or manually verified unless it was actually done or the user explicitly confirmed it. Do not repeat low-value details that are obvious from the diff.
 
 Do not commit immediately after making changes. Stop after implementation and verification, summarize the diff and validation status, then wait for the user's explicit approval before committing.
