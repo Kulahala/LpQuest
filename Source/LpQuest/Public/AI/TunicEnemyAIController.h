@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "AIController.h"
 #include "Perception/AIPerceptionTypes.h"
+#include "TimerManager.h"
 #include "TunicEnemyAIController.generated.h"
 
 class ATunicEnemyCharacter;
@@ -12,6 +13,14 @@ class UAIPerceptionComponent;
 class UAISenseConfig_Sight;
 class UStateTree;
 class UStateTreeAIComponent;
+
+UENUM(BlueprintType)
+enum class ETunicEnemyAwarenessPolicy : uint8
+{
+	SightOnlyPatrol,
+	SightAndProximity,
+	CombatSpawnAggro
+};
 
 UCLASS(Blueprintable)
 class LPQUEST_API ATunicEnemyAIController : public AAIController
@@ -33,6 +42,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|AI")
 	void RefreshCurrentCombatTargetFromPerception();
+
+	UFUNCTION(BlueprintCallable, Category = "Tunic|AI")
+	void RefreshCurrentCombatTargetFromAwareness();
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|AI")
 	void SetCurrentCombatTarget(AActor* NewTarget);
@@ -77,8 +89,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|AI")
 	TObjectPtr<UStateTree> DefaultEnemyStateTree;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI", meta = (ClampMin = "0.0", Units = "cm"))
-	float TargetSearchRadius = 2000.0f;
+	UPROPERTY()
+	float TargetSearchRadius_DEPRECATED = 2000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI", meta = (ClampMin = "0.0", Units = "cm"))
 	float AttackActivationRange = 260.0f;
@@ -95,8 +107,26 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI|Aggro", meta = (ClampMin = "0.0", Units = "s"))
 	float AggroForgetDelay = 0.75f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI|Aggro")
+	ETunicEnemyAwarenessPolicy AwarenessPolicy = ETunicEnemyAwarenessPolicy::SightOnlyPatrol;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI|Aggro", meta = (ClampMin = "0.0", Units = "cm"))
+	float ProximityAggroRadius = 600.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI|Aggro", meta = (ClampMin = "0.0", Units = "s"))
+	float CombatSpawnAggroDelay = 0.5f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI|Patrol")
 	FName PatrolRouteId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI|Idle", meta = (ClampMin = "0.0", Units = "deg/s"))
+	float IdleScanYawRate = 45.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI|Idle", meta = (ClampMin = "0.0", Units = "cm"))
+	float IdleScanHomeTolerance = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI|Idle")
+	bool bEnableIdleScan = true;
 
 private:
 	UFUNCTION()
@@ -107,7 +137,11 @@ private:
 	ATunicEnemyCharacter* GetControlledEnemy() const;
 	bool IsValidCombatTarget(AActor* TargetActor) const;
 	bool IsCombatTargetCurrentlyPerceived(AActor* TargetActor) const;
+	bool IsCombatTargetWithinProximity(AActor* TargetActor, float SearchRadius) const;
 	AActor* FindBestPerceivedCombatTarget() const;
+	AActor* FindBestProximityCombatTarget(float SearchRadius) const;
+	void HandleCombatSpawnAggroDelayElapsed();
+	void UpdateIdleScan(float DeltaSeconds);
 	void EnsureControlledEnemyCanMove() const;
 	void ConfigureSightPerception();
 	void RebuildPatrolRoute();
@@ -130,4 +164,6 @@ private:
 	FVector HomeLocation = FVector::ZeroVector;
 	double CurrentTargetLostTimeSeconds = 0.0;
 	bool bCurrentTargetPendingForget = false;
+	bool bCombatSpawnAggroReady = false;
+	FTimerHandle CombatSpawnAggroTimerHandle;
 };

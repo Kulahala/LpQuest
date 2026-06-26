@@ -59,7 +59,8 @@ void ATunicEnemyAIController::Tick(float DeltaSeconds)
 
 	if (CanRunEnemyAI())
 	{
-		RefreshCurrentCombatTargetFromPerception();
+		RefreshCurrentCombatTargetFromAwareness();
+		UpdateIdleScan(DeltaSeconds);
 	}
 }
 
@@ -73,6 +74,7 @@ void ATunicEnemyAIController::OnPossess(APawn* InPawn)
 	HomeLocation = InPawn ? InPawn->GetActorLocation() : FVector::ZeroVector;
 	CurrentTargetLostTimeSeconds = 0.0;
 	bCurrentTargetPendingForget = false;
+	bCombatSpawnAggroReady = AwarenessPolicy != ETunicEnemyAwarenessPolicy::CombatSpawnAggro;
 
 	if (!HasAuthority())
 	{
@@ -83,10 +85,28 @@ void ATunicEnemyAIController::OnPossess(APawn* InPawn)
 	RebuildPatrolRoute();
 	EnsureControlledEnemyCanMove();
 	StartEnemyStateTree();
+
+	if (AwarenessPolicy == ETunicEnemyAwarenessPolicy::CombatSpawnAggro)
+	{
+		const float Delay = FMath::Max(0.0f, CombatSpawnAggroDelay);
+		if (Delay <= 0.0f)
+		{
+			HandleCombatSpawnAggroDelayElapsed();
+		}
+		else if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimer(CombatSpawnAggroTimerHandle, this, &ATunicEnemyAIController::HandleCombatSpawnAggroDelayElapsed, Delay, false);
+		}
+	}
 }
 
 void ATunicEnemyAIController::OnUnPossess()
 {
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(CombatSpawnAggroTimerHandle);
+	}
+
 	StopEnemyAILogic();
 	PatrolRoutePoints.Reset();
 	CurrentPatrolPointIndex = 0;
@@ -105,44 +125,31 @@ AActor* ATunicEnemyAIController::FindNearestAvailableCombatTarget() const
 		return nullptr;
 	}
 
-	if (AActor* PerceivedTarget = FindBestPerceivedCombatTarget())
+	if (AwarenessPolicy != ETunicEnemyAwarenessPolicy::CombatSpawnAggro || bCombatSpawnAggroReady)
 	{
-		return PerceivedTarget;
-	}
-
-	const ATunicEnemyCharacter* EnemyCharacter = GetControlledEnemy();
-	const UWorld* World = GetWorld();
-	const ATunicGameState* TunicGameState = World ? World->GetGameState<ATunicGameState>() : nullptr;
-	if (!EnemyCharacter || !TunicGameState)
-	{
-		return nullptr;
-	}
-
-	AActor* BestTarget = nullptr;
-	float BestDistanceSquared = FMath::Square(FMath::Max(0.0f, TargetSearchRadius));
-	const FVector QueryLocation = EnemyCharacter->GetActorLocation();
-
-	for (APlayerState* CandidatePlayerState : TunicGameState->PlayerArray)
-	{
-		ATunicPlayerCharacter* PlayerCharacter = CandidatePlayerState ? CandidatePlayerState->GetPawn<ATunicPlayerCharacter>() : nullptr;
-		AActor* TargetActor = PlayerCharacter;
-		if (!IsValidCombatTarget(TargetActor))
+		if (AActor* PerceivedTarget = FindBestPerceivedCombatTarget())
 		{
-			continue;
-		}
-
-		const float DistanceSquared = FVector::DistSquared2D(QueryLocation, TargetActor->GetActorLocation());
-		if (DistanceSquared <= BestDistanceSquared)
-		{
-			BestDistanceSquared = DistanceSquared;
-			BestTarget = TargetActor;
+			return PerceivedTarget;
 		}
 	}
 
-	return BestTarget;
+	if (AwarenessPolicy == ETunicEnemyAwarenessPolicy::SightAndProximity || (AwarenessPolicy == ETunicEnemyAwarenessPolicy::CombatSpawnAggro && bCombatSpawnAggroReady))
+	{
+		if (AActor* ProximityTarget = FindBestProximityCombatTarget(ProximityAggroRadius))
+		{
+			return ProximityTarget;
+		}
+	}
+
+	return nullptr;
 }
 
 void ATunicEnemyAIController::RefreshCurrentCombatTargetFromPerception()
+{
+	RefreshCurrentCombatTargetFromAwareness();
+}
+
+void ATunicEnemyAIController::RefreshCurrentCombatTargetFromAwareness()
 {
 	if (!HasAuthority())
 	{
@@ -162,12 +169,32 @@ void ATunicEnemyAIController::RefreshCurrentCombatTargetFromPerception()
 		return;
 	}
 
-	if (AActor* BestPerceivedTarget = FindBestPerceivedCombatTarget())
+	if ((AwarenessPolicy == ETunicEnemyAwarenessPolicy::SightAndProximity || (AwarenessPolicy == ETunicEnemyAwarenessPolicy::CombatSpawnAggro && bCombatSpawnAggroReady)) && IsCombatTargetWithinProximity(TargetActor, ProximityAggroRadius))
 	{
-		SetCurrentCombatTarget(BestPerceivedTarget);
-		bCurrentTargetPendingForget = false;
-		CurrentTargetLostTimeSeconds = 0.0;
+		SetCurrentCombatTarget(TargetActor);
 		return;
+	}
+
+	if (AwarenessPolicy != ETunicEnemyAwarenessPolicy::CombatSpawnAggro || bCombatSpawnAggroReady)
+	{
+		if (AActor* BestPerceivedTarget = FindBestPerceivedCombatTarget())
+		{
+			SetCurrentCombatTarget(BestPerceivedTarget);
+			bCurrentTargetPendingForget = false;
+			CurrentTargetLostTimeSeconds = 0.0;
+			return;
+		}
+	}
+
+	if ((AwarenessPolicy == ETunicEnemyAwarenessPolicy::SightAndProximity || (AwarenessPolicy == ETunicEnemyAwarenessPolicy::CombatSpawnAggro && bCombatSpawnAggroReady)) && !IsValidCombatTarget(TargetActor))
+	{
+		if (AActor* BestProximityTarget = FindBestProximityCombatTarget(ProximityAggroRadius))
+		{
+			SetCurrentCombatTarget(BestProximityTarget);
+			bCurrentTargetPendingForget = false;
+			CurrentTargetLostTimeSeconds = 0.0;
+			return;
+		}
 	}
 
 	if (!IsValidCombatTarget(TargetActor))
@@ -277,6 +304,11 @@ bool ATunicEnemyAIController::TryActivateCurrentTargetMeleeAttack()
 
 void ATunicEnemyAIController::StopEnemyAILogic()
 {
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(CombatSpawnAggroTimerHandle);
+	}
+
 	StopMovement();
 	ClearCurrentCombatTarget();
 
@@ -347,7 +379,7 @@ void ATunicEnemyAIController::HandleTargetPerceptionUpdated(AActor* Actor, FAISt
 		return;
 	}
 
-	if (Stimulus.WasSuccessfullySensed() && IsValidCombatTarget(Actor))
+	if (Stimulus.WasSuccessfullySensed() && IsValidCombatTarget(Actor) && (AwarenessPolicy != ETunicEnemyAwarenessPolicy::CombatSpawnAggro || bCombatSpawnAggroReady))
 	{
 		AActor* TargetActor = CurrentCombatTarget.Get();
 		if (!IsValidCombatTarget(TargetActor) || !IsCombatTargetCurrentlyPerceived(TargetActor) || TargetActor == Actor)
@@ -362,7 +394,7 @@ void ATunicEnemyAIController::HandleTargetPerceptionUpdated(AActor* Actor, FAISt
 		const UWorld* World = GetWorld();
 		bCurrentTargetPendingForget = true;
 		CurrentTargetLostTimeSeconds = World ? World->GetTimeSeconds() : 0.0;
-		RefreshCurrentCombatTargetFromPerception();
+		RefreshCurrentCombatTargetFromAwareness();
 	}
 }
 
@@ -402,6 +434,17 @@ bool ATunicEnemyAIController::IsCombatTargetCurrentlyPerceived(AActor* TargetAct
 	return PerceivedActors.Contains(TargetActor);
 }
 
+bool ATunicEnemyAIController::IsCombatTargetWithinProximity(AActor* TargetActor, float SearchRadius) const
+{
+	const ATunicEnemyCharacter* EnemyCharacter = GetControlledEnemy();
+	if (!EnemyCharacter || !IsValidCombatTarget(TargetActor))
+	{
+		return false;
+	}
+
+	return FVector::DistSquared2D(EnemyCharacter->GetActorLocation(), TargetActor->GetActorLocation()) <= FMath::Square(FMath::Max(0.0f, SearchRadius));
+}
+
 AActor* ATunicEnemyAIController::FindBestPerceivedCombatTarget() const
 {
 	if (!CanRunEnemyAI() || !EnemyPerceptionComponent)
@@ -438,6 +481,88 @@ AActor* ATunicEnemyAIController::FindBestPerceivedCombatTarget() const
 	}
 
 	return BestTarget;
+}
+
+AActor* ATunicEnemyAIController::FindBestProximityCombatTarget(float SearchRadius) const
+{
+	if (!CanRunEnemyAI())
+	{
+		return nullptr;
+	}
+
+	const ATunicEnemyCharacter* EnemyCharacter = GetControlledEnemy();
+	const UWorld* World = GetWorld();
+	const ATunicGameState* TunicGameState = World ? World->GetGameState<ATunicGameState>() : nullptr;
+	if (!EnemyCharacter || !TunicGameState)
+	{
+		return nullptr;
+	}
+
+	AActor* BestTarget = nullptr;
+	float BestDistanceSquared = FMath::Square(FMath::Max(0.0f, SearchRadius));
+	const FVector QueryLocation = EnemyCharacter->GetActorLocation();
+
+	for (APlayerState* CandidatePlayerState : TunicGameState->PlayerArray)
+	{
+		ATunicPlayerCharacter* PlayerCharacter = CandidatePlayerState ? CandidatePlayerState->GetPawn<ATunicPlayerCharacter>() : nullptr;
+		AActor* CandidateTarget = PlayerCharacter;
+		if (!IsValidCombatTarget(CandidateTarget))
+		{
+			continue;
+		}
+
+		const float DistanceSquared = FVector::DistSquared2D(QueryLocation, CandidateTarget->GetActorLocation());
+		if (DistanceSquared <= BestDistanceSquared)
+		{
+			BestDistanceSquared = DistanceSquared;
+			BestTarget = CandidateTarget;
+		}
+	}
+
+	return BestTarget;
+}
+
+void ATunicEnemyAIController::HandleCombatSpawnAggroDelayElapsed()
+{
+	if (!HasAuthority() || AwarenessPolicy != ETunicEnemyAwarenessPolicy::CombatSpawnAggro)
+	{
+		return;
+	}
+
+	bCombatSpawnAggroReady = true;
+
+	if (!CanRunEnemyAI() || IsCurrentTargetValid())
+	{
+		return;
+	}
+
+	if (AActor* BestProximityTarget = FindBestProximityCombatTarget(ProximityAggroRadius))
+	{
+		SetCurrentCombatTarget(BestProximityTarget);
+	}
+}
+
+void ATunicEnemyAIController::UpdateIdleScan(float DeltaSeconds)
+{
+	if (!bEnableIdleScan || IdleScanYawRate <= 0.0f || IsCurrentTargetValid() || HasPatrolRoute())
+	{
+		return;
+	}
+
+	ATunicEnemyCharacter* EnemyCharacter = GetControlledEnemy();
+	if (!EnemyCharacter || EnemyCharacter->IsDead())
+	{
+		return;
+	}
+
+	if (FVector::DistSquared2D(EnemyCharacter->GetActorLocation(), HomeLocation) > FMath::Square(FMath::Max(0.0f, IdleScanHomeTolerance)))
+	{
+		return;
+	}
+
+	FRotator NewRotation = EnemyCharacter->GetActorRotation();
+	NewRotation.Yaw += IdleScanYawRate * DeltaSeconds;
+	EnemyCharacter->SetActorRotation(NewRotation);
 }
 
 void ATunicEnemyAIController::EnsureControlledEnemyCanMove() const
