@@ -8,6 +8,8 @@
 #include "Ability/TunicGameplayAbility_Dodge.h"
 #include "Ability/TunicGameplayAbility_LightAttack.h"
 #include "Ability/TunicStaminaRegenGameplayEffect.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "Abilities/GameplayAbility.h"
 #include "AbilitySystemComponent.h"
 #include "Animation/AnimInstance.h"
@@ -25,7 +27,6 @@
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
-#include "GameFramework/RootMotionSource.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Game/TunicGameMode.h"
 #include "GameplayAbilitySpec.h"
@@ -41,7 +42,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogLpQuestGasDebug, Log, All);
 
 namespace
 {
-	const FName TunicDodgeManualMovementRootMotionSourceName(TEXT("TunicDodgeManualMovement"));
+	const FName TunicPlayerDodgeEventTagName(TEXT("GameplayEvent.Movement.Dodge"));
 
 	bool IsPlayerLightAttackTargetInvulnerable(const ITunicCombatTargetInterface* CombatTarget)
 	{
@@ -1036,61 +1037,21 @@ void ATunicPlayerCharacter::RequestDodge()
 	const bool bShouldUseAbility = GetTunicAbilitySystemComponent() && DodgeAbilityClass;
 	if (bShouldUseAbility)
 	{
-		if (HasAuthority())
+		if (!TryActivateDodgeAbility(GetDodgeDirection()) && bLogDodgeRequests)
 		{
-			TryActivateDodgeAbility();
-		}
-		else
-		{
-			ServerRequestDodge(GetDodgeDirection());
+			UE_LOG(LogLpQuestGasDebug, Warning, TEXT("Dodge request did not activate an ability | Character=%s"),
+				*GetNameSafe(this));
 		}
 		return;
 	}
 
-	if (HasAuthority())
+	if (bLogDodgeRequests)
 	{
-		HandleDodgeRequest();
-		return;
+		UE_LOG(LogLpQuestGasDebug, Warning, TEXT("Dodge request skipped: missing ASC or DodgeAbilityClass | Character=%s | HasASC=%s | DodgeAbilityClass=%s"),
+			*GetNameSafe(this),
+			GetTunicAbilitySystemComponent() ? TEXT("true") : TEXT("false"),
+			*GetNameSafe(DodgeAbilityClass.Get()));
 	}
-
-	ServerRequestDodge(GetDodgeDirection());
-}
-
-void ATunicPlayerCharacter::ServerRequestDodge_Implementation(FVector RequestedDodgeDirection)
-{
-	if (bIsDead)
-	{
-		return;
-	}
-
-	const FVector NormalizedRequestedDirection = RequestedDodgeDirection.GetSafeNormal2D();
-	if (!NormalizedRequestedDirection.IsNearlyZero())
-	{
-		LastNonZeroMovementInputWorldDirection = NormalizedRequestedDirection;
-		LastMovementInputDirectionUpdateTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
-	}
-
-	const bool bShouldUseAbility = GetTunicAbilitySystemComponent() && DodgeAbilityClass;
-	if (bShouldUseAbility)
-	{
-		TryActivateDodgeAbility();
-		return;
-	}
-
-	HandleDodgeRequest();
-}
-
-void ATunicPlayerCharacter::HandleDodgeRequest()
-{
-	if (!HasAuthority() || bIsDead)
-	{
-		return;
-	}
-
-	LogDodgeRequestDebug();
-	PlayDodgeMontage();
-	StartManualDodgeMovement();
-	OnDodgeRequested();
 }
 
 void ATunicPlayerCharacter::ExecuteDodgeAbility()
@@ -1100,7 +1061,31 @@ void ATunicPlayerCharacter::ExecuteDodgeAbility()
 		return;
 	}
 
-	HandleDodgeRequest();
+	LogDodgeRequestDebug();
+
+	const bool bShouldPlayLocalPresentation = IsLocallyControlled();
+	if (bShouldPlayLocalPresentation)
+	{
+		MulticastPlayDodgeMontage(DodgeMontage);
+		bLocalDodgePresentationActive = true;
+
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().ClearTimer(LocalDodgePresentationTimerHandle);
+			World->GetTimerManager().SetTimer(
+				LocalDodgePresentationTimerHandle,
+				this,
+				&ATunicPlayerCharacter::EndPredictedDodgePresentation,
+				FMath::Max(0.0f, DodgeDuration + 0.10f),
+				false);
+		}
+	}
+	else if (HasAuthority())
+	{
+		PlayDodgeMontage();
+	}
+
+	OnDodgeRequested();
 }
 
 void ATunicPlayerCharacter::NotifyDodgeInvulnerabilitySuccess(AActor* InstigatorActor)
@@ -1113,7 +1098,7 @@ void ATunicPlayerCharacter::NotifyDodgeInvulnerabilitySuccess(AActor* Instigator
 	ClientShowDodgeInvulnerabilitySuccess(InstigatorActor);
 }
 
-bool ATunicPlayerCharacter::TryActivateDodgeAbility()
+bool ATunicPlayerCharacter::TryActivateDodgeAbility(const FVector& DodgeDirection)
 {
 	if (bIsDead)
 	{
@@ -1126,17 +1111,35 @@ bool ATunicPlayerCharacter::TryActivateDodgeAbility()
 		return false;
 	}
 
-	if (const FGameplayTag DodgeTag = FGameplayTag::RequestGameplayTag(TEXT("Ability.Movement.Dodge"), false); DodgeTag.IsValid())
+	const FGameplayTag DodgeEventTag = FGameplayTag::RequestGameplayTag(TunicPlayerDodgeEventTagName, false);
+	const FVector NormalizedDodgeDirection = DodgeDirection.GetSafeNormal2D();
+	if (DodgeEventTag.IsValid() && !NormalizedDodgeDirection.IsNearlyZero())
 	{
-		FGameplayTagContainer DodgeAbilityTags;
-		DodgeAbilityTags.AddTag(DodgeTag);
-		if (PlayerAbilitySystemComponent->TryActivateAbilitiesByTag(DodgeAbilityTags))
+		FGameplayEventData DodgeEventData;
+		DodgeEventData.EventTag = DodgeEventTag;
+		DodgeEventData.Instigator = this;
+		DodgeEventData.Target = this;
+
+		FGameplayAbilityTargetData_LocationInfo* DodgeDirectionTargetData = new FGameplayAbilityTargetData_LocationInfo();
+		const FVector Origin = GetActorLocation();
+		DodgeDirectionTargetData->SourceLocation.LiteralTransform = FTransform(Origin);
+		DodgeDirectionTargetData->SourceLocation.LocationType = EGameplayAbilityTargetingLocationType::LiteralTransform;
+		DodgeDirectionTargetData->TargetLocation.LiteralTransform = FTransform(Origin + NormalizedDodgeDirection * 100.0f);
+		DodgeDirectionTargetData->TargetLocation.LocationType = EGameplayAbilityTargetingLocationType::LiteralTransform;
+		DodgeEventData.TargetData.Add(DodgeDirectionTargetData);
+
+		const int32 TriggeredAbilityCount = PlayerAbilitySystemComponent->HandleGameplayEvent(DodgeEventTag, &DodgeEventData);
+		if (bLogDodgeRequests)
 		{
-			return true;
+			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Dodge gameplay event sent | Character=%s | Direction=%s | TriggeredAbilityCount=%d"),
+				*GetNameSafe(this),
+				*NormalizedDodgeDirection.ToCompactString(),
+				TriggeredAbilityCount);
 		}
+		return TriggeredAbilityCount > 0;
 	}
 
-	return DodgeAbilityClass ? PlayerAbilitySystemComponent->TryActivateAbilityByClass(DodgeAbilityClass) : false;
+	return false;
 }
 
 bool ATunicPlayerCharacter::PlayDodgeMontage()
@@ -1157,6 +1160,16 @@ void ATunicPlayerCharacter::MulticastPlayDodgeMontage_Implementation(UAnimMontag
 		return;
 	}
 
+	if (IsLocallyControlled() && !HasAuthority() && bLocalDodgePresentationActive)
+	{
+		if (bLogDodgeRequests)
+		{
+			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Dodge multicast presentation skipped on owning client: local presentation already active | Character=%s"),
+				*GetNameSafe(this));
+		}
+		return;
+	}
+
 	if (USkeletalMeshComponent* MeshComponent = GetMesh())
 	{
 		if (UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance())
@@ -1166,58 +1179,14 @@ void ATunicPlayerCharacter::MulticastPlayDodgeMontage_Implementation(UAnimMontag
 	}
 }
 
-bool ATunicPlayerCharacter::StartManualDodgeMovement()
+void ATunicPlayerCharacter::EndPredictedDodgePresentation()
 {
-	if (!HasAuthority() || bIsDead)
+	if (UWorld* World = GetWorld())
 	{
-		return false;
+		World->GetTimerManager().ClearTimer(LocalDodgePresentationTimerHandle);
 	}
 
-	UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
-	if (!MovementComponent)
-	{
-		UE_LOG(LogLpQuestGasDebug, Warning, TEXT("Dodge manual movement skipped: missing movement component | Character=%s"),
-			*GetNameSafe(this));
-		return false;
-	}
-
-	if (DodgeDuration <= UE_SMALL_NUMBER || DodgeDistance <= 0.0f)
-	{
-		UE_LOG(LogLpQuestGasDebug, Warning, TEXT("Dodge manual movement skipped: invalid tuning | Character=%s | Distance=%.1f | Duration=%.3f"),
-			*GetNameSafe(this),
-			DodgeDistance,
-			DodgeDuration);
-		return false;
-	}
-
-	const FVector DodgeDirection = GetDodgeDirection();
-	if (DodgeDirection.IsNearlyZero())
-	{
-		UE_LOG(LogLpQuestGasDebug, Warning, TEXT("Dodge manual movement skipped: no valid direction | Character=%s"),
-			*GetNameSafe(this));
-		return false;
-	}
-
-	MovementComponent->RemoveRootMotionSource(TunicDodgeManualMovementRootMotionSourceName);
-
-	TSharedPtr<FRootMotionSource_ConstantForce> DodgeRootMotionSource = MakeShared<FRootMotionSource_ConstantForce>();
-	DodgeRootMotionSource->InstanceName = TunicDodgeManualMovementRootMotionSourceName;
-	DodgeRootMotionSource->AccumulateMode = ERootMotionAccumulateMode::Override;
-	DodgeRootMotionSource->Settings.SetFlag(ERootMotionSourceSettingsFlags::IgnoreZAccumulate);
-	DodgeRootMotionSource->Priority = static_cast<uint16>(FMath::Clamp(DodgeRootMotionSourcePriority, 0, static_cast<int32>(MAX_uint16)));
-	DodgeRootMotionSource->Duration = DodgeDuration;
-	DodgeRootMotionSource->Force = DodgeDirection * (DodgeDistance / DodgeDuration);
-
-	const uint16 RootMotionSourceId = MovementComponent->ApplyRootMotionSource(DodgeRootMotionSource);
-
-	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Dodge manual movement started | Character=%s | Direction=%s | Distance=%.1f | Duration=%.3f | RootMotionSourceId=%u"),
-		*GetNameSafe(this),
-		*DodgeDirection.ToCompactString(),
-		DodgeDistance,
-		DodgeDuration,
-		RootMotionSourceId);
-
-	return true;
+	bLocalDodgePresentationActive = false;
 }
 
 FVector ATunicPlayerCharacter::GetDodgeDirection() const
@@ -1236,6 +1205,16 @@ FVector ATunicPlayerCharacter::GetDodgeDirection() const
 
 	const FVector ForwardDirection = GetActorForwardVector().GetSafeNormal2D();
 	return ForwardDirection.IsNearlyZero() ? FVector::ForwardVector : ForwardDirection;
+}
+
+float ATunicPlayerCharacter::GetDodgeDistance() const
+{
+	return DodgeDistance;
+}
+
+float ATunicPlayerCharacter::GetDodgeDuration() const
+{
+	return DodgeDuration;
 }
 
 void ATunicPlayerCharacter::LogDodgeRequestDebug() const
@@ -1312,6 +1291,7 @@ void ATunicPlayerCharacter::ApplyDeathState()
 
 	bLightAttackHitWindowActive = false;
 	LightAttackHitTargets.Reset();
+	EndPredictedDodgePresentation();
 
 	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
 	{

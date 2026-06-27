@@ -1079,4 +1079,110 @@ Strict review notes:
 - Adversarial review: direct Chinese metadata is acceptable for this early project because the goal is immediate designer/debug usability, not formal localization. If UHT or source encoding causes trouble, the fallback is English metadata plus Chinese explanation in documentation, not a localization framework.
 - Remaining risk: StateTree Editor tooltip display is UE-version/UI dependent. The code can provide native metadata, but v1 does not build custom editor extensions to force every tooltip to appear.
 
+## Enemy Search / Investigation v1
+
+Commit:
+
+- `8e43df7 [Feature] 增加敌人最后已知位置调查（Add Enemy Investigation）`
+
+Summary:
+
+- Added server-side last-known target investigation state to `ATunicEnemyAIController`.
+- When an enemy loses a valid target past the existing aggro forget path, the AI can record the last known target location, move there, search briefly, then clear investigation state and return to `PatrolRoute` or `IdleAtHome`.
+- Added native StateTree task / condition support for reading last-known location, reading investigation duration, clearing investigation state, and checking whether investigation data exists.
+- Updated `ST_EnemyMeleeBasic` to use `Patrol -> Investigate / PatrolRoute / IdleAtHome`; `Investigate -> InvestigateMove / InvestigateSearch / InvestigateClear`.
+- Kept StateTree as the intent-flow owner only. Combat damage, Health, XP, RunState, Spawner membership, and GameplayTags remain outside investigation tasks.
+
+Validation and review:
+
+- User confirmed compile and focused PIE validation passed.
+- Strict review accepted the current `CombatSpawnAggro` / `SightAndProximity` proximity reacquire behavior as an intentional awareness-policy boundary, not an investigation bug.
+- Remaining validation risk at the time was broader Listen Server + 2 Players regression coverage.
+
+## KayKit Character Asset Organization
+
+Commit:
+
+- `69059bc [Chore] 整理 KayKit 角色素材路径（Organize KayKit Character Assets）`
+
+Summary:
+
+- Moved KayKit prototype character assets into clearer project-owned content folders.
+- This was a simple content organization stage, not a gameplay architecture change.
+- No combat, AI, GAS, RunState, Spawner, Portal, patrol, or dodge behavior was changed by this cleanup.
+
+## Dodge Invulnerability v1.1
+
+Commit:
+
+- `e6ad79d [Feature] 增加 Dodge 无敌帧（Add Dodge Invulnerability）`
+
+Summary:
+
+- Added `UTunicDodgeInvulnerabilityGameplayEffect`.
+- A successful server-side Dodge Ability commit grants a short `State.Invulnerable` window.
+- Enemy melee damage and player light-attack debug damage check `State.Invulnerable` before applying damage GameplayEffects.
+- Invulnerable targets can still be hit by sweeps, but damage and hit reaction are skipped.
+- Added a temporary `Dodge Invulnerable!` debug message when the server blocks damage through the invulnerability tag.
+- Raised and widened the prototype camera C++ defaults for better visibility.
+
+Validation and review:
+
+- User confirmed compile and focused gameplay validation passed.
+- User confirmed Listen Server + 2 Players validation passed, with both windows seeing the blocked-hit debug message.
+- Stage kept Stamina cost, perfect dodge, counter reward, cancel window, formal VFX/UI, and Montage Notify-driven invulnerability out of scope.
+
+## Dodge Tuning v1.2
+
+Commit:
+
+- `6131abd [Feature] 整理 Dodge 调参入口（Tune Dodge Timing）`
+
+Summary:
+
+- Added `DodgeCooldownActionLockDuration` and `DodgeInvulnerabilityDuration` to `UTunicGameplayAbility_Dodge`.
+- Cooldown/action-lock and invulnerability durations are now driven through GameplayEffect spec duration overrides instead of being locked to native GE constructor defaults.
+- Added `DodgeMontagePlayRate` on `ATunicPlayerCharacter`.
+- Kept `DodgeDistance`, `DodgeDuration`, and server RootMotionSource movement under player-character tuning.
+- Dodge Montage remains presentation-only. It does not define invulnerability, movement distance, or combat result.
+- `BP_PlayerCharacterBase.uasset` included user-confirmed Dodge tuning asset changes.
+
+Validation and review:
+
+- User confirmed compile, focused gameplay testing, and Listen Server + 2 Players testing passed.
+- Strict review completed with no blocking findings.
+- `Dodge Montage Window v1.3` was moved out of the near-term path and kept as a long-term recommendation only if the project later needs perfect dodge, counter timing, slow motion, or multiple dodge animations with different gameplay windows.
+
+## Enemy Attack Telegraph v1
+
+Commit:
+
+- `4d463aa [Feature] 增加敌人攻击前摇提示（Add Enemy Attack Telegraph）`
+
+Summary:
+
+- Enemy melee attack now enters a server-controlled telegraph / windup before playing the attack Montage or fallback hit window.
+- Default telegraph duration is `0.35s`.
+- Debug telegraph visualization was changed from capsule-like spheres to a foot-centered forward fan, with `EnemyMeleeTelegraphDebugArcAngleDegrees` defaulting to `90deg`.
+- Telegraph start stops current AI movement so the warning area and later hit window do not drift apart during windup.
+- `OnEnemyMeleeTelegraphStarted` is a Blueprint presentation hook only. It does not cause damage.
+- Real damage remains server-authoritative through hit window sweep, target filtering, `State.Invulnerable` check, and GameplayEffect application.
+- Enemy death clears telegraph timers, hit-window state, and already-hit target tracking.
+- The stage also fixed UE Unity Build anonymous-namespace helper collisions by giving player and enemy invulnerability helper functions unique names.
+
+Validation and review:
+
+- User confirmed Enemy Attack Telegraph v1 tested successfully after the foot-centered fan debug change.
+- User confirmed `LpQuestEditor Win64 Development` compile success after the Unity Build helper rename fix.
+- Strict review fixed a debug fan segment clamp issue and found no blocking authority or combat-boundary regression.
+
+## Dodge Client Smoothing v1 (Superseded Before Commit)
+
+Summary:
+
+- A local presentation smoothing attempt was implemented but not committed as a completed stage.
+- The attempt let owning clients locally pre-play `DodgeMontage`, skip duplicate multicast playback during a short local presentation window, and briefly enable camera lag.
+- User testing showed the owning-client dash still visibly stutters. The likely remaining issue is network position correction from server-authoritative high-speed dash replication, not GPU/CPU frame time and not `State.Invulnerable`.
+- This stage should not be treated as solved. The next serious direction is `Dodge Movement Prediction v2`: client-predicted movement with server confirmation, while server keeps final Dodge validity, invulnerability, cooldown/action-lock, Health, and damage authority.
+
 

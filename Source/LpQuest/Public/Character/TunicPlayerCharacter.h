@@ -7,6 +7,7 @@
 #include "Character/TunicCharacterBase.h"
 #include "Combat/TunicCombatHitWindowSourceInterface.h"
 #include "Combat/TunicCombatTargetInterface.h"
+#include "TimerManager.h"
 #include "TunicPlayerCharacter.generated.h"
 
 class UCameraComponent;
@@ -55,6 +56,9 @@ public:
 
 	void ExecuteLightAttackAbility();
 	void ExecuteDodgeAbility();
+	FVector GetDodgeDirection() const;
+	float GetDodgeDistance() const;
+	float GetDodgeDuration() const;
 	void NotifyDodgeInvulnerabilitySuccess(AActor* InstigatorActor);
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Combat", meta = (ToolTip = "玩家当前是否死亡。死亡后不能攻击或 dodge。"))
@@ -70,7 +74,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Input", meta = (ToolTip = "移动输入 Action。由 Enhanced Input 触发，角色会按固定视角换算成世界方向。"))
 	TObjectPtr<UInputAction> MoveAction;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Input", meta = (ToolTip = "Dodge 输入 Action。实际 dodge 通过服务器 GameplayAbility 和手动 RootMotionSource 执行。"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Input", meta = (ToolTip = "Dodge 输入 Action。owning client 通过 LocalPredicted GameplayAbility 预测移动，服务器确认最终位移和无敌。"))
 	TObjectPtr<UInputAction> DodgeAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Input", meta = (ToolTip = "轻击输入 Action。当前会请求服务器激活 LightAttackAbility。"))
@@ -97,7 +101,7 @@ protected:
 	void Interact(const FInputActionValue& Value);
 	void SwitchWeapon(const FInputActionValue& Value);
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Input", meta = (ToolTip = "本地按下 Dodge 时的表现 hook。实际动作锁和位移由服务器 Dodge Ability / RootMotionSource 控制。"))
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Input", meta = (ToolTip = "Dodge Ability 成功激活时的表现 hook。客户端可预测播放表现，但真实位移、无敌和冷却仍由 GAS/服务器确认。"))
 	void OnDodgeRequested();
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Input", meta = (ToolTip = "本地请求轻击时的表现 hook。实际攻击激活、hit window 和伤害由服务器路径控制。"))
@@ -196,20 +200,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Presentation", meta = (ToolTip = "默认死亡表现 Montage。死亡状态由服务器 Health 路径决定。"))
 	TObjectPtr<UAnimMontage> DefaultDeathMontage;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Animation", meta = (ToolTip = "Dodge 表现 Montage。当前位移来自服务器 RootMotionSource 手动短冲刺，不依赖动画 Root Motion。"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Animation", meta = (ToolTip = "Dodge 表现 Montage。位移来自 LocalPredicted GAS RootMotion AbilityTask，不依赖动画 Root Motion。"))
 	TObjectPtr<UAnimMontage> DodgeMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Animation", meta = (ClampMin = "0.01", ToolTip = "Dodge Montage 播放速度。只影响表现，用来贴合 DodgeDistance、DodgeDuration 和无敌窗口；不决定无敌帧或位移距离。"))
 	float DodgeMontagePlayRate = 1.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "Dodge 手动短冲刺距离，单位 cm。由服务器 RootMotionSource 执行。"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "Dodge 短冲刺距离，单位 cm。LocalPredicted AbilityTask 和服务器确认使用同一数值。"))
 	float DodgeDistance = 300.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0.01", Units = "s", ToolTip = "Dodge 手动位移持续时间，单位秒。越短速度越快。推荐关系：InvulnerabilityDuration < DodgeDuration <= Montage 主体动作 <= ActionLockDuration。"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0.01", Units = "s", ToolTip = "Dodge 位移持续时间，单位秒。越短速度越快。推荐关系：InvulnerabilityDuration < DodgeDuration <= Montage 主体动作 <= ActionLockDuration。"))
 	float DodgeDuration = 0.32f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0", ToolTip = "Dodge RootMotionSource 优先级。用于覆盖普通移动输入，避免短冲刺被低优先级移动抵消。"))
-	int32 DodgeRootMotionSourcePriority = 500;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0.0", Units = "s", ToolTip = "Dodge 方向输入宽限时间，单位秒。刚松开移动键后仍可按最后移动方向 dodge；超时则按角色朝向。"))
 	float DodgeMovementInputDirectionGraceTime = 0.12f;
@@ -217,7 +218,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities", meta = (ToolTip = "玩家默认授予的轻击 GameplayAbility class。实际激活由 ASC 和服务器 authority 控制。"))
 	TSubclassOf<UGameplayAbility> LightAttackAbilityClass;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities", meta = (ToolTip = "玩家默认授予的 Dodge GameplayAbility class。负责 cooldown/action-lock，位移由角色执行。"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities", meta = (ToolTip = "玩家默认授予的 Dodge GameplayAbility class。负责 predicted movement、cooldown/action-lock 和服务器无敌授予。"))
 	TSubclassOf<UGameplayAbility> DodgeAbilityClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities", meta = (ToolTip = "玩家默认应用的耐力恢复 GameplayEffect class。由 PlayerState-owned ASC 持有。"))
@@ -237,11 +238,9 @@ private:
 	void ApplyDeathState();
 	void PlayPresentationMontage(UAnimMontage* MontageToPlay, bool bStopAllMontages);
 	void RequestDodge();
-	void HandleDodgeRequest();
-	bool TryActivateDodgeAbility();
+	bool TryActivateDodgeAbility(const FVector& DodgeDirection);
 	bool PlayDodgeMontage();
-	bool StartManualDodgeMovement();
-	FVector GetDodgeDirection() const;
+	void EndPredictedDodgePresentation();
 	void LogDodgeRequestDebug() const;
 	void RequestLightAttack();
 	void HandleLightAttackRequest();
@@ -255,9 +254,6 @@ private:
 	void ApplyLightAttackDebugDamage(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget);
 	void HandleLightAttackTargetHit(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget);
 	void LogServerInputRequestDebug(const TCHAR* RequestName, bool bShouldLog) const;
-
-	UFUNCTION(Server, Reliable)
-	void ServerRequestDodge(FVector RequestedDodgeDirection);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestLightAttack();
@@ -290,10 +286,12 @@ private:
 	float TimeSinceLastMouseFacingServerUpdate = 0.0f;
 	bool bLightAttackHitWindowActive = false;
 	bool bDeathPresentationApplied = false;
+	bool bLocalDodgePresentationActive = false;
 	int32 LightAttackMontageActivationSerial = 0;
 	int32 LightAttackMontageHitWindowSerial = 0;
 	FVector LastNonZeroMovementInputWorldDirection = FVector::ZeroVector;
 	float LastMovementInputDirectionUpdateTime = -1.0f;
+	FTimerHandle LocalDodgePresentationTimerHandle;
 	TSet<TWeakObjectPtr<AActor>> LightAttackHitTargets;
 
 	UPROPERTY(ReplicatedUsing = OnRep_IsDead)
