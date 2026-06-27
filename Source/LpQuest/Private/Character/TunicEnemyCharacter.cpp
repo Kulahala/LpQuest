@@ -33,7 +33,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogLpQuestEnemyGasDebug, Log, All);
 
 namespace
 {
-	bool IsTunicCombatTargetInvulnerable(const ITunicCombatTargetInterface* CombatTarget)
+	bool IsEnemyMeleeTargetInvulnerable(const ITunicCombatTargetInterface* CombatTarget)
 	{
 		const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = CombatTarget ? CombatTarget->GetCombatTargetAbilitySystemComponent() : nullptr;
 		const FGameplayTag InvulnerableTag = FGameplayTag::RequestGameplayTag(TEXT("State.Invulnerable"), false);
@@ -210,6 +210,16 @@ void ATunicEnemyCharacter::ExecuteEnemyMeleeAttackAbility()
 		return;
 	}
 
+	if (bEnemyMeleeTelegraphActive)
+	{
+		if (bLogEnemyMeleeAttack)
+		{
+			UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee attack request ignored: telegraph already active | Character=%s"),
+				*GetNameSafe(this));
+		}
+		return;
+	}
+
 	if (bLogEnemyMeleeAttack)
 	{
 		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee attack request accepted on server | Character=%s | ASC=%s | AttributeSet=%s | Health=%.1f/%.1f | LocalRole=%d | RemoteRole=%d"),
@@ -222,13 +232,7 @@ void ATunicEnemyCharacter::ExecuteEnemyMeleeAttackAbility()
 			static_cast<int32>(GetRemoteRole()));
 	}
 
-	const bool bPlayedMontage = PlayMeleeAttackMontage();
-	if (bRunEnemyMeleeHitWindowOnRequest && !bPlayedMontage)
-	{
-		BeginEnemyMeleeHitWindow();
-		ProcessEnemyMeleeHitWindow();
-		EndEnemyMeleeHitWindow();
-	}
+	StartEnemyMeleeTelegraph();
 }
 
 bool ATunicEnemyCharacter::IsCombatTargetAvailable() const
@@ -286,6 +290,10 @@ void ATunicEnemyCharacter::OnDeathStateChanged_Implementation(bool)
 }
 
 void ATunicEnemyCharacter::OnHitReaction_Implementation(AActor*)
+{
+}
+
+void ATunicEnemyCharacter::OnEnemyMeleeTelegraphStarted_Implementation(float, FVector, FVector, float, float)
 {
 }
 
@@ -364,6 +372,10 @@ void ATunicEnemyCharacter::ApplyDeathState()
 	{
 		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
+
+	ClearEnemyMeleeTelegraph();
+	bEnemyMeleeHitWindowActive = false;
+	EnemyMeleeHitTargets.Reset();
 
 	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
 	{
@@ -516,6 +528,132 @@ AActor* ATunicEnemyCharacter::FindPrototypeAutoAttackTarget() const
 	return BestTarget;
 }
 
+void ATunicEnemyCharacter::StartEnemyMeleeTelegraph()
+{
+	if (!HasAuthority() || bIsDead || bEnemyMeleeTelegraphActive)
+	{
+		return;
+	}
+
+	if (ATunicEnemyAIController* EnemyAIController = Cast<ATunicEnemyAIController>(GetController()))
+	{
+		EnemyAIController->StopMovement();
+	}
+
+	const float TelegraphDuration = FMath::Max(0.0f, EnemyMeleeTelegraphDuration);
+	const FVector SweepStart = GetEnemyMeleeSweepPoint(EnemyMeleeSweepStartOffset);
+	const FVector SweepEnd = GetEnemyMeleeSweepPoint(EnemyMeleeSweepEndOffset);
+
+	bEnemyMeleeTelegraphActive = true;
+	MulticastStartEnemyMeleeTelegraph(TelegraphDuration, SweepStart, SweepEnd, EnemyMeleeSweepRadius, EnemyMeleeSweepHalfHeight);
+
+	if (bLogEnemyMeleeAttack)
+	{
+		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee telegraph started | Character=%s | Duration=%.3f | SweepStart=%s | SweepEnd=%s | Radius=%.1f | HalfHeight=%.1f"),
+			*GetNameSafe(this),
+			TelegraphDuration,
+			*SweepStart.ToCompactString(),
+			*SweepEnd.ToCompactString(),
+			EnemyMeleeSweepRadius,
+			EnemyMeleeSweepHalfHeight);
+	}
+
+	if (TelegraphDuration <= UE_SMALL_NUMBER)
+	{
+		FinishEnemyMeleeTelegraphAndAttack();
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			EnemyMeleeTelegraphTimerHandle,
+			this,
+			&ATunicEnemyCharacter::FinishEnemyMeleeTelegraphAndAttack,
+			TelegraphDuration,
+			false);
+	}
+	else
+	{
+		FinishEnemyMeleeTelegraphAndAttack();
+	}
+}
+
+void ATunicEnemyCharacter::FinishEnemyMeleeTelegraphAndAttack()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	ClearEnemyMeleeTelegraph();
+	if (bIsDead)
+	{
+		return;
+	}
+
+	const bool bPlayedMontage = PlayMeleeAttackMontage();
+	if (bRunEnemyMeleeHitWindowOnRequest && !bPlayedMontage)
+	{
+		BeginEnemyMeleeHitWindow();
+		ProcessEnemyMeleeHitWindow();
+		EndEnemyMeleeHitWindow();
+	}
+}
+
+void ATunicEnemyCharacter::ClearEnemyMeleeTelegraph()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(EnemyMeleeTelegraphTimerHandle);
+	}
+
+	bEnemyMeleeTelegraphActive = false;
+}
+
+void ATunicEnemyCharacter::DrawEnemyMeleeTelegraphDebug(FVector SweepStart, FVector SweepEnd, float SweepRadius, float SweepHalfHeight) const
+{
+	if (!bDrawEnemyMeleeTelegraphDebug)
+	{
+		return;
+	}
+
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const float LifeTime = FMath::Max(0.0f, EnemyMeleeTelegraphDebugDuration);
+	const bool bPersistentLines = false;
+	const FColor TelegraphColor = FColor::Orange;
+	const float CapsuleHalfHeight = GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.0f;
+	const FVector ActorLocation = GetActorLocation();
+	const FVector DrawCenter(ActorLocation.X, ActorLocation.Y, ActorLocation.Z - CapsuleHalfHeight + 5.0f);
+	const FVector Forward2D = GetActorForwardVector().GetSafeNormal2D();
+	const float SweepDistance = FVector::Dist2D(SweepStart, SweepEnd);
+	const float ArcRadius = FMath::Max(SweepRadius, SweepDistance + SweepRadius);
+	const float ArcAngleDegrees = FMath::Clamp(EnemyMeleeTelegraphDebugArcAngleDegrees, 1.0f, 180.0f);
+	const float HalfAngleDegrees = ArcAngleDegrees * 0.5f;
+	const int32 SegmentCount = FMath::Max(8, FMath::CeilToInt(ArcAngleDegrees / 6.0f));
+
+	FVector PreviousPoint = DrawCenter + Forward2D.RotateAngleAxis(-HalfAngleDegrees, FVector::UpVector) * ArcRadius;
+	DrawDebugLine(World, DrawCenter, PreviousPoint, TelegraphColor, bPersistentLines, LifeTime, 0, 3.0f);
+	DrawDebugLine(World, DrawCenter, DrawCenter + Forward2D * ArcRadius, TelegraphColor, bPersistentLines, LifeTime, 0, 1.5f);
+
+	for (int32 SegmentIndex = 1; SegmentIndex <= SegmentCount; ++SegmentIndex)
+	{
+		const float Alpha = static_cast<float>(SegmentIndex) / static_cast<float>(SegmentCount);
+		const float AngleDegrees = FMath::Lerp(-HalfAngleDegrees, HalfAngleDegrees, Alpha);
+		const FVector CurrentPoint = DrawCenter + Forward2D.RotateAngleAxis(AngleDegrees, FVector::UpVector) * ArcRadius;
+		DrawDebugLine(World, PreviousPoint, CurrentPoint, TelegraphColor, bPersistentLines, LifeTime, 0, 3.0f);
+		PreviousPoint = CurrentPoint;
+	}
+
+	DrawDebugLine(World, DrawCenter, PreviousPoint, TelegraphColor, bPersistentLines, LifeTime, 0, 3.0f);
+	DrawDebugString(World, DrawCenter + Forward2D * (ArcRadius * 0.5f) + FVector(0.0f, 0.0f, SweepHalfHeight + 35.0f), TEXT("Enemy Telegraph"), nullptr, TelegraphColor, LifeTime, true);
+}
+
 bool ATunicEnemyCharacter::PlayMeleeAttackMontage()
 {
 	if (!HasAuthority() || !MeleeAttackMontage)
@@ -568,7 +706,7 @@ void ATunicEnemyCharacter::HandleEnemyMeleeTargetHit(AActor* TargetActor, ITunic
 
 	const bool bCanApplyDamage = FTunicCombatRules::CanApplyDamage(this, TargetActor, *CombatTarget);
 	const bool bCanTriggerHitReaction = FTunicCombatRules::CanTriggerHitReaction(this, TargetActor, *CombatTarget);
-	const bool bIsTargetInvulnerable = IsTunicCombatTargetInvulnerable(CombatTarget);
+	const bool bIsTargetInvulnerable = IsEnemyMeleeTargetInvulnerable(CombatTarget);
 	const UTunicAttributeSet* TargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
 	const float HealthBefore = TargetAttributeSet ? TargetAttributeSet->GetHealth() : 0.0f;
 
@@ -721,6 +859,12 @@ void ATunicEnemyCharacter::PlayPresentationMontage(UAnimMontage* MontageToPlay, 
 void ATunicEnemyCharacter::MulticastPlayMeleeAttackMontage_Implementation(UAnimMontage* MontageToPlay)
 {
 	PlayPresentationMontage(MontageToPlay, false);
+}
+
+void ATunicEnemyCharacter::MulticastStartEnemyMeleeTelegraph_Implementation(float TelegraphDuration, FVector SweepStart, FVector SweepEnd, float SweepRadius, float SweepHalfHeight)
+{
+	DrawEnemyMeleeTelegraphDebug(SweepStart, SweepEnd, SweepRadius, SweepHalfHeight);
+	OnEnemyMeleeTelegraphStarted(TelegraphDuration, SweepStart, SweepEnd, SweepRadius, SweepHalfHeight);
 }
 
 void ATunicEnemyCharacter::MulticastPlayHitReaction_Implementation(AActor* InstigatorActor)

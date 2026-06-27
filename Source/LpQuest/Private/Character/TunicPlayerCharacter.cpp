@@ -43,7 +43,7 @@ namespace
 {
 	const FName TunicDodgeManualMovementRootMotionSourceName(TEXT("TunicDodgeManualMovement"));
 
-	bool IsTunicCombatTargetInvulnerable(const ITunicCombatTargetInterface* CombatTarget)
+	bool IsPlayerLightAttackTargetInvulnerable(const ITunicCombatTargetInterface* CombatTarget)
 	{
 		const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = CombatTarget ? CombatTarget->GetCombatTargetAbilitySystemComponent() : nullptr;
 		const FGameplayTag InvulnerableTag = FGameplayTag::RequestGameplayTag(TEXT("State.Invulnerable"), false);
@@ -1001,7 +1001,7 @@ void ATunicPlayerCharacter::HandleLightAttackTargetHit(AActor* TargetActor, ITun
 
 	const bool bCanApplyDamage = FTunicCombatRules::CanApplyDamage(this, TargetActor, *CombatTarget);
 	const bool bCanTriggerHitReaction = FTunicCombatRules::CanTriggerHitReaction(this, TargetActor, *CombatTarget);
-	const bool bIsTargetInvulnerable = IsTunicCombatTargetInvulnerable(CombatTarget);
+	const bool bIsTargetInvulnerable = IsPlayerLightAttackTargetInvulnerable(CombatTarget);
 	const UTunicAttributeSet* TargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
 	const float HealthBefore = TargetAttributeSet ? TargetAttributeSet->GetHealth() : 0.0f;
 

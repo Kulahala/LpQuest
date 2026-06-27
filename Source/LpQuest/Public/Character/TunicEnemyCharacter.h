@@ -6,6 +6,7 @@
 #include "Character/TunicCharacterBase.h"
 #include "Combat/TunicCombatHitWindowSourceInterface.h"
 #include "Combat/TunicCombatTargetInterface.h"
+#include "TimerManager.h"
 #include "TunicEnemyCharacter.generated.h"
 
 class FLifetimeProperty;
@@ -71,6 +72,9 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Combat", meta = (ToolTip = "敌人受击表现 hook。不要在这里直接改 Health。"))
 	void OnHitReaction(AActor* InstigatorActor);
 
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Combat|Telegraph", meta = (ToolTip = "敌人 melee 攻击预警开始时触发的表现 hook。只做闪光、音效、地面提示等表现，不要直接造成伤害。"))
+	void OnEnemyMeleeTelegraphStarted(float TelegraphDuration, FVector SweepStart, FVector SweepEnd, float SweepRadius, float SweepHalfHeight);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug", meta = (ToolTip = "是否输出敌人 ASC / AttributeSet 初始化日志。只用于验证 GAS 所有权。"))
 	bool bLogAbilitySystemInitialization = true;
 
@@ -94,6 +98,18 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ToolTip = "请求敌人 melee attack 时是否立即跑一次 hit window。用于没有完整动画通知时的 prototype 验证。"))
 	bool bRunEnemyMeleeHitWindowOnRequest = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Telegraph", meta = (ClampMin = "0.0", Units = "s", ToolTip = "敌人 melee attack 命中前的预警时间，单位秒。预警结束后才播放攻击 Montage 或 fallback hit window。"))
+	float EnemyMeleeTelegraphDuration = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Telegraph", meta = (ToolTip = "是否绘制敌人 melee telegraph 范围。只用于开发验证，不参与伤害判定。"))
+	bool bDrawEnemyMeleeTelegraphDebug = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Telegraph", meta = (ClampMin = "0.0", Units = "s", ToolTip = "敌人 melee telegraph debug 绘制持续时间，单位秒。0 表示只绘制一帧。"))
+	float EnemyMeleeTelegraphDebugDuration = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Telegraph", meta = (ClampMin = "1.0", ClampMax = "180.0", Units = "deg", ToolTip = "敌人 melee telegraph debug 扇形角度，单位度。只影响脚下扇形提示，不改变实际服务器 sweep 命中范围。"))
+	float EnemyMeleeTelegraphDebugArcAngleDegrees = 90.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "敌人 melee capsule sweep 半径，单位 cm。实际命中由服务器检测。"))
 	float EnemyMeleeSweepRadius = 65.0f;
@@ -144,6 +160,10 @@ private:
 	void DrawAttributeDebug() const;
 	void UpdatePrototypeAutoAttack(float DeltaSeconds);
 	AActor* FindPrototypeAutoAttackTarget() const;
+	void StartEnemyMeleeTelegraph();
+	void FinishEnemyMeleeTelegraphAndAttack();
+	void ClearEnemyMeleeTelegraph();
+	void DrawEnemyMeleeTelegraphDebug(FVector SweepStart, FVector SweepEnd, float SweepRadius, float SweepHalfHeight) const;
 	bool PlayMeleeAttackMontage();
 	void CheckMeleeAttackMontageHitWindowTriggered(int32 MontageSerial);
 	FVector GetEnemyMeleeSweepPoint(const FVector& LocalOffset) const;
@@ -158,13 +178,18 @@ private:
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastPlayMeleeAttackMontage(UAnimMontage* MontageToPlay);
 
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastStartEnemyMeleeTelegraph(float TelegraphDuration, FVector SweepStart, FVector SweepEnd, float SweepRadius, float SweepHalfHeight);
+
 	UPROPERTY(ReplicatedUsing = OnRep_IsDead)
 	bool bIsDead = false;
 
 	bool bDeathPresentationApplied = false;
+	bool bEnemyMeleeTelegraphActive = false;
 	bool bEnemyMeleeHitWindowActive = false;
 	int32 MeleeAttackMontageActivationSerial = 0;
 	int32 MeleeAttackMontageHitWindowSerial = 0;
 	float PrototypeAutoAttackElapsedTime = 0.0f;
+	FTimerHandle EnemyMeleeTelegraphTimerHandle;
 	TSet<TWeakObjectPtr<AActor>> EnemyMeleeHitTargets;
 };
