@@ -19,6 +19,7 @@
 #include "Engine/EngineTypes.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
+#include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Game/TunicGameMode.h"
 #include "GameplayAbilitySpec.h"
@@ -37,6 +38,27 @@ namespace
 		const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = CombatTarget ? CombatTarget->GetCombatTargetAbilitySystemComponent() : nullptr;
 		const FGameplayTag InvulnerableTag = FGameplayTag::RequestGameplayTag(TEXT("State.Invulnerable"), false);
 		return TargetAbilitySystemComponent && InvulnerableTag.IsValid() && TargetAbilitySystemComponent->HasMatchingGameplayTag(InvulnerableTag);
+	}
+
+	void GetEnemyMeleeTargetCollisionBounds(const AActor* TargetActor, FVector& OutOrigin, FVector& OutExtent)
+	{
+		OutOrigin = TargetActor ? TargetActor->GetActorLocation() : FVector::ZeroVector;
+		OutExtent = FVector::ZeroVector;
+		if (!TargetActor)
+		{
+			return;
+		}
+
+		const ACharacter* TargetCharacter = Cast<ACharacter>(TargetActor);
+		const UCapsuleComponent* TargetCapsule = TargetCharacter ? TargetCharacter->GetCapsuleComponent() : nullptr;
+		if (TargetCapsule)
+		{
+			OutOrigin = TargetCapsule->GetComponentLocation();
+			OutExtent = FVector(TargetCapsule->GetScaledCapsuleRadius(), TargetCapsule->GetScaledCapsuleRadius(), TargetCapsule->GetScaledCapsuleHalfHeight());
+			return;
+		}
+
+		TargetActor->GetActorBounds(true, OutOrigin, OutExtent);
 	}
 }
 
@@ -647,7 +669,7 @@ bool ATunicEnemyCharacter::IsActorInsideEnemyMeleeAttackShape(const AActor* Targ
 
 	FVector TargetOrigin = TargetActor->GetActorLocation();
 	FVector TargetExtent = FVector::ZeroVector;
-	TargetActor->GetActorBounds(false, TargetOrigin, TargetExtent);
+	GetEnemyMeleeTargetCollisionBounds(TargetActor, TargetOrigin, TargetExtent);
 
 	const FVector ShapeOrigin = GetEnemyMeleeAttackShapeOrigin();
 	const float ShapeHalfHeight = FMath::Max(0.0f, EnemyMeleeAttackHalfHeight);
@@ -663,7 +685,8 @@ bool ATunicEnemyCharacter::IsActorInsideEnemyMeleeAttackShape(const AActor* Targ
 	const FVector ToLocation = TargetOrigin - ShapeOrigin;
 	const FVector ToLocation2D(ToLocation.X, ToLocation.Y, 0.0f);
 	const float Distance2D = ToLocation2D.Size();
-	if (Distance2D > FMath::Max(0.0f, EnemyMeleeAttackRange))
+	const float TargetRadius2D = FMath::Max(TargetExtent.X, TargetExtent.Y);
+	if (Distance2D > FMath::Max(0.0f, EnemyMeleeAttackRange) + TargetRadius2D)
 	{
 		return false;
 	}
@@ -676,7 +699,8 @@ bool ATunicEnemyCharacter::IsActorInsideEnemyMeleeAttackShape(const AActor* Targ
 	const float HalfAngleDegrees = FMath::Clamp(EnemyMeleeAttackAngleDegrees, 0.0f, 180.0f) * 0.5f;
 	const float Dot = FVector::DotProduct(GetEnemyMeleeAttackShapeForward(), ToLocation2D / Distance2D);
 	const float AngleDegrees = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(Dot, -1.0f, 1.0f)));
-	return AngleDegrees <= HalfAngleDegrees;
+	const float AngleToleranceDegrees = FMath::RadiansToDegrees(FMath::Asin(FMath::Clamp(TargetRadius2D / Distance2D, 0.0f, 1.0f)));
+	return AngleDegrees <= HalfAngleDegrees + AngleToleranceDegrees;
 }
 
 void ATunicEnemyCharacter::DrawEnemyMeleeFanDebug(FVector ShapeOrigin, FVector ShapeForward, float ShapeRange, float ShapeHalfHeight, float ShapeAngleDegrees, float LifeTime, FColor DebugColor, const TCHAR* DebugLabel) const
@@ -894,7 +918,32 @@ void ATunicEnemyCharacter::LogEnemyMeleeAttackShapeDebug(const TArray<FOverlapRe
 
 		const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = CombatTarget->GetCombatTargetAbilitySystemComponent();
 		const UTunicAttributeSet* TargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
-		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee attack shape candidate | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | TargetHealth=%.1f/%.1f | TargetStamina=%.1f/%.1f | InShape=%s | TargetLocalRole=%d | TargetRemoteRole=%d"),
+		FVector TargetOrigin = TargetActor->GetActorLocation();
+		FVector TargetExtent = FVector::ZeroVector;
+		GetEnemyMeleeTargetCollisionBounds(TargetActor, TargetOrigin, TargetExtent);
+
+		const FVector ShapeOrigin = GetEnemyMeleeAttackShapeOrigin();
+		const FVector ShapeForward = GetEnemyMeleeAttackShapeForward();
+		const float ShapeRange = FMath::Max(0.0f, EnemyMeleeAttackRange);
+		const float ShapeHalfHeight = FMath::Max(0.0f, EnemyMeleeAttackHalfHeight);
+		const float ShapeHalfAngleDegrees = FMath::Clamp(EnemyMeleeAttackAngleDegrees, 0.0f, 180.0f) * 0.5f;
+		const float TargetBottom = TargetOrigin.Z - TargetExtent.Z;
+		const float TargetTop = TargetOrigin.Z + TargetExtent.Z;
+		const float ShapeBottom = ShapeOrigin.Z - ShapeHalfHeight;
+		const float ShapeTop = ShapeOrigin.Z + ShapeHalfHeight;
+		const FVector ToTarget = TargetOrigin - ShapeOrigin;
+		const FVector ToTarget2D(ToTarget.X, ToTarget.Y, 0.0f);
+		const float Distance2D = ToTarget2D.Size();
+		const float TargetRadius2D = FMath::Max(TargetExtent.X, TargetExtent.Y);
+		const float Dot = Distance2D > UE_SMALL_NUMBER ? FVector::DotProduct(ShapeForward, ToTarget2D / Distance2D) : 1.0f;
+		const float AngleDegrees = Distance2D > UE_SMALL_NUMBER ? FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(Dot, -1.0f, 1.0f))) : 0.0f;
+		const float AngleToleranceDegrees = Distance2D > UE_SMALL_NUMBER ? FMath::RadiansToDegrees(FMath::Asin(FMath::Clamp(TargetRadius2D / Distance2D, 0.0f, 1.0f))) : 0.0f;
+		const bool bHeightPass = TargetTop >= ShapeBottom && TargetBottom <= ShapeTop;
+		const bool bRangePass = Distance2D <= ShapeRange + TargetRadius2D;
+		const bool bAnglePass = Distance2D <= UE_SMALL_NUMBER || AngleDegrees <= ShapeHalfAngleDegrees + AngleToleranceDegrees;
+		const bool bInShape = bHeightPass && bRangePass && bAnglePass;
+
+		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee attack shape candidate | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | TargetHealth=%.1f/%.1f | TargetStamina=%.1f/%.1f | InShape=%s | HeightPass=%s | RangePass=%s | AnglePass=%s | Distance2D=%.1f/%.1f+%.1f | Angle=%.1f/%.1f+%.1f | TargetZ=%.1f..%.1f | ShapeZ=%.1f..%.1f | TargetOrigin=%s | TargetExtent=%s | ShapeOrigin=%s | ShapeForward=%s | TargetLocalRole=%d | TargetRemoteRole=%d"),
 			*GetNameSafe(this),
 			*GetNameSafe(TargetActor),
 			*GetNameSafe(TargetAbilitySystemComponent),
@@ -903,7 +952,24 @@ void ATunicEnemyCharacter::LogEnemyMeleeAttackShapeDebug(const TArray<FOverlapRe
 			TargetAttributeSet ? TargetAttributeSet->GetMaxHealth() : 0.0f,
 			TargetAttributeSet ? TargetAttributeSet->GetStamina() : 0.0f,
 			TargetAttributeSet ? TargetAttributeSet->GetMaxStamina() : 0.0f,
-			IsActorInsideEnemyMeleeAttackShape(TargetActor) ? TEXT("true") : TEXT("false"),
+			bInShape ? TEXT("true") : TEXT("false"),
+			bHeightPass ? TEXT("true") : TEXT("false"),
+			bRangePass ? TEXT("true") : TEXT("false"),
+			bAnglePass ? TEXT("true") : TEXT("false"),
+			Distance2D,
+			ShapeRange,
+			TargetRadius2D,
+			AngleDegrees,
+			ShapeHalfAngleDegrees,
+			AngleToleranceDegrees,
+			TargetBottom,
+			TargetTop,
+			ShapeBottom,
+			ShapeTop,
+			*TargetOrigin.ToCompactString(),
+			*TargetExtent.ToCompactString(),
+			*ShapeOrigin.ToCompactString(),
+			*ShapeForward.ToCompactString(),
 			static_cast<int32>(TargetActor->GetLocalRole()),
 			static_cast<int32>(TargetActor->GetRemoteRole()));
 	}

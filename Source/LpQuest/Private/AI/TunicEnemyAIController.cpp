@@ -206,6 +206,16 @@ void ATunicEnemyAIController::SetCurrentCombatTarget(AActor* NewTarget)
 		return;
 	}
 
+	if (!CanRunEnemyAI())
+	{
+		CurrentCombatTarget.Reset();
+		ClearFocus(EAIFocusPriority::Gameplay);
+		ClearLastKnownTargetLocation();
+		bCurrentTargetPendingForget = false;
+		CurrentTargetLostTimeSeconds = 0.0;
+		return;
+	}
+
 	CurrentCombatTarget = IsValidCombatTarget(NewTarget) ? NewTarget : nullptr;
 	if (AActor* TargetActor = CurrentCombatTarget.Get())
 	{
@@ -409,6 +419,12 @@ void ATunicEnemyAIController::HandleTargetPerceptionUpdated(AActor* Actor, FAISt
 {
 	if (!HasAuthority() || !Actor)
 	{
+		return;
+	}
+
+	if (!CanRunEnemyAI())
+	{
+		StopEnemyAILogic();
 		return;
 	}
 
