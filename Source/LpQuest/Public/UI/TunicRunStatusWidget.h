@@ -23,7 +23,7 @@ public:
 	virtual void NativeDestruct() override;
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 
-	UFUNCTION(BlueprintCallable, Category = "Tunic|Run")
+	UFUNCTION(BlueprintCallable, Category = "Tunic|Run", meta = (ToolTip = "立即从 replicated GameState / owning PlayerState 读取 Floor、RunState、XP、Level 和 pending upgrade，并刷新 HUD。"))
 	void RefreshRunStatus();
 
 protected:
@@ -48,7 +48,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Tunic|Run")
 	TObjectPtr<UTextBlock> SelectUpgradeButtonText;
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "Run Status HUD 刷新后的表现 hook。只用于 UI/动画/音效，不要在这里修改 XP、Level、RunState 或 pending。"))
 	void OnRunStatusRefreshed(int32 FloorIndex, ETunicRunState RunState, int32 SharedRunExperience, int32 SharedRunLevel, int32 PendingUpgradeChoices);
 
 private:

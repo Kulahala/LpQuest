@@ -26,13 +26,13 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Ability")
+	UFUNCTION(BlueprintPure, Category = "Tunic|Ability", meta = (ToolTip = "返回玩家 PlayerState-owned ASC。玩家角色作为 AvatarActor，能力和属性归 PlayerState 持有。"))
 	UTunicAbilitySystemComponent* GetTunicAbilitySystemComponent() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Attributes")
+	UFUNCTION(BlueprintPure, Category = "Tunic|Attributes", meta = (ToolTip = "返回玩家 AttributeSet。属性复制和 GameplayEffect 结算通过 PlayerState-owned ASC 管理。"))
 	UTunicAttributeSet* GetAttributeSet() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run")
+	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "返回该玩家待选择的 run upgrade 次数。每个玩家独立拥有 pending，不是共享池。"))
 	int32 GetPendingRunUpgradeChoices() const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
@@ -45,10 +45,10 @@ public:
 	bool TryConsumePendingRunUpgradeChoice();
 
 protected:
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "Pending upgrade choice 数量变化时的表现 hook。不要在这里直接应用属性或技能奖励。"))
 	void OnPendingRunUpgradeChoicesChanged(int32 PendingChoices);
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run")
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "服务器成功消耗一次 pending upgrade choice 后触发的表现 hook。当前 stub 不授予真实奖励。"))
 	void OnRunUpgradeChoiceConsumed();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Ability")

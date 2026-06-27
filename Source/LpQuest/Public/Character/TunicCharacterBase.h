@@ -21,10 +21,10 @@ public:
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Ability")
+	UFUNCTION(BlueprintPure, Category = "Tunic|Ability", meta = (ToolTip = "返回该角色当前缓存的 Tunic ASC。玩家实际 ASC 归 PlayerState 持有，敌人 ASC 归敌人角色持有。"))
 	UTunicAbilitySystemComponent* GetTunicAbilitySystemComponent() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Attributes")
+	UFUNCTION(BlueprintPure, Category = "Tunic|Attributes", meta = (ToolTip = "返回该角色当前缓存的 AttributeSet。不要从蓝图直接改属性，属性变化应走 GAS / GameplayEffect。"))
 	UTunicAttributeSet* GetAttributeSet() const;
 
 protected:

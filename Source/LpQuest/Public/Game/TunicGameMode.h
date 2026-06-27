@@ -23,7 +23,7 @@ public:
 	void HandleEnemyDeath(class ATunicEnemyCharacter* DeadEnemy);
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Run", meta = (ClampMin = "0.0", Units = "s"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Run", meta = (ClampMin = "0.0", Units = "s", ToolTip = "Portal ready 后 floor transition stub 等待多久完成，单位秒。完成后楼层 +1、重置 Portal/Spawner，并回到 CombatActive。"))
 	float FloorTransitionStubDelay = 2.0f;
 
 private:
