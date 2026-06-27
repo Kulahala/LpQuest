@@ -1229,4 +1229,27 @@ Validation and review:
 - Strict review fixed the attack-height filter to check target bounds overlap instead of only checking actor origin Z.
 - The stage kept weapon/socket trace, `BoxComponent OnOverlap` damage, Attack DataAsset, and player light-attack shape changes out of scope.
 
+## Reward / Progression v1
+
+Commit:
+
+- `97a9881 [Feature] 增加固定升级奖励闭环（Add Fixed Run Upgrade Reward）`
+
+Summary:
+
+- Added the first real run-local reward loop: spawned encounter enemy deaths grant shared run XP, shared run Level grants each player a pending upgrade choice, and the local HUD selection request asks the server to apply a fixed upgrade GameplayEffect to that player's PlayerState-owned ASC.
+- Added `UTunicRunUpgradeMaxHealthGameplayEffect` as the v1 fixed run upgrade. It is instant and applies `MaxHealth +20` followed by `Health +20`, so a full-health player can move from `100/100` to `120/120`.
+- Added `ATunicGameMode::DefaultRunUpgradeGameplayEffectClass` and `ATunicGameMode::TrySelectRunUpgradeForPlayer()` as the server reward decision and application path.
+- Updated `ATunicPlayerController` with `RequestSelectRunUpgrade()` / `ServerRequestSelectRunUpgrade()`. The old `RequestSelectRunUpgradeStub()` remains only as a compatibility wrapper.
+- Updated `UTunicRunStatusWidget` to call the real upgrade request path.
+- Kept `ATunicGameState` responsible for replicated shared XP / Level, and `ATunicPlayerState` responsible for each player's pending upgrade count and ASC.
+
+Validation and review:
+
+- User confirmed the focused upgrade path works.
+- Strict review found no blocking issue. Pending choices are consumed only after the server validates the PlayerState, ASC, default GameplayEffect class, and spec creation.
+- No client-side XP, pending choice, Health, MaxHealth, or reward authority was introduced.
+- Accepted follow-up: manually placed enemies do not grant XP unless they are encounter members tracked by `ATunicEncounterSpawner`. `Placed Encounter Enemies v1` is the next small Spawner / reward follow-up.
+- Remaining validation note: broader Listen Server + 2 Players reward regression was not separately claimed unless the user validates it in a later pass.
+
 

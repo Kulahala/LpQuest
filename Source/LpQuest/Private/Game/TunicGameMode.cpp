@@ -102,7 +102,7 @@ void ATunicGameMode::EvaluateEncounterClear()
 	}
 
 	ATunicEncounterSpawner* EncounterSpawner = FindEncounterSpawner();
-	if (!EncounterSpawner || !EncounterSpawner->HasSpawnedEncounter())
+	if (!EncounterSpawner || !EncounterSpawner->HasActiveEncounter())
 	{
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Encounter clear evaluation skipped: no active encounter spawner | Floor=%d"),
 			TunicGameState->GetCurrentFloorIndex());

@@ -23,6 +23,11 @@ bool ATunicEncounterSpawner::HasSpawnedEncounter() const
 	return bHasSpawnedEncounter;
 }
 
+bool ATunicEncounterSpawner::HasActiveEncounter() const
+{
+	return GetTotalEncounterEnemyCount() > 0;
+}
+
 int32 ATunicEncounterSpawner::GetSpawnedEncounterEnemyCount() const
 {
 	int32 SpawnedEnemyCount = 0;
@@ -37,16 +42,44 @@ int32 ATunicEncounterSpawner::GetSpawnedEncounterEnemyCount() const
 	return SpawnedEnemyCount;
 }
 
+int32 ATunicEncounterSpawner::GetPlacedEncounterEnemyCount() const
+{
+	int32 PlacedEnemyCount = 0;
+	for (const TWeakObjectPtr<ATunicEnemyCharacter>& EnemyPtr : ActivePlacedEncounterEnemies)
+	{
+		if (EnemyPtr.IsValid())
+		{
+			++PlacedEnemyCount;
+		}
+	}
+
+	return PlacedEnemyCount;
+}
+
+int32 ATunicEncounterSpawner::GetTotalEncounterEnemyCount() const
+{
+	return GetSpawnedEncounterEnemyCount() + GetPlacedEncounterEnemyCount();
+}
+
 int32 ATunicEncounterSpawner::GetAliveEncounterEnemyCount() const
 {
 	int32 AliveEnemyCount = 0;
-	for (const TWeakObjectPtr<ATunicEnemyCharacter>& EnemyPtr : SpawnedEncounterEnemies)
+	const auto CountAliveEnemy = [&AliveEnemyCount](const ATunicEnemyCharacter* EnemyCharacter)
 	{
-		const ATunicEnemyCharacter* EnemyCharacter = EnemyPtr.Get();
 		if (EnemyCharacter && !EnemyCharacter->IsDead())
 		{
 			++AliveEnemyCount;
 		}
+	};
+
+	for (const TWeakObjectPtr<ATunicEnemyCharacter>& EnemyPtr : SpawnedEncounterEnemies)
+	{
+		CountAliveEnemy(EnemyPtr.Get());
+	}
+
+	for (const TWeakObjectPtr<ATunicEnemyCharacter>& EnemyPtr : ActivePlacedEncounterEnemies)
+	{
+		CountAliveEnemy(EnemyPtr.Get());
 	}
 
 	return AliveEnemyCount;
@@ -64,12 +97,13 @@ void ATunicEncounterSpawner::SpawnEncounterForFloor(int32 FloorIndex)
 		return;
 	}
 
-	if (bHasSpawnedEncounter && CurrentEncounterFloorIndex == FloorIndex)
+	if (HasActiveEncounter() && CurrentEncounterFloorIndex == FloorIndex)
 	{
 		return;
 	}
 
 	CleanupSpawnedEnemies();
+	RefreshActivePlacedEncounterEnemies();
 
 	CurrentEncounterFloorIndex = FMath::Max(1, FloorIndex);
 
@@ -77,12 +111,11 @@ void ATunicEncounterSpawner::SpawnEncounterForFloor(int32 FloorIndex)
 	int32 SpawnedEnemyCount = 0;
 	int32 SpawnRequestIndex = 0;
 
-	if (SpawnPointCount <= 0)
+	if (SpawnPointCount <= 0 && SpawnEntries.Num() > 0)
 	{
 		UE_LOG(LogLpQuestSpawner, Warning, TEXT("Encounter spawn skipped: no spawn points | Spawner=%s | Floor=%d"),
 			*GetNameSafe(this),
 			CurrentEncounterFloorIndex);
-		return;
 	}
 
 	UWorld* World = GetWorld();
@@ -91,35 +124,38 @@ void ATunicEncounterSpawner::SpawnEncounterForFloor(int32 FloorIndex)
 		return;
 	}
 
-	for (const FTunicEncounterSpawnEntry& SpawnEntry : SpawnEntries)
+	if (SpawnPointCount > 0)
 	{
-		if (!SpawnEntry.EnemyClass || SpawnEntry.Count <= 0)
+		for (const FTunicEncounterSpawnEntry& SpawnEntry : SpawnEntries)
 		{
-			continue;
-		}
-
-		for (int32 EnemyIndex = 0; EnemyIndex < SpawnEntry.Count; ++EnemyIndex)
-		{
-			AActor* SpawnPoint = SpawnPoints[SpawnRequestIndex % SpawnPointCount].Get();
-			++SpawnRequestIndex;
-
-			if (!SpawnPoint)
+			if (!SpawnEntry.EnemyClass || SpawnEntry.Count <= 0)
 			{
 				continue;
 			}
 
-			FActorSpawnParameters SpawnParameters;
-			SpawnParameters.Owner = this;
-			SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-			ATunicEnemyCharacter* SpawnedEnemy = World->SpawnActor<ATunicEnemyCharacter>(SpawnEntry.EnemyClass, SpawnPoint->GetActorTransform(), SpawnParameters);
-			if (!SpawnedEnemy)
+			for (int32 EnemyIndex = 0; EnemyIndex < SpawnEntry.Count; ++EnemyIndex)
 			{
-				continue;
-			}
+				AActor* SpawnPoint = SpawnPoints[SpawnRequestIndex % SpawnPointCount].Get();
+				++SpawnRequestIndex;
 
-			SpawnedEncounterEnemies.Add(SpawnedEnemy);
-			++SpawnedEnemyCount;
+				if (!SpawnPoint)
+				{
+					continue;
+				}
+
+				FActorSpawnParameters SpawnParameters;
+				SpawnParameters.Owner = this;
+				SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+				ATunicEnemyCharacter* SpawnedEnemy = World->SpawnActor<ATunicEnemyCharacter>(SpawnEntry.EnemyClass, SpawnPoint->GetActorTransform(), SpawnParameters);
+				if (!SpawnedEnemy)
+				{
+					continue;
+				}
+
+				SpawnedEncounterEnemies.Add(SpawnedEnemy);
+				++SpawnedEnemyCount;
+			}
 		}
 	}
 
@@ -127,14 +163,16 @@ void ATunicEncounterSpawner::SpawnEncounterForFloor(int32 FloorIndex)
 
 	if (bLogSpawnerState)
 	{
-		UE_LOG(LogLpQuestSpawner, Display, TEXT("Encounter spawned | Spawner=%s | Floor=%d | SpawnPoints=%d | SpawnedEnemies=%d"),
+		UE_LOG(LogLpQuestSpawner, Display, TEXT("Encounter activated | Spawner=%s | Floor=%d | SpawnPoints=%d | SpawnedEnemies=%d | PlacedEnemies=%d | TotalEnemies=%d"),
 			*GetNameSafe(this),
 			CurrentEncounterFloorIndex,
 			SpawnPointCount,
-			SpawnedEnemyCount);
+			SpawnedEnemyCount,
+			GetPlacedEncounterEnemyCount(),
+			GetTotalEncounterEnemyCount());
 	}
 
-	if (bHasSpawnedEncounter)
+	if (HasActiveEncounter())
 	{
 		OnEncounterSpawned(CurrentEncounterFloorIndex);
 	}
@@ -148,21 +186,24 @@ void ATunicEncounterSpawner::ResetEncounterForNextFloor()
 	}
 
 	CleanupSpawnedEnemies();
+	ActivePlacedEncounterEnemies.Reset();
 	bHasSpawnedEncounter = false;
 	CurrentEncounterFloorIndex = 0;
 }
 
 bool ATunicEncounterSpawner::EvaluateEncounterClear(int32& OutTotalEnemyCount, int32& OutAliveEnemyCount)
 {
-	OutTotalEnemyCount = GetSpawnedEncounterEnemyCount();
+	OutTotalEnemyCount = GetTotalEncounterEnemyCount();
 	OutAliveEnemyCount = GetAliveEncounterEnemyCount();
 
-	const bool bEncounterCleared = bHasSpawnedEncounter && OutTotalEnemyCount > 0 && OutAliveEnemyCount == 0;
+	const bool bEncounterCleared = HasActiveEncounter() && OutTotalEnemyCount > 0 && OutAliveEnemyCount == 0;
 	if (bLogSpawnerState)
 	{
-		UE_LOG(LogLpQuestSpawner, Display, TEXT("Spawner encounter clear evaluation | Spawner=%s | Floor=%d | TotalEnemies=%d | AliveEnemies=%d | Triggered=%s"),
+		UE_LOG(LogLpQuestSpawner, Display, TEXT("Spawner encounter clear evaluation | Spawner=%s | Floor=%d | SpawnedEnemies=%d | PlacedEnemies=%d | TotalEnemies=%d | AliveEnemies=%d | Triggered=%s"),
 			*GetNameSafe(this),
 			CurrentEncounterFloorIndex,
+			GetSpawnedEncounterEnemyCount(),
+			GetPlacedEncounterEnemyCount(),
 			OutTotalEnemyCount,
 			OutAliveEnemyCount,
 			bEncounterCleared ? TEXT("true") : TEXT("false"));
@@ -184,6 +225,14 @@ bool ATunicEncounterSpawner::IsEncounterEnemy(const ATunicEnemyCharacter* EnemyC
 	}
 
 	for (const TWeakObjectPtr<ATunicEnemyCharacter>& EnemyPtr : SpawnedEncounterEnemies)
+	{
+		if (EnemyPtr.Get() == EnemyCharacter)
+		{
+			return true;
+		}
+	}
+
+	for (const TWeakObjectPtr<ATunicEnemyCharacter>& EnemyPtr : ActivePlacedEncounterEnemies)
 	{
 		if (EnemyPtr.Get() == EnemyCharacter)
 		{
@@ -213,4 +262,33 @@ void ATunicEncounterSpawner::CleanupSpawnedEnemies()
 	}
 
 	SpawnedEncounterEnemies.Reset();
+}
+
+void ATunicEncounterSpawner::RefreshActivePlacedEncounterEnemies()
+{
+	ActivePlacedEncounterEnemies.Reset();
+
+	for (const TObjectPtr<ATunicEnemyCharacter>& EnemyPtr : PlacedEncounterEnemies)
+	{
+		ATunicEnemyCharacter* EnemyCharacter = EnemyPtr.Get();
+		if (!EnemyCharacter || EnemyCharacter->IsDead())
+		{
+			continue;
+		}
+
+		bool bAlreadyRegistered = false;
+		for (const TWeakObjectPtr<ATunicEnemyCharacter>& ActiveEnemyPtr : ActivePlacedEncounterEnemies)
+		{
+			if (ActiveEnemyPtr.Get() == EnemyCharacter)
+			{
+				bAlreadyRegistered = true;
+				break;
+			}
+		}
+
+		if (!bAlreadyRegistered)
+		{
+			ActivePlacedEncounterEnemies.Add(EnemyCharacter);
+		}
+	}
 }

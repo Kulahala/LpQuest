@@ -119,6 +119,8 @@ Update `ARCHITECTURE.md` only when code changes actual architecture. Use `plan.m
 
 Use `plan.md` for the current stage's implementation scope, validation status, strict review notes, accepted risks, and next-step TODOs. Keep it short enough to serve as the next-session working board. When completed stage notes accumulate, move them to `docs/archive/stage-log.md` and leave only the active snapshot and near-term tasks in `plan.md`.
 
+Do not delete or broadly rewrite `plan.md` just because chat context was compacted, a note looks old, or a previous conversation summary is incomplete. Before cleanup, read `plan.md`'s Active Snapshot, compare it with `git log`, `docs/archive/stage-log.md`, live source/assets, and recent commits, then remove only entries that are confirmed archived, completed, rejected, superseded, or no longer relevant to the near-term work.
+
 Before starting a new stage plan, committing a completed stage, or replacing a failed/superseded stage with a new approach, check whether the previous stage outcome is already recorded in `docs/archive/stage-log.md`. If it is missing, archive the completed, rejected, or superseded stage first, then update `plan.md` to focus only on the current stage and near-term TODOs. Do not archive unfinished plan drafts; archive outcomes.
 
 Do not store reusable compiler/runtime/debugging lessons in `plan.md` except as a brief stage note that the issue occurred and was resolved. Move durable lessons to server-memory MCP.
