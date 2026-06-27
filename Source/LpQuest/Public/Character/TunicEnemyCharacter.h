@@ -15,7 +15,7 @@ class UAnimMontage;
 class UGameplayAbility;
 class UGameplayEffect;
 struct FOnAttributeChangeData;
-struct FHitResult;
+struct FOverlapResult;
 
 UCLASS(Blueprintable)
 class LPQUEST_API ATunicEnemyCharacter : public ATunicCharacterBase, public ITunicCombatTargetInterface, public ITunicCombatHitWindowSourceInterface
@@ -72,8 +72,8 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Combat", meta = (ToolTip = "敌人受击表现 hook。不要在这里直接改 Health。"))
 	void OnHitReaction(AActor* InstigatorActor);
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Combat|Telegraph", meta = (ToolTip = "敌人 melee 攻击预警开始时触发的表现 hook。只做闪光、音效、地面提示等表现，不要直接造成伤害。"))
-	void OnEnemyMeleeTelegraphStarted(float TelegraphDuration, FVector SweepStart, FVector SweepEnd, float SweepRadius, float SweepHalfHeight);
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Combat|Telegraph", meta = (ToolTip = "敌人 melee 攻击预警开始时触发的表现 hook。参数描述当前攻击形状范围；只做闪光、音效、地面提示等表现，不要直接造成伤害。"))
+	void OnEnemyMeleeTelegraphStarted(float TelegraphDuration, FVector ShapeOrigin, FVector ShapeForward, float ShapeRange, float ShapeHalfHeight);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug", meta = (ToolTip = "是否输出敌人 ASC / AttributeSet 初始化日志。只用于验证 GAS 所有权。"))
 	bool bLogAbilitySystemInitialization = true;
@@ -108,19 +108,31 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Telegraph", meta = (ClampMin = "0.0", Units = "s", ToolTip = "敌人 melee telegraph debug 绘制持续时间，单位秒。0 表示只绘制一帧。"))
 	float EnemyMeleeTelegraphDebugDuration = 0.35f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Telegraph", meta = (ClampMin = "1.0", ClampMax = "180.0", Units = "deg", ToolTip = "敌人 melee telegraph debug 扇形角度，单位度。只影响脚下扇形提示，不改变实际服务器 sweep 命中范围。"))
-	float EnemyMeleeTelegraphDebugArcAngleDegrees = 90.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "敌人 melee 扇形攻击向前覆盖距离，单位 cm。telegraph 和服务器 hit window 共用这个范围。"))
+	float EnemyMeleeAttackRange = 220.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "敌人 melee capsule sweep 半径，单位 cm。实际命中由服务器检测。"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ClampMin = "1.0", ClampMax = "180.0", Units = "deg", ToolTip = "敌人 melee 扇形攻击总角度，单位度。90 表示面前左右各 45 度。"))
+	float EnemyMeleeAttackAngleDegrees = 90.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "敌人 melee 扇形攻击上下高度半径，单位 cm。目标与攻击原点的 Z 差超过该值时不会命中。"))
+	float EnemyMeleeAttackHalfHeight = 90.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (Units = "cm", ToolTip = "敌人 melee 攻击形状原点沿角色前方的偏移，单位 cm。0 表示以脚下/身体中心为原点。"))
+	float EnemyMeleeAttackOriginForwardOffset = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ToolTip = "是否绘制 hit window 实际使用的敌人 melee 扇形攻击范围。只用于验证，不参与伤害判定。"))
+	bool bDrawEnemyMeleeAttackShapeDebug = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Tunic|Combat|Hit Confirmation|Legacy", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "Legacy serialized field：旧 capsule sweep 半径。当前 melee 命中逻辑不读取这个值，请使用 EnemyMeleeAttackRange / Angle / HalfHeight。"))
 	float EnemyMeleeSweepRadius = 65.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "敌人 melee capsule sweep 半高，单位 cm。影响上下命中范围。"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Tunic|Combat|Hit Confirmation|Legacy", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "Legacy serialized field：旧 capsule sweep 半高。当前 melee 命中逻辑不读取这个值，请使用 EnemyMeleeAttackRange / Angle / HalfHeight。"))
 	float EnemyMeleeSweepHalfHeight = 75.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (Units = "cm", ToolTip = "敌人 melee sweep 起点的角色本地偏移，单位 cm。X 通常表示敌人前方。"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Tunic|Combat|Hit Confirmation|Legacy", meta = (Units = "cm", ToolTip = "Legacy serialized field：旧 capsule sweep 起点偏移。当前 melee 命中逻辑不读取这个值，请使用配置化扇形形状。"))
 	FVector EnemyMeleeSweepStartOffset = FVector(55.0f, 0.0f, 45.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (Units = "cm", ToolTip = "敌人 melee sweep 终点的角色本地偏移，单位 cm。决定攻击向前覆盖多远。"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Tunic|Combat|Hit Confirmation|Legacy", meta = (Units = "cm", ToolTip = "Legacy serialized field：旧 capsule sweep 终点偏移。当前 melee 命中逻辑不读取这个值，请使用配置化扇形形状。"))
 	FVector EnemyMeleeSweepEndOffset = FVector(190.0f, 0.0f, 45.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Debug", meta = (ToolTip = "命中目标时是否应用敌人 melee damage GameplayEffect。只用于当前 prototype 伤害路径。"))
@@ -163,13 +175,17 @@ private:
 	void StartEnemyMeleeTelegraph();
 	void FinishEnemyMeleeTelegraphAndAttack();
 	void ClearEnemyMeleeTelegraph();
-	void DrawEnemyMeleeTelegraphDebug(FVector SweepStart, FVector SweepEnd, float SweepRadius, float SweepHalfHeight) const;
+	FVector GetEnemyMeleeAttackShapeOrigin() const;
+	FVector GetEnemyMeleeAttackShapeForward() const;
+	bool IsActorInsideEnemyMeleeAttackShape(const AActor* TargetActor) const;
+	void DrawEnemyMeleeFanDebug(FVector ShapeOrigin, FVector ShapeForward, float ShapeRange, float ShapeHalfHeight, float ShapeAngleDegrees, float LifeTime, FColor DebugColor, const TCHAR* DebugLabel) const;
+	void DrawEnemyMeleeAttackShapeDebug(float LifeTime, FColor DebugColor, const TCHAR* DebugLabel) const;
+	void DrawEnemyMeleeTelegraphDebug(FVector ShapeOrigin, FVector ShapeForward, float ShapeRange, float ShapeHalfHeight) const;
 	bool PlayMeleeAttackMontage();
 	void CheckMeleeAttackMontageHitWindowTriggered(int32 MontageSerial);
-	FVector GetEnemyMeleeSweepPoint(const FVector& LocalOffset) const;
 	void HandleEnemyMeleeTargetHit(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget);
 	void ApplyEnemyMeleeDamage(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget);
-	void LogEnemyMeleeHitSweepDebug(const TArray<FHitResult>& HitResults, int32 ProcessedHitCount) const;
+	void LogEnemyMeleeAttackShapeDebug(const TArray<FOverlapResult>& OverlapResults, int32 ProcessedHitCount) const;
 	void PlayPresentationMontage(UAnimMontage* MontageToPlay, bool bStopAllMontages);
 
 	UFUNCTION(NetMulticast, Unreliable)
@@ -179,7 +195,10 @@ private:
 	void MulticastPlayMeleeAttackMontage(UAnimMontage* MontageToPlay);
 
 	UFUNCTION(NetMulticast, Unreliable)
-	void MulticastStartEnemyMeleeTelegraph(float TelegraphDuration, FVector SweepStart, FVector SweepEnd, float SweepRadius, float SweepHalfHeight);
+	void MulticastStartEnemyMeleeTelegraph(float TelegraphDuration, FVector ShapeOrigin, FVector ShapeForward, float ShapeRange, float ShapeHalfHeight);
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastDrawEnemyMeleeAttackShape(float LifeTime, FVector ShapeOrigin, FVector ShapeForward, float ShapeRange, float ShapeHalfHeight, float ShapeAngleDegrees);
 
 	UPROPERTY(ReplicatedUsing = OnRep_IsDead)
 	bool bIsDead = false;

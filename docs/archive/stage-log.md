@@ -1185,4 +1185,27 @@ Summary:
 - User testing showed the owning-client dash still visibly stutters. The likely remaining issue is network position correction from server-authoritative high-speed dash replication, not GPU/CPU frame time and not `State.Invulnerable`.
 - This stage should not be treated as solved. The next serious direction is `Dodge Movement Prediction v2`: client-predicted movement with server confirmation, while server keeps final Dodge validity, invulnerability, cooldown/action-lock, Health, and damage authority.
 
+## Dodge Movement Prediction v2
+
+Commit:
+
+- `44a4d9c [Feature] 增加 Dodge 客户端预测移动（Add Predicted Dodge Movement）`
+
+Summary:
+
+- Changed `UTunicGameplayAbility_Dodge` to `LocalPredicted`.
+- Dodge input sends `GameplayEvent.Movement.Dodge` through the player ASC with a direction payload.
+- Client and server use the same direction, `DodgeDistance`, and `DodgeDuration` to start `UAbilityTask_ApplyRootMotionConstantForce`.
+- `State.Invulnerable` remains server-granted only. Damage, Health, cooldown/action-lock authority, and final correction remain server-authoritative.
+- Removed the old default `ServerRequestDodge`, manual server-only `FRootMotionSource_ConstantForce` dash path, `DodgeRootMotionSourcePriority`, and v1 smoothing-only camera/presentation path so multiple Dodge movement systems do not coexist.
+- `DodgeDistance` and `DodgeDuration` remain real `ATunicPlayerCharacter` tuning values consumed by the AbilityTask.
+
+Validation and review:
+
+- User confirmed compile and gameplay validation passed.
+- User confirmed Listen Server + 2 Players validation passed and owning-client Dodge no longer visibly stutters.
+- `p.NetShowCorrections 1` produced no visible correction draw during the successful test, which is acceptable because it only draws/logs when client movement corrections actually occur.
+- Strict review found no blocking authority, double-movement, old-path, or Montage double-play regression.
+- Accepted follow-up: `UAbilityTask_ApplyRootMotionConstantForce` uses engine-owned RootMotionSource priority. If ordinary movement input visibly fights dash later, consider `Custom Dodge SavedMove v3` instead of reintroducing a fake exposed priority field.
+
 

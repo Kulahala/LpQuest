@@ -17,7 +17,6 @@
 #include "Combat/TunicCombatTargetInterface.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/EngineTypes.h"
-#include "Engine/HitResult.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -159,27 +158,36 @@ void ATunicEnemyCharacter::ProcessEnemyMeleeHitWindow()
 		return;
 	}
 
-	const FVector SweepStart = GetEnemyMeleeSweepPoint(EnemyMeleeSweepStartOffset);
-	const FVector SweepEnd = GetEnemyMeleeSweepPoint(EnemyMeleeSweepEndOffset);
-	const FCollisionShape SweepShape = FCollisionShape::MakeCapsule(EnemyMeleeSweepRadius, EnemyMeleeSweepHalfHeight);
+	const float AttackRange = FMath::Max(0.0f, EnemyMeleeAttackRange);
+	const float AttackAngleDegrees = FMath::Clamp(EnemyMeleeAttackAngleDegrees, 0.0f, 180.0f);
+	const float AttackHalfHeight = FMath::Max(0.0f, EnemyMeleeAttackHalfHeight);
+	if (AttackRange <= UE_SMALL_NUMBER || AttackAngleDegrees <= UE_SMALL_NUMBER)
+	{
+		UE_LOG(LogLpQuestEnemyGasDebug, Warning, TEXT("Enemy melee attack shape skipped: invalid range or angle | Character=%s | Range=%.1f | Angle=%.1f | HalfHeight=%.1f"),
+			*GetNameSafe(this),
+			AttackRange,
+			AttackAngleDegrees,
+			AttackHalfHeight);
+		return;
+	}
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemyMeleeHitSweep), false, this);
-	TArray<FHitResult> HitResults;
-	World->SweepMultiByChannel(
-		HitResults,
-		SweepStart,
-		SweepEnd,
+	TArray<FOverlapResult> OverlapResults;
+	const float OverlapQueryRadius = FMath::Sqrt(FMath::Square(AttackRange) + FMath::Square(AttackHalfHeight));
+	World->OverlapMultiByChannel(
+		OverlapResults,
+		GetEnemyMeleeAttackShapeOrigin(),
 		FQuat::Identity,
 		ECC_Pawn,
-		SweepShape,
+		FCollisionShape::MakeSphere(OverlapQueryRadius),
 		QueryParams);
 
 	int32 ProcessedHitCount = 0;
-	for (const FHitResult& HitResult : HitResults)
+	for (const FOverlapResult& OverlapResult : OverlapResults)
 	{
-		AActor* TargetActor = HitResult.GetActor();
+		AActor* TargetActor = OverlapResult.GetActor();
 		ITunicCombatTargetInterface* CombatTarget = Cast<ITunicCombatTargetInterface>(TargetActor);
-		if (!TargetActor || !CombatTarget || !CombatTarget->IsCombatTargetAvailable() || EnemyMeleeHitTargets.Contains(TargetActor) || FTunicCombatRules::IsSelfHit(this, TargetActor))
+		if (!TargetActor || !CombatTarget || !CombatTarget->IsCombatTargetAvailable() || EnemyMeleeHitTargets.Contains(TargetActor) || FTunicCombatRules::IsSelfHit(this, TargetActor) || !IsActorInsideEnemyMeleeAttackShape(TargetActor))
 		{
 			continue;
 		}
@@ -189,7 +197,11 @@ void ATunicEnemyCharacter::ProcessEnemyMeleeHitWindow()
 		++ProcessedHitCount;
 	}
 
-	LogEnemyMeleeHitSweepDebug(HitResults, ProcessedHitCount);
+	if (bDrawEnemyMeleeAttackShapeDebug)
+	{
+		MulticastDrawEnemyMeleeAttackShape(0.1f, GetEnemyMeleeAttackShapeOrigin(), GetEnemyMeleeAttackShapeForward(), EnemyMeleeAttackRange, EnemyMeleeAttackHalfHeight, EnemyMeleeAttackAngleDegrees);
+	}
+	LogEnemyMeleeAttackShapeDebug(OverlapResults, ProcessedHitCount);
 }
 
 void ATunicEnemyCharacter::EndEnemyMeleeHitWindow()
@@ -541,21 +553,22 @@ void ATunicEnemyCharacter::StartEnemyMeleeTelegraph()
 	}
 
 	const float TelegraphDuration = FMath::Max(0.0f, EnemyMeleeTelegraphDuration);
-	const FVector SweepStart = GetEnemyMeleeSweepPoint(EnemyMeleeSweepStartOffset);
-	const FVector SweepEnd = GetEnemyMeleeSweepPoint(EnemyMeleeSweepEndOffset);
+	const FVector ShapeOrigin = GetEnemyMeleeAttackShapeOrigin();
+	const FVector ShapeForward = GetEnemyMeleeAttackShapeForward();
 
 	bEnemyMeleeTelegraphActive = true;
-	MulticastStartEnemyMeleeTelegraph(TelegraphDuration, SweepStart, SweepEnd, EnemyMeleeSweepRadius, EnemyMeleeSweepHalfHeight);
+	MulticastStartEnemyMeleeTelegraph(TelegraphDuration, ShapeOrigin, ShapeForward, EnemyMeleeAttackRange, EnemyMeleeAttackHalfHeight);
 
 	if (bLogEnemyMeleeAttack)
 	{
-		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee telegraph started | Character=%s | Duration=%.3f | SweepStart=%s | SweepEnd=%s | Radius=%.1f | HalfHeight=%.1f"),
+		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee telegraph started | Character=%s | Duration=%.3f | ShapeOrigin=%s | ShapeForward=%s | Range=%.1f | Angle=%.1f | HalfHeight=%.1f"),
 			*GetNameSafe(this),
 			TelegraphDuration,
-			*SweepStart.ToCompactString(),
-			*SweepEnd.ToCompactString(),
-			EnemyMeleeSweepRadius,
-			EnemyMeleeSweepHalfHeight);
+			*ShapeOrigin.ToCompactString(),
+			*ShapeForward.ToCompactString(),
+			EnemyMeleeAttackRange,
+			EnemyMeleeAttackAngleDegrees,
+			EnemyMeleeAttackHalfHeight);
 	}
 
 	if (TelegraphDuration <= UE_SMALL_NUMBER)
@@ -611,7 +624,106 @@ void ATunicEnemyCharacter::ClearEnemyMeleeTelegraph()
 	bEnemyMeleeTelegraphActive = false;
 }
 
-void ATunicEnemyCharacter::DrawEnemyMeleeTelegraphDebug(FVector SweepStart, FVector SweepEnd, float SweepRadius, float SweepHalfHeight) const
+FVector ATunicEnemyCharacter::GetEnemyMeleeAttackShapeOrigin() const
+{
+	const float CapsuleHalfHeight = GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.0f;
+	const FVector ActorLocation = GetActorLocation();
+	const FVector FootCenter(ActorLocation.X, ActorLocation.Y, ActorLocation.Z - CapsuleHalfHeight + 5.0f);
+	return FootCenter + GetEnemyMeleeAttackShapeForward() * EnemyMeleeAttackOriginForwardOffset;
+}
+
+FVector ATunicEnemyCharacter::GetEnemyMeleeAttackShapeForward() const
+{
+	const FVector Forward2D = GetActorForwardVector().GetSafeNormal2D();
+	return Forward2D.IsNearlyZero() ? FVector::ForwardVector : Forward2D;
+}
+
+bool ATunicEnemyCharacter::IsActorInsideEnemyMeleeAttackShape(const AActor* TargetActor) const
+{
+	if (!TargetActor)
+	{
+		return false;
+	}
+
+	FVector TargetOrigin = TargetActor->GetActorLocation();
+	FVector TargetExtent = FVector::ZeroVector;
+	TargetActor->GetActorBounds(false, TargetOrigin, TargetExtent);
+
+	const FVector ShapeOrigin = GetEnemyMeleeAttackShapeOrigin();
+	const float ShapeHalfHeight = FMath::Max(0.0f, EnemyMeleeAttackHalfHeight);
+	const float TargetBottom = TargetOrigin.Z - TargetExtent.Z;
+	const float TargetTop = TargetOrigin.Z + TargetExtent.Z;
+	const float ShapeBottom = ShapeOrigin.Z - ShapeHalfHeight;
+	const float ShapeTop = ShapeOrigin.Z + ShapeHalfHeight;
+	if (TargetTop < ShapeBottom || TargetBottom > ShapeTop)
+	{
+		return false;
+	}
+
+	const FVector ToLocation = TargetOrigin - ShapeOrigin;
+	const FVector ToLocation2D(ToLocation.X, ToLocation.Y, 0.0f);
+	const float Distance2D = ToLocation2D.Size();
+	if (Distance2D > FMath::Max(0.0f, EnemyMeleeAttackRange))
+	{
+		return false;
+	}
+
+	if (Distance2D <= UE_SMALL_NUMBER)
+	{
+		return true;
+	}
+
+	const float HalfAngleDegrees = FMath::Clamp(EnemyMeleeAttackAngleDegrees, 0.0f, 180.0f) * 0.5f;
+	const float Dot = FVector::DotProduct(GetEnemyMeleeAttackShapeForward(), ToLocation2D / Distance2D);
+	const float AngleDegrees = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(Dot, -1.0f, 1.0f)));
+	return AngleDegrees <= HalfAngleDegrees;
+}
+
+void ATunicEnemyCharacter::DrawEnemyMeleeFanDebug(FVector ShapeOrigin, FVector ShapeForward, float ShapeRange, float ShapeHalfHeight, float ShapeAngleDegrees, float LifeTime, FColor DebugColor, const TCHAR* DebugLabel) const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const FVector DrawCenter = ShapeOrigin;
+	const FVector Forward2D = ShapeForward.GetSafeNormal2D().IsNearlyZero() ? GetEnemyMeleeAttackShapeForward() : ShapeForward.GetSafeNormal2D();
+	const float ArcRadius = FMath::Max(0.0f, ShapeRange);
+	const float ArcAngleDegrees = FMath::Clamp(ShapeAngleDegrees, 1.0f, 180.0f);
+	const float HalfAngleDegrees = ArcAngleDegrees * 0.5f;
+	const int32 SegmentCount = FMath::Max(8, FMath::CeilToInt(ArcAngleDegrees / 6.0f));
+	const int32 FillSegmentStep = FMath::Max(1, SegmentCount / 8);
+	const bool bPersistentLines = false;
+
+	FVector PreviousPoint = DrawCenter + Forward2D.RotateAngleAxis(-HalfAngleDegrees, FVector::UpVector) * ArcRadius;
+	DrawDebugLine(World, DrawCenter, PreviousPoint, DebugColor, bPersistentLines, LifeTime, 0, 3.0f);
+	DrawDebugLine(World, DrawCenter, DrawCenter + Forward2D * ArcRadius, DebugColor, bPersistentLines, LifeTime, 0, 1.5f);
+	DrawDebugLine(World, DrawCenter, DrawCenter + Forward2D * (ArcRadius * 0.35f), DebugColor, bPersistentLines, LifeTime, 0, 5.0f);
+
+	for (int32 SegmentIndex = 1; SegmentIndex <= SegmentCount; ++SegmentIndex)
+	{
+		const float Alpha = static_cast<float>(SegmentIndex) / static_cast<float>(SegmentCount);
+		const float AngleDegrees = FMath::Lerp(-HalfAngleDegrees, HalfAngleDegrees, Alpha);
+		const FVector CurrentPoint = DrawCenter + Forward2D.RotateAngleAxis(AngleDegrees, FVector::UpVector) * ArcRadius;
+		DrawDebugLine(World, PreviousPoint, CurrentPoint, DebugColor, bPersistentLines, LifeTime, 0, 3.0f);
+		if (SegmentIndex % FillSegmentStep == 0 || SegmentIndex == SegmentCount)
+		{
+			DrawDebugLine(World, DrawCenter, CurrentPoint, DebugColor, bPersistentLines, LifeTime, 0, 1.25f);
+		}
+		PreviousPoint = CurrentPoint;
+	}
+
+	DrawDebugLine(World, DrawCenter, PreviousPoint, DebugColor, bPersistentLines, LifeTime, 0, 3.0f);
+	DrawDebugString(World, DrawCenter + Forward2D * (ArcRadius * 0.5f) + FVector(0.0f, 0.0f, ShapeHalfHeight + 35.0f), FString(DebugLabel), nullptr, DebugColor, LifeTime, true);
+}
+
+void ATunicEnemyCharacter::DrawEnemyMeleeAttackShapeDebug(float LifeTime, FColor DebugColor, const TCHAR* DebugLabel) const
+{
+	DrawEnemyMeleeFanDebug(GetEnemyMeleeAttackShapeOrigin(), GetEnemyMeleeAttackShapeForward(), EnemyMeleeAttackRange, EnemyMeleeAttackHalfHeight, EnemyMeleeAttackAngleDegrees, LifeTime, DebugColor, DebugLabel);
+}
+
+void ATunicEnemyCharacter::DrawEnemyMeleeTelegraphDebug(FVector ShapeOrigin, FVector ShapeForward, float ShapeRange, float ShapeHalfHeight) const
 {
 	if (!bDrawEnemyMeleeTelegraphDebug)
 	{
@@ -624,34 +736,7 @@ void ATunicEnemyCharacter::DrawEnemyMeleeTelegraphDebug(FVector SweepStart, FVec
 		return;
 	}
 
-	const float LifeTime = FMath::Max(0.0f, EnemyMeleeTelegraphDebugDuration);
-	const bool bPersistentLines = false;
-	const FColor TelegraphColor = FColor::Orange;
-	const float CapsuleHalfHeight = GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.0f;
-	const FVector ActorLocation = GetActorLocation();
-	const FVector DrawCenter(ActorLocation.X, ActorLocation.Y, ActorLocation.Z - CapsuleHalfHeight + 5.0f);
-	const FVector Forward2D = GetActorForwardVector().GetSafeNormal2D();
-	const float SweepDistance = FVector::Dist2D(SweepStart, SweepEnd);
-	const float ArcRadius = FMath::Max(SweepRadius, SweepDistance + SweepRadius);
-	const float ArcAngleDegrees = FMath::Clamp(EnemyMeleeTelegraphDebugArcAngleDegrees, 1.0f, 180.0f);
-	const float HalfAngleDegrees = ArcAngleDegrees * 0.5f;
-	const int32 SegmentCount = FMath::Max(8, FMath::CeilToInt(ArcAngleDegrees / 6.0f));
-
-	FVector PreviousPoint = DrawCenter + Forward2D.RotateAngleAxis(-HalfAngleDegrees, FVector::UpVector) * ArcRadius;
-	DrawDebugLine(World, DrawCenter, PreviousPoint, TelegraphColor, bPersistentLines, LifeTime, 0, 3.0f);
-	DrawDebugLine(World, DrawCenter, DrawCenter + Forward2D * ArcRadius, TelegraphColor, bPersistentLines, LifeTime, 0, 1.5f);
-
-	for (int32 SegmentIndex = 1; SegmentIndex <= SegmentCount; ++SegmentIndex)
-	{
-		const float Alpha = static_cast<float>(SegmentIndex) / static_cast<float>(SegmentCount);
-		const float AngleDegrees = FMath::Lerp(-HalfAngleDegrees, HalfAngleDegrees, Alpha);
-		const FVector CurrentPoint = DrawCenter + Forward2D.RotateAngleAxis(AngleDegrees, FVector::UpVector) * ArcRadius;
-		DrawDebugLine(World, PreviousPoint, CurrentPoint, TelegraphColor, bPersistentLines, LifeTime, 0, 3.0f);
-		PreviousPoint = CurrentPoint;
-	}
-
-	DrawDebugLine(World, DrawCenter, PreviousPoint, TelegraphColor, bPersistentLines, LifeTime, 0, 3.0f);
-	DrawDebugString(World, DrawCenter + Forward2D * (ArcRadius * 0.5f) + FVector(0.0f, 0.0f, SweepHalfHeight + 35.0f), TEXT("Enemy Telegraph"), nullptr, TelegraphColor, LifeTime, true);
+	DrawEnemyMeleeFanDebug(ShapeOrigin, ShapeForward, ShapeRange, ShapeHalfHeight, EnemyMeleeAttackAngleDegrees, FMath::Max(0.0f, EnemyMeleeTelegraphDebugDuration), FColor::Orange, TEXT("Enemy Telegraph"));
 }
 
 bool ATunicEnemyCharacter::PlayMeleeAttackMontage()
@@ -690,11 +775,6 @@ void ATunicEnemyCharacter::CheckMeleeAttackMontageHitWindowTriggered(int32 Monta
 	UE_LOG(LogLpQuestEnemyGasDebug, Warning, TEXT("Enemy melee attack montage completed without hit-window notify | Character=%s | Montage=%s"),
 		*GetNameSafe(this),
 		*GetNameSafe(MeleeAttackMontage));
-}
-
-FVector ATunicEnemyCharacter::GetEnemyMeleeSweepPoint(const FVector& LocalOffset) const
-{
-	return GetActorLocation() + GetActorRotation().RotateVector(LocalOffset);
 }
 
 void ATunicEnemyCharacter::HandleEnemyMeleeTargetHit(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget)
@@ -786,25 +866,26 @@ void ATunicEnemyCharacter::ApplyEnemyMeleeDamage(AActor* TargetActor, ITunicComb
 		HealthAfter);
 }
 
-void ATunicEnemyCharacter::LogEnemyMeleeHitSweepDebug(const TArray<FHitResult>& HitResults, int32 ProcessedHitCount) const
+void ATunicEnemyCharacter::LogEnemyMeleeAttackShapeDebug(const TArray<FOverlapResult>& OverlapResults, int32 ProcessedHitCount) const
 {
 	if (!bLogEnemyMeleeAttack)
 	{
 		return;
 	}
 
-	UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee hit sweep completed | Character=%s | SweepStart=%s | SweepEnd=%s | HitCount=%d | ProcessedHitCount=%d | Radius=%.1f | HalfHeight=%.1f"),
+	UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee attack shape completed | Character=%s | ShapeOrigin=%s | Forward=%s | OverlapCount=%d | ProcessedHitCount=%d | Range=%.1f | Angle=%.1f | HalfHeight=%.1f"),
 		*GetNameSafe(this),
-		*GetEnemyMeleeSweepPoint(EnemyMeleeSweepStartOffset).ToCompactString(),
-		*GetEnemyMeleeSweepPoint(EnemyMeleeSweepEndOffset).ToCompactString(),
-		HitResults.Num(),
+		*GetEnemyMeleeAttackShapeOrigin().ToCompactString(),
+		*GetEnemyMeleeAttackShapeForward().ToCompactString(),
+		OverlapResults.Num(),
 		ProcessedHitCount,
-		EnemyMeleeSweepRadius,
-		EnemyMeleeSweepHalfHeight);
+		EnemyMeleeAttackRange,
+		EnemyMeleeAttackAngleDegrees,
+		EnemyMeleeAttackHalfHeight);
 
-	for (const FHitResult& HitResult : HitResults)
+	for (const FOverlapResult& OverlapResult : OverlapResults)
 	{
-		const AActor* TargetActor = HitResult.GetActor();
+		const AActor* TargetActor = OverlapResult.GetActor();
 		const ITunicCombatTargetInterface* CombatTarget = Cast<ITunicCombatTargetInterface>(TargetActor);
 		if (!TargetActor || !CombatTarget)
 		{
@@ -813,7 +894,7 @@ void ATunicEnemyCharacter::LogEnemyMeleeHitSweepDebug(const TArray<FHitResult>& 
 
 		const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = CombatTarget->GetCombatTargetAbilitySystemComponent();
 		const UTunicAttributeSet* TargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
-		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee hit sweep target | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | TargetHealth=%.1f/%.1f | TargetStamina=%.1f/%.1f | ImpactPoint=%s | TargetLocalRole=%d | TargetRemoteRole=%d"),
+		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee attack shape candidate | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | TargetHealth=%.1f/%.1f | TargetStamina=%.1f/%.1f | InShape=%s | TargetLocalRole=%d | TargetRemoteRole=%d"),
 			*GetNameSafe(this),
 			*GetNameSafe(TargetActor),
 			*GetNameSafe(TargetAbilitySystemComponent),
@@ -822,7 +903,7 @@ void ATunicEnemyCharacter::LogEnemyMeleeHitSweepDebug(const TArray<FHitResult>& 
 			TargetAttributeSet ? TargetAttributeSet->GetMaxHealth() : 0.0f,
 			TargetAttributeSet ? TargetAttributeSet->GetStamina() : 0.0f,
 			TargetAttributeSet ? TargetAttributeSet->GetMaxStamina() : 0.0f,
-			*HitResult.ImpactPoint.ToCompactString(),
+			IsActorInsideEnemyMeleeAttackShape(TargetActor) ? TEXT("true") : TEXT("false"),
 			static_cast<int32>(TargetActor->GetLocalRole()),
 			static_cast<int32>(TargetActor->GetRemoteRole()));
 	}
@@ -861,10 +942,15 @@ void ATunicEnemyCharacter::MulticastPlayMeleeAttackMontage_Implementation(UAnimM
 	PlayPresentationMontage(MontageToPlay, false);
 }
 
-void ATunicEnemyCharacter::MulticastStartEnemyMeleeTelegraph_Implementation(float TelegraphDuration, FVector SweepStart, FVector SweepEnd, float SweepRadius, float SweepHalfHeight)
+void ATunicEnemyCharacter::MulticastStartEnemyMeleeTelegraph_Implementation(float TelegraphDuration, FVector ShapeOrigin, FVector ShapeForward, float ShapeRange, float ShapeHalfHeight)
 {
-	DrawEnemyMeleeTelegraphDebug(SweepStart, SweepEnd, SweepRadius, SweepHalfHeight);
-	OnEnemyMeleeTelegraphStarted(TelegraphDuration, SweepStart, SweepEnd, SweepRadius, SweepHalfHeight);
+	DrawEnemyMeleeTelegraphDebug(ShapeOrigin, ShapeForward, ShapeRange, ShapeHalfHeight);
+	OnEnemyMeleeTelegraphStarted(TelegraphDuration, ShapeOrigin, ShapeForward, ShapeRange, ShapeHalfHeight);
+}
+
+void ATunicEnemyCharacter::MulticastDrawEnemyMeleeAttackShape_Implementation(float LifeTime, FVector ShapeOrigin, FVector ShapeForward, float ShapeRange, float ShapeHalfHeight, float ShapeAngleDegrees)
+{
+	DrawEnemyMeleeFanDebug(ShapeOrigin, ShapeForward, ShapeRange, ShapeHalfHeight, ShapeAngleDegrees, FMath::Max(0.0f, LifeTime), FColor::Red, TEXT("Enemy Hit Shape"));
 }
 
 void ATunicEnemyCharacter::MulticastPlayHitReaction_Implementation(AActor* InstigatorActor)

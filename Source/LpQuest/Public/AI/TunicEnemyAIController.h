@@ -107,8 +107,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|AI", meta = (ToolTip = "敌人默认 StateTree 资产。服务器 Possess 敌人后启动；未配置时敌人安全 idle。"))
 	TObjectPtr<UStateTree> DefaultEnemyStateTree;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "AI 请求近战攻击的距离，单位 cm。StateTree 应通过 native condition 读取它。"))
-	float AttackActivationRange = 260.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "AI 请求近战攻击的距离，单位 cm。StateTree 应通过 native condition 读取它。建议略小于敌人真实 melee attack shape range，避免敌人停在命中范围外挥空。"))
+	float AttackActivationRange = 200.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI|Perception", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "Sight 感知半径，单位 cm。只影响 AI 看到玩家的距离，不是攻击距离。"))
 	float SightRadius = 1800.0f;
