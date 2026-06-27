@@ -102,6 +102,8 @@ During the code-writing to compile/runtime-validation loop, proactively query se
 
 If server-memory MCP is unavailable during error复盘, say so explicitly and include the memory lookup that would have been useful. Do not silently skip this step when fixing compile/runtime errors.
 
+Reusable error patterns belong in server-memory MCP, not in `plan.md`. A reusable pattern should include the trigger scenario, typical symptom/error text, wrong approach, correct fix, and applicable scope. `plan.md` may mention that a compile/runtime issue occurred and was fixed during the current stage, but it should not become the long-term error library.
+
 Stage-end strict review does not need server-memory by default. It should focus on live source/assets, architecture boundaries, multiplayer/GAS authority, coupling, validation gaps, and long-term risk. Query server-memory during a review only if the review uncovers an actual error pattern or repeated failure mode that memory could help diagnose.
 
 ## Documentation Roles
@@ -113,6 +115,8 @@ Stage-end strict review does not need server-memory by default. It should focus 
 - `AGENTS.md`: contributor and AI collaboration rules.
 
 Update `ARCHITECTURE.md` only when code changes actual architecture. Use `plan.md` for current task status and next steps. Do not turn `tunicplan.md` into a running changelog.
+
+Use `plan.md` for the current stage's implementation scope, validation status, strict review notes, accepted risks, and next-step TODOs. Do not store reusable compiler/runtime/debugging lessons there except as a brief stage note that the issue occurred and was resolved. Move durable lessons to server-memory MCP.
 
 Keep `ARCHITECTURE.md` focused on stable ownership, flow, boundaries, and class/function responsibilities. Avoid hard-coding tunable gameplay numbers such as damage, stamina cost, cooldown duration, regen rate, sweep size, movement speed, or camera distances unless the number is itself an architectural contract. Prefer naming the owning class, GameplayEffect, DataAsset, config key, or function instead. Use `plan.md` for temporary checkpoint values and validation notes.
 
