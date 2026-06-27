@@ -1208,4 +1208,25 @@ Validation and review:
 - Strict review found no blocking authority, double-movement, old-path, or Montage double-play regression.
 - Accepted follow-up: `UAbilityTask_ApplyRootMotionConstantForce` uses engine-owned RootMotionSource priority. If ordinary movement input visibly fights dash later, consider `Custom Dodge SavedMove v3` instead of reintroducing a fake exposed priority field.
 
+## Enemy Attack Shape Profile v1
+
+Commit:
+
+- `53f3e7f [Feature] 增加敌人扇形攻击判定（Add Enemy Fan Attack Shape）`
+
+Summary:
+
+- Enemy melee hit confirmation now uses a server explicit fan attack shape instead of the old fixed capsule sweep default.
+- `ATunicEnemyCharacter` filters targets by `EnemyMeleeAttackRange`, `EnemyMeleeAttackAngleDegrees`, `EnemyMeleeAttackHalfHeight`, and `EnemyMeleeAttackOriginForwardOffset`.
+- The hit path still reuses existing team rules, `State.Invulnerable`, hit reaction, and GameplayEffect damage application.
+- `ATunicEnemyAIController::AttackActivationRange` default changed to `200cm`, slightly below the default `EnemyMeleeAttackRange=220cm`, so StateTree enters Attack inside the real hit shape instead of stopping just outside range.
+- Orange telegraph fan and red hit-window fan are multicast debug presentation, so Listen Server clients can see both. Debug fan draw uses radial fill lines instead of only an empty outline.
+- Old `EnemyMeleeSweepRadius`, `EnemyMeleeSweepHalfHeight`, `EnemyMeleeSweepStartOffset`, and `EnemyMeleeSweepEndOffset` remain only as legacy serialized fields. The current default enemy melee logic no longer reads them.
+
+Validation and review:
+
+- User confirmed focused testing passed.
+- Strict review fixed the attack-height filter to check target bounds overlap instead of only checking actor origin Z.
+- The stage kept weapon/socket trace, `BoxComponent OnOverlap` damage, Attack DataAsset, and player light-attack shape changes out of scope.
+
 

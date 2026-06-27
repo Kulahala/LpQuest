@@ -2,6 +2,8 @@
 
 #include "Game/TunicGameMode.h"
 
+#include "AbilitySystemComponent.h"
+#include "Ability/TunicRunUpgradeMaxHealthGameplayEffect.h"
 #include "Character/TunicEnemyCharacter.h"
 #include "Character/TunicPlayerCharacter.h"
 #include "Controller/TunicPlayerController.h"
@@ -10,6 +12,8 @@
 #include "Game/TunicGameState.h"
 #include "Game/TunicPortalActor.h"
 #include "GameFramework/GameStateBase.h"
+#include "GameplayEffect.h"
+#include "GameplayEffectTypes.h"
 #include "Player/TunicPlayerState.h"
 #include "TimerManager.h"
 
@@ -21,6 +25,7 @@ ATunicGameMode::ATunicGameMode()
 	PlayerControllerClass = ATunicPlayerController::StaticClass();
 	PlayerStateClass = ATunicPlayerState::StaticClass();
 	GameStateClass = ATunicGameState::StaticClass();
+	DefaultRunUpgradeGameplayEffectClass = UTunicRunUpgradeMaxHealthGameplayEffect::StaticClass();
 }
 
 void ATunicGameMode::BeginPlay()
@@ -155,6 +160,70 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 	}
 
 	EvaluateEncounterClear();
+}
+
+bool ATunicGameMode::TrySelectRunUpgradeForPlayer(ATunicPlayerState* TunicPlayerState)
+{
+	if (!HasAuthority())
+	{
+		return false;
+	}
+
+	if (!TunicPlayerState)
+	{
+		UE_LOG(LogLpQuestRunState, Warning, TEXT("Run upgrade selection rejected: missing player state"));
+		return false;
+	}
+
+	UAbilitySystemComponent* AbilitySystemComponent = TunicPlayerState->GetAbilitySystemComponent();
+	if (!AbilitySystemComponent)
+	{
+		UE_LOG(LogLpQuestRunState, Warning, TEXT("Run upgrade selection rejected: missing ASC | PlayerState=%s"),
+			*GetNameSafe(TunicPlayerState));
+		return false;
+	}
+
+	if (!DefaultRunUpgradeGameplayEffectClass)
+	{
+		UE_LOG(LogLpQuestRunState, Warning, TEXT("Run upgrade selection rejected: missing default upgrade GE | PlayerState=%s"),
+			*GetNameSafe(TunicPlayerState));
+		return false;
+	}
+
+	if (TunicPlayerState->GetPendingRunUpgradeChoices() <= 0)
+	{
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Run upgrade selection rejected: no pending choices | PlayerState=%s"),
+			*GetNameSafe(TunicPlayerState));
+		return false;
+	}
+
+	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+	EffectContext.AddSourceObject(TunicPlayerState);
+
+	FGameplayEffectSpecHandle UpgradeSpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultRunUpgradeGameplayEffectClass, 1.0f, EffectContext);
+	if (!UpgradeSpecHandle.IsValid())
+	{
+		UE_LOG(LogLpQuestRunState, Warning, TEXT("Run upgrade selection rejected: failed to create GE spec | PlayerState=%s | EffectClass=%s"),
+			*GetNameSafe(TunicPlayerState),
+			*GetNameSafe(DefaultRunUpgradeGameplayEffectClass.Get()));
+		return false;
+	}
+
+	if (!TunicPlayerState->TryConsumePendingRunUpgradeChoice())
+	{
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Run upgrade selection rejected: pending choice consume failed | PlayerState=%s"),
+			*GetNameSafe(TunicPlayerState));
+		return false;
+	}
+
+	AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*UpgradeSpecHandle.Data.Get());
+
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Run upgrade selected | PlayerState=%s | EffectClass=%s | RemainingPending=%d"),
+		*GetNameSafe(TunicPlayerState),
+		*GetNameSafe(DefaultRunUpgradeGameplayEffectClass.Get()),
+		TunicPlayerState->GetPendingRunUpgradeChoices());
+
+	return true;
 }
 
 void ATunicGameMode::MarkFloorTransitionReady()

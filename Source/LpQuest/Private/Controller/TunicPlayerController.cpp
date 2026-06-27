@@ -3,6 +3,7 @@
 #include "Controller/TunicPlayerController.h"
 
 #include "EnhancedInputSubsystems.h"
+#include "Game/TunicGameMode.h"
 #include "Player/TunicPlayerState.h"
 #include "UI/TunicRunStatusWidget.h"
 
@@ -15,14 +16,19 @@ ATunicPlayerController::ATunicPlayerController()
 	RunStatusWidgetClass = UTunicRunStatusWidget::StaticClass();
 }
 
-void ATunicPlayerController::RequestSelectRunUpgradeStub()
+void ATunicPlayerController::RequestSelectRunUpgrade()
 {
 	if (!IsLocalController())
 	{
 		return;
 	}
 
-	ServerRequestSelectRunUpgradeStub();
+	ServerRequestSelectRunUpgrade();
+}
+
+void ATunicPlayerController::RequestSelectRunUpgradeStub()
+{
+	RequestSelectRunUpgrade();
 }
 
 void ATunicPlayerController::BeginPlay()
@@ -58,7 +64,7 @@ void ATunicPlayerController::BeginPlay()
 	InputSubsystem->AddMappingContext(DefaultMappingContext, DefaultMappingPriority);
 }
 
-void ATunicPlayerController::ServerRequestSelectRunUpgradeStub_Implementation()
+void ATunicPlayerController::ServerRequestSelectRunUpgrade_Implementation()
 {
 	ATunicPlayerState* TunicPlayerState = GetPlayerState<ATunicPlayerState>();
 	if (!TunicPlayerState)
@@ -68,16 +74,19 @@ void ATunicPlayerController::ServerRequestSelectRunUpgradeStub_Implementation()
 		return;
 	}
 
-	if (!TunicPlayerState->TryConsumePendingRunUpgradeChoice())
+	ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr;
+	if (!TunicGameMode)
 	{
-		UE_LOG(LogLpQuestRunUpgrade, Display, TEXT("Run upgrade selection rejected: no pending choices | Controller=%s | PlayerState=%s"),
+		UE_LOG(LogLpQuestRunUpgrade, Warning, TEXT("Run upgrade selection rejected: missing game mode | Controller=%s | PlayerState=%s"),
 			*GetNameSafe(this),
 			*GetNameSafe(TunicPlayerState));
 		return;
 	}
 
-	UE_LOG(LogLpQuestRunUpgrade, Display, TEXT("Run upgrade selection consumed | Controller=%s | PlayerState=%s | RemainingPending=%d"),
+	const bool bSelectedUpgrade = TunicGameMode->TrySelectRunUpgradeForPlayer(TunicPlayerState);
+	UE_LOG(LogLpQuestRunUpgrade, Display, TEXT("Run upgrade selection requested | Controller=%s | PlayerState=%s | Success=%s | RemainingPending=%d"),
 		*GetNameSafe(this),
 		*GetNameSafe(TunicPlayerState),
+		bSelectedUpgrade ? TEXT("true") : TEXT("false"),
 		TunicPlayerState->GetPendingRunUpgradeChoices());
 }

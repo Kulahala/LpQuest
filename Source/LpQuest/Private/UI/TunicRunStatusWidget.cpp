@@ -173,7 +173,7 @@ void UTunicRunStatusWidget::HandleSelectUpgradeClicked()
 		return;
 	}
 
-	TunicPlayerController->RequestSelectRunUpgradeStub();
+	TunicPlayerController->RequestSelectRunUpgrade();
 }
 
 void UTunicRunStatusWidget::BindGameState()

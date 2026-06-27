@@ -48,7 +48,7 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "Pending upgrade choice 数量变化时的表现 hook。不要在这里直接应用属性或技能奖励。"))
 	void OnPendingRunUpgradeChoicesChanged(int32 PendingChoices);
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "服务器成功消耗一次 pending upgrade choice 后触发的表现 hook。当前 stub 不授予真实奖励。"))
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "服务器成功消耗一次 pending upgrade choice 后触发的表现 hook。真实升级效果由 GameMode 授予到 PlayerState-owned ASC。"))
 	void OnRunUpgradeChoiceConsumed();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Ability")
