@@ -111,12 +111,15 @@ Stage-end strict review does not need server-memory by default. It should focus 
 - `README.md`: project overview, current status, and public-facing direction.
 - `ARCHITECTURE.md`: stable implemented architecture facts.
 - `plan.md`: short active implementation plan and handoff notes.
+- `docs/archive/stage-log.md`: completed stage history and old handoff notes kept for lookup only.
 - `tunicplan.md`: long-term roadmap and milestone plan.
 - `AGENTS.md`: contributor and AI collaboration rules.
 
 Update `ARCHITECTURE.md` only when code changes actual architecture. Use `plan.md` for current task status and next steps. Do not turn `tunicplan.md` into a running changelog.
 
-Use `plan.md` for the current stage's implementation scope, validation status, strict review notes, accepted risks, and next-step TODOs. Do not store reusable compiler/runtime/debugging lessons there except as a brief stage note that the issue occurred and was resolved. Move durable lessons to server-memory MCP.
+Use `plan.md` for the current stage's implementation scope, validation status, strict review notes, accepted risks, and next-step TODOs. Keep it short enough to serve as the next-session working board. When completed stage notes accumulate, move them to `docs/archive/stage-log.md` and leave only the active snapshot and near-term tasks in `plan.md`.
+
+Do not store reusable compiler/runtime/debugging lessons in `plan.md` except as a brief stage note that the issue occurred and was resolved. Move durable lessons to server-memory MCP.
 
 Keep `ARCHITECTURE.md` focused on stable ownership, flow, boundaries, and class/function responsibilities. Avoid hard-coding tunable gameplay numbers such as damage, stamina cost, cooldown duration, regen rate, sweep size, movement speed, or camera distances unless the number is itself an architectural contract. Prefer naming the owning class, GameplayEffect, DataAsset, config key, or function instead. Use `plan.md` for temporary checkpoint values and validation notes.
 
