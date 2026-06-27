@@ -88,6 +88,21 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|AI", meta = (ToolTip = "返回敌人被 Possess 时记录的 HomeLocation。无巡逻路线时 IdleAtHome 使用。"))
 	FVector GetHomeLocation() const;
 
+	UFUNCTION(BlueprintPure, Category = "Tunic|AI", meta = (ToolTip = "当前是否有最后已知目标位置。StateTree 的 Investigate 分支使用；只有服务器 AI 写入。"))
+	bool HasLastKnownTargetLocation() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|AI", meta = (ToolTip = "返回最后已知目标位置。Investigate MoveTo 的 Destination 应绑定到这个值。"))
+	FVector GetLastKnownTargetLocation() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Tunic|AI", meta = (ToolTip = "服务器清理最后已知目标位置。StateTree 的 InvestigateClear 使用；客户端调用不会改 AI 状态，也不修改 Health、RunState 或 XP。"))
+	void ClearLastKnownTargetLocation();
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|AI", meta = (ToolTip = "返回调查搜索等待时长，单位秒。StateTree 的 InvestigateSearch Delay.Duration 可绑定这个值。"))
+	float GetInvestigationDuration() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|AI", meta = (ToolTip = "返回调查 MoveTo 接受半径，单位 cm。InvestigateMove 的 acceptable radius 可使用该值。"))
+	float GetInvestigationAcceptanceRadius() const;
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|AI", meta = (ToolTip = "敌人默认 StateTree 资产。服务器 Possess 敌人后启动；未配置时敌人安全 idle。"))
 	TObjectPtr<UStateTree> DefaultEnemyStateTree;
@@ -116,6 +131,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI|Aggro", meta = (ClampMin = "0.0", Units = "s", ToolTip = "CombatSpawnAggro 生成后等待多久才主动找附近玩家，单位秒。防止出生瞬间立即全图开战。"))
 	float CombatSpawnAggroDelay = 0.5f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI|Investigation", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "调查最后已知位置时 MoveTo 的接受半径，单位 cm。用于避免敌人必须精确踩到目标丢失点。"))
+	float InvestigationAcceptanceRadius = 160.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI|Investigation", meta = (ClampMin = "0.0", Units = "s", ToolTip = "敌人到达最后已知位置后搜索/等待的时长，单位秒。StateTree Delay 可绑定这个值。"))
+	float InvestigationDuration = 2.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|AI|Patrol", meta = (ToolTip = "要绑定的巡逻路线 Id。必须匹配关卡中 ATunicEnemyPatrolRoute 的 RouteId。"))
 	FName PatrolRouteId = NAME_None;
 
@@ -140,6 +161,7 @@ private:
 	bool IsCombatTargetWithinProximity(AActor* TargetActor, float SearchRadius) const;
 	AActor* FindBestPerceivedCombatTarget() const;
 	AActor* FindBestProximityCombatTarget(float SearchRadius) const;
+	void RecordLastKnownTargetLocation(AActor* TargetActor);
 	void HandleCombatSpawnAggroDelayElapsed();
 	void UpdateIdleScan(float DeltaSeconds);
 	void EnsureControlledEnemyCanMove() const;
@@ -164,8 +186,10 @@ private:
 
 	int32 CurrentPatrolPointIndex = 0;
 	FVector HomeLocation = FVector::ZeroVector;
+	FVector LastKnownTargetLocation = FVector::ZeroVector;
 	double CurrentTargetLostTimeSeconds = 0.0;
 	bool bCurrentTargetPendingForget = false;
+	bool bHasLastKnownTargetLocation = false;
 	bool bCombatSpawnAggroReady = false;
 	FTimerHandle CombatSpawnAggroTimerHandle;
 };

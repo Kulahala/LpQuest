@@ -88,6 +88,57 @@ EStateTreeRunStatus FTunicStateTreeGetEnemyHomeLocationTask::EnterState(FStateTr
 	return EStateTreeRunStatus::Succeeded;
 }
 
+bool FTunicStateTreeGetLastKnownTargetLocationTask::Link(FStateTreeLinker& Linker)
+{
+	Linker.LinkExternalData(AIControllerHandle);
+	return true;
+}
+
+EStateTreeRunStatus FTunicStateTreeGetLastKnownTargetLocationTask::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult&) const
+{
+	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	InstanceData.LastKnownTargetLocation = FVector::ZeroVector;
+	InstanceData.AcceptanceRadius = 0.0f;
+
+	const ATunicEnemyAIController* EnemyAIController = Cast<ATunicEnemyAIController>(&Context.GetExternalData(AIControllerHandle));
+	if (!EnemyAIController)
+	{
+		UE_LOG(LogLpQuestEnemyStateTree, Warning, TEXT("Enemy StateTree last known target location failed: missing AI controller"));
+		return EStateTreeRunStatus::Failed;
+	}
+
+	if (!EnemyAIController->HasLastKnownTargetLocation())
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	InstanceData.LastKnownTargetLocation = EnemyAIController->GetLastKnownTargetLocation();
+	InstanceData.AcceptanceRadius = EnemyAIController->GetInvestigationAcceptanceRadius();
+	return EStateTreeRunStatus::Succeeded;
+}
+
+bool FTunicStateTreeGetInvestigationDurationTask::Link(FStateTreeLinker& Linker)
+{
+	Linker.LinkExternalData(AIControllerHandle);
+	return true;
+}
+
+EStateTreeRunStatus FTunicStateTreeGetInvestigationDurationTask::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult&) const
+{
+	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	InstanceData.InvestigationDuration = 0.0f;
+
+	const ATunicEnemyAIController* EnemyAIController = Cast<ATunicEnemyAIController>(&Context.GetExternalData(AIControllerHandle));
+	if (!EnemyAIController)
+	{
+		UE_LOG(LogLpQuestEnemyStateTree, Warning, TEXT("Enemy StateTree investigation duration failed: missing AI controller"));
+		return EStateTreeRunStatus::Failed;
+	}
+
+	InstanceData.InvestigationDuration = EnemyAIController->GetInvestigationDuration();
+	return EStateTreeRunStatus::Succeeded;
+}
+
 bool FTunicStateTreeGetCurrentPatrolStopTask::Link(FStateTreeLinker& Linker)
 {
 	Linker.LinkExternalData(AIControllerHandle);
@@ -112,6 +163,25 @@ EStateTreeRunStatus FTunicStateTreeGetCurrentPatrolStopTask::EnterState(FStateTr
 	}
 
 	InstanceData.HoldDuration = EnemyAIController->GetCurrentPatrolStopHoldDuration();
+	return EStateTreeRunStatus::Succeeded;
+}
+
+bool FTunicStateTreeClearLastKnownTargetLocationTask::Link(FStateTreeLinker& Linker)
+{
+	Linker.LinkExternalData(AIControllerHandle);
+	return true;
+}
+
+EStateTreeRunStatus FTunicStateTreeClearLastKnownTargetLocationTask::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult&) const
+{
+	ATunicEnemyAIController* EnemyAIController = Cast<ATunicEnemyAIController>(&Context.GetExternalData(AIControllerHandle));
+	if (!EnemyAIController)
+	{
+		UE_LOG(LogLpQuestEnemyStateTree, Warning, TEXT("Enemy StateTree clear last known target failed: missing AI controller"));
+		return EStateTreeRunStatus::Failed;
+	}
+
+	EnemyAIController->ClearLastKnownTargetLocation();
 	return EStateTreeRunStatus::Succeeded;
 }
 
@@ -192,6 +262,20 @@ bool FTunicStateTreeEnemyHasPatrolRouteCondition::TestCondition(FStateTreeExecut
 	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 	const bool bHasPatrolRoute = EnemyAIController && EnemyAIController->HasPatrolRoute();
 	return InstanceData.bInvert ? !bHasPatrolRoute : bHasPatrolRoute;
+}
+
+bool FTunicStateTreeEnemyHasLastKnownTargetLocationCondition::Link(FStateTreeLinker& Linker)
+{
+	Linker.LinkExternalData(AIControllerHandle);
+	return true;
+}
+
+bool FTunicStateTreeEnemyHasLastKnownTargetLocationCondition::TestCondition(FStateTreeExecutionContext& Context) const
+{
+	const ATunicEnemyAIController* EnemyAIController = Cast<ATunicEnemyAIController>(&Context.GetExternalData(AIControllerHandle));
+	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	const bool bHasLastKnownTargetLocation = EnemyAIController && EnemyAIController->HasLastKnownTargetLocation();
+	return InstanceData.bInvert ? !bHasLastKnownTargetLocation : bHasLastKnownTargetLocation;
 }
 
 bool FTunicStateTreeEnemyCurrentPatrolTargetIsStopCondition::Link(FStateTreeLinker& Linker)

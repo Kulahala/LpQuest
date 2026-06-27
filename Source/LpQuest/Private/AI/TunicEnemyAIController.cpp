@@ -72,8 +72,10 @@ void ATunicEnemyAIController::OnPossess(APawn* InPawn)
 	PatrolRouteActor.Reset();
 	CurrentPatrolPointIndex = 0;
 	HomeLocation = InPawn ? InPawn->GetActorLocation() : FVector::ZeroVector;
+	LastKnownTargetLocation = FVector::ZeroVector;
 	CurrentTargetLostTimeSeconds = 0.0;
 	bCurrentTargetPendingForget = false;
+	bHasLastKnownTargetLocation = false;
 	bCombatSpawnAggroReady = AwarenessPolicy != ETunicEnemyAwarenessPolicy::CombatSpawnAggro;
 
 	if (!HasAuthority())
@@ -110,6 +112,7 @@ void ATunicEnemyAIController::OnUnPossess()
 	StopEnemyAILogic();
 	PatrolRouteActor.Reset();
 	CurrentPatrolPointIndex = 0;
+	ClearLastKnownTargetLocation();
 	Super::OnUnPossess();
 }
 
@@ -128,6 +131,7 @@ void ATunicEnemyAIController::RefreshCurrentCombatTargetFromAwareness()
 	if (!CanRunEnemyAI())
 	{
 		ClearCurrentCombatTarget();
+		ClearLastKnownTargetLocation();
 		return;
 	}
 
@@ -168,6 +172,10 @@ void ATunicEnemyAIController::RefreshCurrentCombatTargetFromAwareness()
 
 	if (!IsValidCombatTarget(TargetActor))
 	{
+		if (TargetActor)
+		{
+			ClearLastKnownTargetLocation();
+		}
 		ClearCurrentCombatTarget();
 		bCurrentTargetPendingForget = false;
 		CurrentTargetLostTimeSeconds = 0.0;
@@ -178,6 +186,7 @@ void ATunicEnemyAIController::RefreshCurrentCombatTargetFromAwareness()
 	const double CurrentTimeSeconds = World ? World->GetTimeSeconds() : 0.0;
 	if (!bCurrentTargetPendingForget)
 	{
+		RecordLastKnownTargetLocation(TargetActor);
 		bCurrentTargetPendingForget = true;
 		CurrentTargetLostTimeSeconds = CurrentTimeSeconds;
 	}
@@ -200,6 +209,7 @@ void ATunicEnemyAIController::SetCurrentCombatTarget(AActor* NewTarget)
 	CurrentCombatTarget = IsValidCombatTarget(NewTarget) ? NewTarget : nullptr;
 	if (AActor* TargetActor = CurrentCombatTarget.Get())
 	{
+		ClearLastKnownTargetLocation();
 		SetFocus(TargetActor);
 	}
 	else
@@ -280,6 +290,7 @@ void ATunicEnemyAIController::StopEnemyAILogic()
 
 	StopMovement();
 	ClearCurrentCombatTarget();
+	ClearLastKnownTargetLocation();
 
 	if (StateTreeAIComponent && StateTreeAIComponent->IsRunning())
 	{
@@ -363,6 +374,37 @@ FVector ATunicEnemyAIController::GetHomeLocation() const
 	return HomeLocation;
 }
 
+bool ATunicEnemyAIController::HasLastKnownTargetLocation() const
+{
+	return bHasLastKnownTargetLocation;
+}
+
+FVector ATunicEnemyAIController::GetLastKnownTargetLocation() const
+{
+	return bHasLastKnownTargetLocation ? LastKnownTargetLocation : HomeLocation;
+}
+
+void ATunicEnemyAIController::ClearLastKnownTargetLocation()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	LastKnownTargetLocation = FVector::ZeroVector;
+	bHasLastKnownTargetLocation = false;
+}
+
+float ATunicEnemyAIController::GetInvestigationDuration() const
+{
+	return FMath::Max(0.0f, InvestigationDuration);
+}
+
+float ATunicEnemyAIController::GetInvestigationAcceptanceRadius() const
+{
+	return FMath::Max(0.0f, InvestigationAcceptanceRadius);
+}
+
 void ATunicEnemyAIController::HandleTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
 	if (!HasAuthority() || !Actor)
@@ -382,6 +424,7 @@ void ATunicEnemyAIController::HandleTargetPerceptionUpdated(AActor* Actor, FAISt
 
 	if (Actor == CurrentCombatTarget.Get())
 	{
+		RecordLastKnownTargetLocation(Actor);
 		const UWorld* World = GetWorld();
 		bCurrentTargetPendingForget = true;
 		CurrentTargetLostTimeSeconds = World ? World->GetTimeSeconds() : 0.0;
@@ -513,6 +556,17 @@ AActor* ATunicEnemyAIController::FindBestProximityCombatTarget(float SearchRadiu
 	return BestTarget;
 }
 
+void ATunicEnemyAIController::RecordLastKnownTargetLocation(AActor* TargetActor)
+{
+	if (!HasAuthority() || !IsValidCombatTarget(TargetActor))
+	{
+		return;
+	}
+
+	LastKnownTargetLocation = TargetActor->GetActorLocation();
+	bHasLastKnownTargetLocation = true;
+}
+
 void ATunicEnemyAIController::HandleCombatSpawnAggroDelayElapsed()
 {
 	if (!HasAuthority() || AwarenessPolicy != ETunicEnemyAwarenessPolicy::CombatSpawnAggro)
@@ -535,7 +589,7 @@ void ATunicEnemyAIController::HandleCombatSpawnAggroDelayElapsed()
 
 void ATunicEnemyAIController::UpdateIdleScan(float DeltaSeconds)
 {
-	if (!bEnableIdleScan || IdleScanYawRate <= 0.0f || IsCurrentTargetValid() || HasPatrolRoute())
+	if (!bEnableIdleScan || IdleScanYawRate <= 0.0f || IsCurrentTargetValid())
 	{
 		return;
 	}
@@ -546,7 +600,14 @@ void ATunicEnemyAIController::UpdateIdleScan(float DeltaSeconds)
 		return;
 	}
 
-	if (FVector::DistSquared2D(EnemyCharacter->GetActorLocation(), HomeLocation) > FMath::Square(FMath::Max(0.0f, IdleScanHomeTolerance)))
+	if (!bHasLastKnownTargetLocation && HasPatrolRoute())
+	{
+		return;
+	}
+
+	const FVector ScanAnchorLocation = bHasLastKnownTargetLocation ? LastKnownTargetLocation : HomeLocation;
+	const float ScanTolerance = bHasLastKnownTargetLocation ? InvestigationAcceptanceRadius : IdleScanHomeTolerance;
+	if (FVector::DistSquared2D(EnemyCharacter->GetActorLocation(), ScanAnchorLocation) > FMath::Square(FMath::Max(0.0f, ScanTolerance)))
 	{
 		return;
 	}
