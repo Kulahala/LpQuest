@@ -138,8 +138,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Debug", meta = (ToolTip = "命中目标时是否应用敌人 melee damage GameplayEffect。只用于当前 prototype 伤害路径。"))
 	bool bApplyEnemyMeleeDamage = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Debug", meta = (ToolTip = "是否输出敌人 melee attack 和 hit sweep 日志。只用于验证攻击路径。"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Debug", meta = (ToolTip = "是否输出敌人 melee attack 高层日志，例如攻击请求、shape summary、伤害应用或跳过原因。只用于验证攻击路径。"))
 	bool bLogEnemyMeleeAttack = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Tunic|Combat|Debug", meta = (ToolTip = "是否输出每个 enemy melee overlap candidate 的详细几何日志，包括距离、角度、高度、ASC 和属性信息。日志很吵，只在排查命中范围问题时开启。"))
+	bool bLogEnemyMeleeAttackShapeDetails = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Damage", meta = (ToolTip = "敌人 melee 命中时应用的 damage GameplayEffect class。伤害由服务器 hit window 确认后应用。"))
 	TSubclassOf<UGameplayEffect> MeleeAttackDamageEffectClass;

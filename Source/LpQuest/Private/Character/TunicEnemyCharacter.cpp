@@ -907,6 +907,11 @@ void ATunicEnemyCharacter::LogEnemyMeleeAttackShapeDebug(const TArray<FOverlapRe
 		EnemyMeleeAttackAngleDegrees,
 		EnemyMeleeAttackHalfHeight);
 
+	if (!bLogEnemyMeleeAttackShapeDetails)
+	{
+		return;
+	}
+
 	for (const FOverlapResult& OverlapResult : OverlapResults)
 	{
 		const AActor* TargetActor = OverlapResult.GetActor();

@@ -1252,4 +1252,45 @@ Validation and review:
 - Accepted follow-up: manually placed enemies do not grant XP unless they are encounter members tracked by `ATunicEncounterSpawner`. `Placed Encounter Enemies v1` is the next small Spawner / reward follow-up.
 - Remaining validation note: broader Listen Server + 2 Players reward regression was not separately claimed unless the user validates it in a later pass.
 
+## Placed Encounter Enemies v1
+
+Commit:
+
+- `0755152 [Feature] 支持手摆 Encounter 成员（Add Placed Encounter Members）`
+
+Summary:
+
+- `ATunicEncounterSpawner` now supports explicit hand-placed encounter members through `PlacedEncounterEnemies`.
+- Registered placed enemies count for current test encounter clear and grant XP through the existing `ATunicGameMode` reward path.
+- Unregistered hand-placed enemies remain whiteboard actors: they do not grant XP and do not block or advance the current Portal v1 clear flow.
+- Added `HasActiveEncounter()`, placed/total count helpers, and active placed-member snapshots while preserving the old spawned-enemy count meaning.
+- `ResetEncounterForNextFloor()` still only destroys spawned enemies; placed enemies are not auto-destroyed, revived, or reset in v1.
+- Documentation records that the current `EncounterCleared -> PortalActive` rule is a temporary test bridge. The long-term floor loop should move toward portal resource readiness, portal interaction, Boss kill, and charge pressure instead of "all registered enemies dead opens portal."
+
+Validation and review:
+
+- User confirmed focused validation passed.
+- Strict review found no blocking issue.
+- Accepted follow-up: future `Portal Event Foundation v1` should remove the registered-enemy kill gate from portal activation and make encounter membership a reward/test/Boss-minion grouping tool instead of the final floor-completion rule.
+
+## Dead Enemy Targeting / Melee Hit Bounds Fix
+
+Commit:
+
+- `b6ad196 [Fix] 修复死敌锁定和近战命中判定（Fix Dead Enemy Targeting and Melee Hit Bounds）`
+
+Summary:
+
+- Dead enemies no longer reacquire players or rotate toward targets after death. `ATunicEnemyAIController` now stops or clears targeting/focus when the controlled enemy cannot run AI.
+- Fixed the "visually inside enemy hit fan but no damage" case caused by player actor bounds including camera components.
+- Enemy melee target bounds now use character capsule bounds for character targets, and collision-only actor bounds as the fallback for non-character targets.
+- Enemy fan range and angle checks now allow target capsule radius edge overlap, so a player touching the edge of the fan can be treated consistently with the visible hit.
+- The damage path remains server-authoritative through hit window query, target filtering, `State.Invulnerable` check, hit reaction, and GameplayEffect application.
+
+Validation and review:
+
+- User confirmed the fix passed focused testing.
+- Strict review found no blocking issue.
+- Accepted limitation: red fan debug draw still shows the base fan shape, not the extra target-radius tolerance envelope used by the hit query.
+
 
