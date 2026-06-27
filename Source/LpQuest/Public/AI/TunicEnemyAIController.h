@@ -74,6 +74,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|AI")
 	FVector GetCurrentPatrolLocation() const;
 
+	UFUNCTION(BlueprintPure, Category = "Tunic|AI")
+	bool IsCurrentPatrolTargetStop() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|AI")
+	float GetCurrentPatrolStopHoldDuration() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Tunic|AI")
 	bool AdvancePatrolTarget();
 

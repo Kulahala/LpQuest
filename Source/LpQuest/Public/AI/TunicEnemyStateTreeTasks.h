@@ -85,6 +85,30 @@ private:
 	TStateTreeExternalDataHandle<AAIController> AIControllerHandle;
 };
 
+USTRUCT(BlueprintType)
+struct LPQUEST_API FTunicStateTreeGetCurrentPatrolStopTaskInstanceData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Output")
+	float HoldDuration = 0.0f;
+};
+
+USTRUCT(meta = (DisplayName = "Get Current Tunic Patrol Stop", Category = "Tunic|AI"))
+struct LPQUEST_API FTunicStateTreeGetCurrentPatrolStopTask : public FStateTreeAITaskBase
+{
+	GENERATED_BODY()
+
+	using FInstanceDataType = FTunicStateTreeGetCurrentPatrolStopTaskInstanceData;
+
+	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
+	virtual bool Link(FStateTreeLinker& Linker) override;
+	virtual EStateTreeRunStatus EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
+
+private:
+	TStateTreeExternalDataHandle<AAIController> AIControllerHandle;
+};
+
 USTRUCT()
 struct LPQUEST_API FTunicStateTreeAdvancePatrolTargetTaskInstanceData
 {
@@ -168,6 +192,21 @@ private:
 
 USTRUCT(meta = (DisplayName = "Tunic Enemy Has Patrol Route", Category = "Tunic|AI"))
 struct LPQUEST_API FTunicStateTreeEnemyHasPatrolRouteCondition : public FStateTreeConditionCommonBase
+{
+	GENERATED_BODY()
+
+	using FInstanceDataType = FTunicStateTreeEnemyConditionInstanceData;
+
+	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
+	virtual bool Link(FStateTreeLinker& Linker) override;
+	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
+
+private:
+	TStateTreeExternalDataHandle<AAIController> AIControllerHandle;
+};
+
+USTRUCT(meta = (DisplayName = "Tunic Enemy Current Patrol Target Is Stop", Category = "Tunic|AI"))
+struct LPQUEST_API FTunicStateTreeEnemyCurrentPatrolTargetIsStopCondition : public FStateTreeConditionCommonBase
 {
 	GENERATED_BODY()
 

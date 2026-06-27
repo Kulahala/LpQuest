@@ -116,6 +116,10 @@ Update `ARCHITECTURE.md` only when code changes actual architecture. Use `plan.m
 
 Keep `ARCHITECTURE.md` focused on stable ownership, flow, boundaries, and class/function responsibilities. Avoid hard-coding tunable gameplay numbers such as damage, stamina cost, cooldown duration, regen rate, sweep size, movement speed, or camera distances unless the number is itself an architectural contract. Prefer naming the owning class, GameplayEffect, DataAsset, config key, or function instead. Use `plan.md` for temporary checkpoint values and validation notes.
 
+If a StateTree, Blueprint, or other authored asset changes the stable gameplay architecture, state flow, ownership boundary, or data source of truth, update `ARCHITECTURE.md` in the same stage. Do not leave asset-only architecture changes documented only in chat or `plan.md`.
+
+When `plan.md` records a StateTree asset handoff, use enough operational detail for the next session to recreate or review the graph: parent/child state topology, enter conditions, tasks, important property bindings, transition triggers, transition conditions including `bInvert`, and required Tasks completion mode. Keep this detailed graph wiring in `plan.md`; keep `ARCHITECTURE.md` at the stable responsibility and state-flow level.
+
 Before any commit, check whether `README.md`, `ARCHITECTURE.md`, and `AGENTS.md` need updates for the completed change. Only update them when their documented scope actually changed.
 
 ## Commit & Pull Request Guidelines

@@ -30,6 +30,12 @@ public:
 	FVector GetPatrolPointLocation(int32 PointIndex) const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|AI|Patrol")
+	bool IsPatrolPointStop(int32 PointIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|AI|Patrol")
+	float GetPatrolStopHoldDuration(int32 PointIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|AI|Patrol")
 	bool IsLoopRoute() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|AI|Patrol")
@@ -49,7 +55,13 @@ protected:
 	FLinearColor DebugColor = FLinearColor::Green;
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Tunic|AI|Patrol", meta = (ClampMin = "1.0", Units = "cm"))
-	float PatrolSampleDistance = 800.0f;
+	float PatrolSampleDistance = 400.0f;
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Tunic|AI|Patrol", meta = (ClampMin = "1.0", Units = "cm"))
+	float PatrolStopSampleDistance = 3200.0f;
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Tunic|AI|Patrol", meta = (ClampMin = "0.0", Units = "s"))
+	float PatrolStopHoldDuration = 1.0f;
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Tunic|AI|Patrol", meta = (ClampMin = "0.0", Units = "cm"))
 	float NavProjectionExtentXY = 120.0f;
@@ -64,8 +76,15 @@ protected:
 	float RuntimeDebugDrawDuration = 0.0f;
 
 private:
+	struct FTunicPatrolRouteSample
+	{
+		FVector Location = FVector::ZeroVector;
+		bool bIsStop = false;
+	};
+
 	void RebuildSampledPatrolLocations();
-	void AddSampledPatrolLocation(const FVector& RawLocation);
+	void AddSampledPatrolLocation(const FVector& RawLocation, bool bIsStop);
+	int32 FindNearestSampleIndexToDistance(float DistanceAlongSpline) const;
 	FVector ProjectLocationToNavigation(const FVector& RawLocation) const;
 	void DrawRuntimeDebugRoute() const;
 
@@ -75,6 +94,5 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|AI|Patrol", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USplineComponent> PatrolSplineComponent;
 
-	UPROPERTY(Transient)
-	TArray<FVector> SampledPatrolLocations;
+	TArray<FTunicPatrolRouteSample> SampledPatrolLocations;
 };

@@ -88,6 +88,33 @@ EStateTreeRunStatus FTunicStateTreeGetEnemyHomeLocationTask::EnterState(FStateTr
 	return EStateTreeRunStatus::Succeeded;
 }
 
+bool FTunicStateTreeGetCurrentPatrolStopTask::Link(FStateTreeLinker& Linker)
+{
+	Linker.LinkExternalData(AIControllerHandle);
+	return true;
+}
+
+EStateTreeRunStatus FTunicStateTreeGetCurrentPatrolStopTask::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult&) const
+{
+	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	InstanceData.HoldDuration = 0.0f;
+
+	const ATunicEnemyAIController* EnemyAIController = Cast<ATunicEnemyAIController>(&Context.GetExternalData(AIControllerHandle));
+	if (!EnemyAIController)
+	{
+		UE_LOG(LogLpQuestEnemyStateTree, Warning, TEXT("Enemy StateTree patrol stop failed: missing AI controller"));
+		return EStateTreeRunStatus::Failed;
+	}
+
+	if (!EnemyAIController->HasPatrolRoute() || !EnemyAIController->IsCurrentPatrolTargetStop())
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	InstanceData.HoldDuration = EnemyAIController->GetCurrentPatrolStopHoldDuration();
+	return EStateTreeRunStatus::Succeeded;
+}
+
 bool FTunicStateTreeAdvancePatrolTargetTask::Link(FStateTreeLinker& Linker)
 {
 	Linker.LinkExternalData(AIControllerHandle);
@@ -165,4 +192,18 @@ bool FTunicStateTreeEnemyHasPatrolRouteCondition::TestCondition(FStateTreeExecut
 	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 	const bool bHasPatrolRoute = EnemyAIController && EnemyAIController->HasPatrolRoute();
 	return InstanceData.bInvert ? !bHasPatrolRoute : bHasPatrolRoute;
+}
+
+bool FTunicStateTreeEnemyCurrentPatrolTargetIsStopCondition::Link(FStateTreeLinker& Linker)
+{
+	Linker.LinkExternalData(AIControllerHandle);
+	return true;
+}
+
+bool FTunicStateTreeEnemyCurrentPatrolTargetIsStopCondition::TestCondition(FStateTreeExecutionContext& Context) const
+{
+	const ATunicEnemyAIController* EnemyAIController = Cast<ATunicEnemyAIController>(&Context.GetExternalData(AIControllerHandle));
+	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	const bool bIsStop = EnemyAIController && EnemyAIController->IsCurrentPatrolTargetStop();
+	return InstanceData.bInvert ? !bIsStop : bIsStop;
 }

@@ -308,6 +308,26 @@ FVector ATunicEnemyAIController::GetCurrentPatrolLocation() const
 	return HomeLocation;
 }
 
+bool ATunicEnemyAIController::IsCurrentPatrolTargetStop() const
+{
+	if (const ATunicEnemyPatrolRoute* PatrolRoute = PatrolRouteActor.Get())
+	{
+		return PatrolRoute->IsPatrolPointStop(CurrentPatrolPointIndex);
+	}
+
+	return false;
+}
+
+float ATunicEnemyAIController::GetCurrentPatrolStopHoldDuration() const
+{
+	if (const ATunicEnemyPatrolRoute* PatrolRoute = PatrolRouteActor.Get())
+	{
+		return PatrolRoute->GetPatrolStopHoldDuration(CurrentPatrolPointIndex);
+	}
+
+	return 0.0f;
+}
+
 bool ATunicEnemyAIController::AdvancePatrolTarget()
 {
 	if (!HasAuthority())
