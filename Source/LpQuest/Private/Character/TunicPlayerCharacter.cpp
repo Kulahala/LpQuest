@@ -1161,7 +1161,7 @@ void ATunicPlayerCharacter::MulticastPlayDodgeMontage_Implementation(UAnimMontag
 	{
 		if (UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance())
 		{
-			AnimInstance->Montage_Play(MontageToPlay);
+			AnimInstance->Montage_Play(MontageToPlay, FMath::Max(0.01f, DodgeMontagePlayRate));
 		}
 	}
 }

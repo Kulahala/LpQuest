@@ -199,10 +199,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Animation", meta = (ToolTip = "Dodge 表现 Montage。当前位移来自服务器 RootMotionSource 手动短冲刺，不依赖动画 Root Motion。"))
 	TObjectPtr<UAnimMontage> DodgeMontage;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Animation", meta = (ClampMin = "0.01", ToolTip = "Dodge Montage 播放速度。只影响表现，用来贴合 DodgeDistance、DodgeDuration 和无敌窗口；不决定无敌帧或位移距离。"))
+	float DodgeMontagePlayRate = 1.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "Dodge 手动短冲刺距离，单位 cm。由服务器 RootMotionSource 执行。"))
 	float DodgeDistance = 300.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0.01", Units = "s", ToolTip = "Dodge 手动位移持续时间，单位秒。越短速度越快。"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0.01", Units = "s", ToolTip = "Dodge 手动位移持续时间，单位秒。越短速度越快。推荐关系：InvulnerabilityDuration < DodgeDuration <= Montage 主体动作 <= ActionLockDuration。"))
 	float DodgeDuration = 0.32f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Movement|Dodge", meta = (ClampMin = "0", ToolTip = "Dodge RootMotionSource 优先级。用于覆盖普通移动输入，避免短冲刺被低优先级移动抵消。"))

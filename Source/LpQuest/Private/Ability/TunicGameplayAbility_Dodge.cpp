@@ -6,6 +6,7 @@
 #include "Ability/TunicDodgeInvulnerabilityGameplayEffect.h"
 #include "Character/TunicPlayerCharacter.h"
 #include "GameplayEffect.h"
+#include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLpQuestDodgeAbility, Log, All);
@@ -55,21 +56,53 @@ void UTunicGameplayAbility_Dodge::ActivateAbility(
 	{
 		if (DodgeInvulnerabilityGameplayEffectClass)
 		{
-			ApplyGameplayEffectToOwner(
+			FGameplayEffectSpecHandle InvulnerabilitySpecHandle = MakeOutgoingGameplayEffectSpec(
 				Handle,
 				ActorInfo,
 				ActivationInfo,
-				DodgeInvulnerabilityGameplayEffectClass->GetDefaultObject<UGameplayEffect>(),
+				DodgeInvulnerabilityGameplayEffectClass,
 				GetAbilityLevel(Handle, ActorInfo));
+			if (InvulnerabilitySpecHandle.IsValid())
+			{
+				InvulnerabilitySpecHandle.Data->SetDuration(FMath::Max(0.0f, DodgeInvulnerabilityDuration), true);
+				ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, InvulnerabilitySpecHandle);
+			}
 		}
 
-		UE_LOG(LogLpQuestDodgeAbility, Display, TEXT("Dodge ability activated on server | Character=%s | OwnerActor=%s | AvatarActor=%s"),
+		UE_LOG(LogLpQuestDodgeAbility, Display, TEXT("Dodge ability activated on server | Character=%s | OwnerActor=%s | AvatarActor=%s | CooldownActionLockDuration=%.3f | InvulnerabilityDuration=%.3f"),
 			*GetNameSafe(PlayerCharacter),
 			*GetNameSafe(ActorInfo ? ActorInfo->OwnerActor.Get() : nullptr),
-			*GetNameSafe(ActorInfo ? ActorInfo->AvatarActor.Get() : nullptr));
+			*GetNameSafe(ActorInfo ? ActorInfo->AvatarActor.Get() : nullptr),
+			DodgeCooldownActionLockDuration,
+			DodgeInvulnerabilityDuration);
 
 		PlayerCharacter->ExecuteDodgeAbility();
 	}
 
 	EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+}
+
+void UTunicGameplayAbility_Dodge::ApplyCooldown(
+	const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo) const
+{
+	if (!CooldownGameplayEffectClass)
+	{
+		return;
+	}
+
+	FGameplayEffectSpecHandle CooldownSpecHandle = MakeOutgoingGameplayEffectSpec(
+		Handle,
+		ActorInfo,
+		ActivationInfo,
+		CooldownGameplayEffectClass,
+		GetAbilityLevel(Handle, ActorInfo));
+	if (!CooldownSpecHandle.IsValid())
+	{
+		return;
+	}
+
+	CooldownSpecHandle.Data->SetDuration(FMath::Max(0.0f, DodgeCooldownActionLockDuration), true);
+	ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, CooldownSpecHandle);
 }
