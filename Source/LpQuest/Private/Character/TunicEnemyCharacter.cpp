@@ -10,6 +10,7 @@
 #include "AbilitySystemComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "Character/TunicPlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Combat/TunicCombatRules.h"
@@ -29,6 +30,16 @@
 #include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLpQuestEnemyGasDebug, Log, All);
+
+namespace
+{
+	bool IsTunicCombatTargetInvulnerable(const ITunicCombatTargetInterface* CombatTarget)
+	{
+		const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = CombatTarget ? CombatTarget->GetCombatTargetAbilitySystemComponent() : nullptr;
+		const FGameplayTag InvulnerableTag = FGameplayTag::RequestGameplayTag(TEXT("State.Invulnerable"), false);
+		return TargetAbilitySystemComponent && InvulnerableTag.IsValid() && TargetAbilitySystemComponent->HasMatchingGameplayTag(InvulnerableTag);
+	}
+}
 
 ATunicEnemyCharacter::ATunicEnemyCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -557,6 +568,7 @@ void ATunicEnemyCharacter::HandleEnemyMeleeTargetHit(AActor* TargetActor, ITunic
 
 	const bool bCanApplyDamage = FTunicCombatRules::CanApplyDamage(this, TargetActor, *CombatTarget);
 	const bool bCanTriggerHitReaction = FTunicCombatRules::CanTriggerHitReaction(this, TargetActor, *CombatTarget);
+	const bool bIsTargetInvulnerable = IsTunicCombatTargetInvulnerable(CombatTarget);
 	const UTunicAttributeSet* TargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
 	const float HealthBefore = TargetAttributeSet ? TargetAttributeSet->GetHealth() : 0.0f;
 
@@ -575,7 +587,7 @@ void ATunicEnemyCharacter::HandleEnemyMeleeTargetHit(AActor* TargetActor, ITunic
 
 	const UTunicAttributeSet* UpdatedTargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
 	const float HealthAfter = UpdatedTargetAttributeSet ? UpdatedTargetAttributeSet->GetHealth() : HealthBefore;
-	if (bCanTriggerHitReaction && CombatTarget->IsCombatTargetAvailable() && (!bCanApplyDamage || HealthAfter < HealthBefore) && HealthAfter > 0.0f)
+	if (!bIsTargetInvulnerable && bCanTriggerHitReaction && CombatTarget->IsCombatTargetAvailable() && (!bCanApplyDamage || HealthAfter < HealthBefore) && HealthAfter > 0.0f)
 	{
 		CombatTarget->HandleCombatTargetHitReaction(this);
 	}
@@ -602,6 +614,21 @@ void ATunicEnemyCharacter::ApplyEnemyMeleeDamage(AActor* TargetActor, ITunicComb
 			*GetNameSafe(TargetActor),
 			*GetNameSafe(TargetAbilitySystemComponent),
 			*GetNameSafe(TargetAttributeSet),
+			*GetNameSafe(MeleeAttackDamageEffectClass.Get()));
+		return;
+	}
+
+	if (const FGameplayTag InvulnerableTag = FGameplayTag::RequestGameplayTag(TEXT("State.Invulnerable"), false);
+		InvulnerableTag.IsValid() && TargetAbilitySystemComponent->HasMatchingGameplayTag(InvulnerableTag))
+	{
+		if (ATunicPlayerCharacter* TargetPlayerCharacter = Cast<ATunicPlayerCharacter>(TargetActor))
+		{
+			TargetPlayerCharacter->NotifyDodgeInvulnerabilitySuccess(this);
+		}
+
+		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee damage skipped: target invulnerable | Character=%s | Target=%s | EffectClass=%s"),
+			*GetNameSafe(this),
+			*GetNameSafe(TargetActor),
 			*GetNameSafe(MeleeAttackDamageEffectClass.Get()));
 		return;
 	}

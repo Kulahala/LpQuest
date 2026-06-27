@@ -3,7 +3,9 @@
 #include "Ability/TunicGameplayAbility_Dodge.h"
 
 #include "Ability/TunicDodgeCooldownGameplayEffect.h"
+#include "Ability/TunicDodgeInvulnerabilityGameplayEffect.h"
 #include "Character/TunicPlayerCharacter.h"
+#include "GameplayEffect.h"
 #include "GameplayTagContainer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLpQuestDodgeAbility, Log, All);
@@ -13,6 +15,7 @@ UTunicGameplayAbility_Dodge::UTunicGameplayAbility_Dodge()
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
 	CooldownGameplayEffectClass = UTunicDodgeCooldownGameplayEffect::StaticClass();
+	DodgeInvulnerabilityGameplayEffectClass = UTunicDodgeInvulnerabilityGameplayEffect::StaticClass();
 
 	FGameplayTagContainer DefaultAbilityTags;
 	if (const FGameplayTag DodgeTag = FGameplayTag::RequestGameplayTag(TEXT("Ability.Movement.Dodge"), false); DodgeTag.IsValid())
@@ -50,6 +53,16 @@ void UTunicGameplayAbility_Dodge::ActivateAbility(
 	ATunicPlayerCharacter* PlayerCharacter = ActorInfo ? Cast<ATunicPlayerCharacter>(ActorInfo->AvatarActor.Get()) : nullptr;
 	if (PlayerCharacter)
 	{
+		if (DodgeInvulnerabilityGameplayEffectClass)
+		{
+			ApplyGameplayEffectToOwner(
+				Handle,
+				ActorInfo,
+				ActivationInfo,
+				DodgeInvulnerabilityGameplayEffectClass->GetDefaultObject<UGameplayEffect>(),
+				GetAbilityLevel(Handle, ActorInfo));
+		}
+
 		UE_LOG(LogLpQuestDodgeAbility, Display, TEXT("Dodge ability activated on server | Character=%s | OwnerActor=%s | AvatarActor=%s"),
 			*GetNameSafe(PlayerCharacter),
 			*GetNameSafe(ActorInfo ? ActorInfo->OwnerActor.Get() : nullptr),

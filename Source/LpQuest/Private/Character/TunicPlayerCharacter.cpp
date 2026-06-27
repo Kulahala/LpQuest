@@ -19,6 +19,7 @@
 #include "Combat/TunicCombatTargetInterface.h"
 #include "DrawDebugHelpers.h"
 #include "EnhancedInputComponent.h"
+#include "Engine/Engine.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/HitResult.h"
 #include "Engine/World.h"
@@ -41,6 +42,13 @@ DEFINE_LOG_CATEGORY_STATIC(LogLpQuestGasDebug, Log, All);
 namespace
 {
 	const FName TunicDodgeManualMovementRootMotionSourceName(TEXT("TunicDodgeManualMovement"));
+
+	bool IsTunicCombatTargetInvulnerable(const ITunicCombatTargetInterface* CombatTarget)
+	{
+		const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = CombatTarget ? CombatTarget->GetCombatTargetAbilitySystemComponent() : nullptr;
+		const FGameplayTag InvulnerableTag = FGameplayTag::RequestGameplayTag(TEXT("State.Invulnerable"), false);
+		return TargetAbilitySystemComponent && InvulnerableTag.IsValid() && TargetAbilitySystemComponent->HasMatchingGameplayTag(InvulnerableTag);
+	}
 }
 
 ATunicPlayerCharacter::ATunicPlayerCharacter(const FObjectInitializer& ObjectInitializer)
@@ -48,8 +56,8 @@ ATunicPlayerCharacter::ATunicPlayerCharacter(const FObjectInitializer& ObjectIni
 {
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 900.0f;
-	CameraBoom->SetRelativeRotation(FRotator(-55.0f, -45.0f, 0.0f));
+	CameraBoom->TargetArmLength = 1300.0f;
+	CameraBoom->SetRelativeRotation(FRotator(-60.0f, -45.0f, 0.0f));
 	CameraBoom->bUsePawnControlRotation = false;
 	CameraBoom->bInheritPitch = false;
 	CameraBoom->bInheritYaw = false;
@@ -741,6 +749,27 @@ void ATunicPlayerCharacter::MulticastPlayHitReaction_Implementation(AActor* Inst
 	OnHitReaction(InstigatorActor);
 }
 
+void ATunicPlayerCharacter::ClientShowDodgeInvulnerabilitySuccess_Implementation(AActor* InstigatorActor)
+{
+	if (!bShowDodgeInvulnerabilityDebugMessage)
+	{
+		return;
+	}
+
+	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Dodge invulnerability success | Character=%s | Instigator=%s"),
+		*GetNameSafe(this),
+		*GetNameSafe(InstigatorActor));
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			1.2f,
+			FColor::Cyan,
+			FString::Printf(TEXT("Dodge Invulnerable! Blocked hit from %s"), *GetNameSafe(InstigatorActor)));
+	}
+}
+
 void ATunicPlayerCharacter::CheckLightAttackMontageHitWindowTriggered(int32 MontageSerial)
 {
 	if (!HasAuthority() || !LightAttackMontage || LightAttackMontageActivationSerial != MontageSerial || LightAttackMontageHitWindowSerial == MontageSerial)
@@ -933,6 +962,21 @@ void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(AActor* TargetActor, ITu
 		return;
 	}
 
+	if (const FGameplayTag InvulnerableTag = FGameplayTag::RequestGameplayTag(TEXT("State.Invulnerable"), false);
+		InvulnerableTag.IsValid() && TargetAbilitySystemComponent->HasMatchingGameplayTag(InvulnerableTag))
+	{
+		if (ATunicPlayerCharacter* TargetPlayerCharacter = Cast<ATunicPlayerCharacter>(TargetActor))
+		{
+			TargetPlayerCharacter->NotifyDodgeInvulnerabilitySuccess(this);
+		}
+
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage skipped: target invulnerable | Character=%s | Target=%s | EffectClass=%s"),
+			*GetNameSafe(this),
+			*GetNameSafe(TargetActor),
+			*GetNameSafe(LightAttackDamageEffectClass.Get()));
+		return;
+	}
+
 	const float HealthBefore = TargetAttributeSet->GetHealth();
 	const UTunicAbilitySystemComponent* SourceAbilitySystemComponent = GetTunicAbilitySystemComponent();
 	FGameplayEffectContextHandle EffectContext = SourceAbilitySystemComponent ? SourceAbilitySystemComponent->MakeEffectContext() : TargetAbilitySystemComponent->MakeEffectContext();
@@ -957,6 +1001,7 @@ void ATunicPlayerCharacter::HandleLightAttackTargetHit(AActor* TargetActor, ITun
 
 	const bool bCanApplyDamage = FTunicCombatRules::CanApplyDamage(this, TargetActor, *CombatTarget);
 	const bool bCanTriggerHitReaction = FTunicCombatRules::CanTriggerHitReaction(this, TargetActor, *CombatTarget);
+	const bool bIsTargetInvulnerable = IsTunicCombatTargetInvulnerable(CombatTarget);
 	const UTunicAttributeSet* TargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
 	const float HealthBefore = TargetAttributeSet ? TargetAttributeSet->GetHealth() : 0.0f;
 
@@ -975,7 +1020,7 @@ void ATunicPlayerCharacter::HandleLightAttackTargetHit(AActor* TargetActor, ITun
 
 	const UTunicAttributeSet* UpdatedTargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
 	const float HealthAfter = UpdatedTargetAttributeSet ? UpdatedTargetAttributeSet->GetHealth() : HealthBefore;
-	if (bCanTriggerHitReaction && CombatTarget->IsCombatTargetAvailable() && (!bCanApplyDamage || HealthAfter < HealthBefore) && HealthAfter > 0.0f)
+	if (!bIsTargetInvulnerable && bCanTriggerHitReaction && CombatTarget->IsCombatTargetAvailable() && (!bCanApplyDamage || HealthAfter < HealthBefore) && HealthAfter > 0.0f)
 	{
 		CombatTarget->HandleCombatTargetHitReaction(this);
 	}
@@ -1056,6 +1101,16 @@ void ATunicPlayerCharacter::ExecuteDodgeAbility()
 	}
 
 	HandleDodgeRequest();
+}
+
+void ATunicPlayerCharacter::NotifyDodgeInvulnerabilitySuccess(AActor* InstigatorActor)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	ClientShowDodgeInvulnerabilitySuccess(InstigatorActor);
 }
 
 bool ATunicPlayerCharacter::TryActivateDodgeAbility()

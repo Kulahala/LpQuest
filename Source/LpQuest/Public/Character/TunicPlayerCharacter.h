@@ -55,6 +55,7 @@ public:
 
 	void ExecuteLightAttackAbility();
 	void ExecuteDodgeAbility();
+	void NotifyDodgeInvulnerabilitySuccess(AActor* InstigatorActor);
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Combat", meta = (ToolTip = "玩家当前是否死亡。死亡后不能攻击或 dodge。"))
 	bool IsDead() const;
@@ -131,6 +132,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug", meta = (ToolTip = "是否输出 Dodge 请求和服务器确认日志。只用于验证输入/RPC/Ability 路径。"))
 	bool bLogDodgeRequests = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug", meta = (ToolTip = "Dodge 无敌帧成功挡掉一次伤害时，是否在 owning client 屏幕上显示验证提示。只用于开发调试。"))
+	bool bShowDodgeInvulnerabilityDebugMessage = true;
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug", meta = (ToolTip = "运行时开关 Dodge 请求日志。只影响日志，不影响冷却或位移。"))
 	void SetDodgeRequestLoggingEnabled(bool bEnabled);
@@ -266,6 +270,9 @@ private:
 
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastPlayHitReaction(AActor* InstigatorActor);
+
+	UFUNCTION(Client, Unreliable)
+	void ClientShowDodgeInvulnerabilitySuccess(AActor* InstigatorActor);
 
 	UFUNCTION()
 	void OnRep_IsDead();
