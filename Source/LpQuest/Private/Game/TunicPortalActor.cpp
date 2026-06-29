@@ -2,6 +2,7 @@
 
 #include "Game/TunicPortalActor.h"
 
+#include "Character/TunicEnemyCharacter.h"
 #include "Character/TunicPlayerCharacter.h"
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
@@ -118,6 +119,7 @@ void ATunicPortalActor::ResetPortalForNextFloorStub()
 	SetPortalActive(false);
 	SetActivationProgress(0.0f);
 	SetPortalPlayerCounts(0, 0);
+	CleanupPortalBoss();
 
 	++PortalResetSerial;
 	if (bLogPortalState)
@@ -188,12 +190,19 @@ void ATunicPortalActor::TryActivatePortalFromRunState()
 	}
 
 	SetPortalActive(true);
+	SpawnPortalBossIfNeeded();
 }
 
 void ATunicPortalActor::EvaluatePortalCharge(float DeltaSeconds)
 {
 	const ATunicGameState* TunicGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
 	if (!TunicGameState || !TunicGameState->IsPortalEventActive())
+	{
+		SetPortalCharging(false);
+		return;
+	}
+
+	if (!IsPortalBossDefeated())
 	{
 		SetPortalCharging(false);
 		return;
@@ -234,6 +243,85 @@ void ATunicPortalActor::CompletePortal()
 	{
 		TunicGameMode->MarkFloorTransitionReady();
 	}
+}
+
+void ATunicPortalActor::SpawnPortalBossIfNeeded()
+{
+	if (!HasAuthority() || SpawnedPortalBossEnemy.IsValid())
+	{
+		return;
+	}
+
+	if (!PortalBossEnemyClass)
+	{
+		if (bLogPortalState)
+		{
+			UE_LOG(LogLpQuestPortal, Display, TEXT("Portal boss spawn skipped: no boss class configured | Portal=%s"),
+				*GetNameSafe(this));
+		}
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		bPortalBossSpawnFailed = true;
+		return;
+	}
+
+	const FTransform SpawnTransform = PortalBossSpawnPoint ? PortalBossSpawnPoint->GetActorTransform() : GetActorTransform();
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = this;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	ATunicEnemyCharacter* SpawnedBoss = World->SpawnActor<ATunicEnemyCharacter>(PortalBossEnemyClass, SpawnTransform, SpawnParameters);
+	SpawnedPortalBossEnemy = SpawnedBoss;
+	bPortalBossSpawnFailed = !SpawnedBoss;
+
+	if (bLogPortalState)
+	{
+		if (SpawnedBoss)
+		{
+			UE_LOG(LogLpQuestPortal, Display, TEXT("Portal boss spawned | Portal=%s | Boss=%s | BossClass=%s"),
+				*GetNameSafe(this),
+				*GetNameSafe(SpawnedBoss),
+				*GetNameSafe(PortalBossEnemyClass.Get()));
+		}
+		else
+		{
+			UE_LOG(LogLpQuestPortal, Warning, TEXT("Portal boss spawn failed | Portal=%s | BossClass=%s"),
+				*GetNameSafe(this),
+				*GetNameSafe(PortalBossEnemyClass.Get()));
+		}
+	}
+}
+
+bool ATunicPortalActor::IsPortalBossDefeated() const
+{
+	if (!PortalBossEnemyClass)
+	{
+		return true;
+	}
+
+	if (bPortalBossSpawnFailed)
+	{
+		return false;
+	}
+
+	const ATunicEnemyCharacter* SpawnedBoss = SpawnedPortalBossEnemy.Get();
+	return !SpawnedBoss || SpawnedBoss->IsDead();
+}
+
+void ATunicPortalActor::CleanupPortalBoss()
+{
+	if (ATunicEnemyCharacter* SpawnedBoss = SpawnedPortalBossEnemy.Get())
+	{
+		SpawnedBoss->Destroy();
+	}
+
+	SpawnedPortalBossEnemy.Reset();
+	bPortalBossSpawnFailed = false;
 }
 
 bool ATunicPortalActor::CountLivingPlayersInRange(int32& OutRequiredLivingPlayerCount, int32& OutPresentLivingPlayerCount) const

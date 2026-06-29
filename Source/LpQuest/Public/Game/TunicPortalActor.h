@@ -7,6 +7,7 @@
 #include "Interaction/TunicInteractableInterface.h"
 #include "TunicPortalActor.generated.h"
 
+class ATunicEnemyCharacter;
 class ATunicPlayerCharacter;
 class FLifetimeProperty;
 class USceneComponent;
@@ -66,6 +67,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal", meta = (ClampMin = "0.0", Units = "s", ToolTip = "满足人数后充满 Portal 所需时间，单位秒。0 表示满足条件后立即 ready。"))
 	float ChargeDuration = 5.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal|Boss", meta = (ToolTip = "Portal Event 启动后由服务器生成的测试 Boss 敌人类。v1 仍使用 ATunicEnemyCharacter 子 Blueprint，不需要 Boss C++ 类；未配置时保持直接充能。"))
+	TSubclassOf<ATunicEnemyCharacter> PortalBossEnemyClass;
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Tunic|Portal|Boss", meta = (ToolTip = "测试 Boss 出生点。未配置时使用 Portal 自身 Transform。"))
+	TObjectPtr<AActor> PortalBossSpawnPoint;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug", meta = (ToolTip = "是否输出 Portal 激活、人数、充能、ready 和 reset 日志。只用于验证，不影响玩法。"))
 	bool bLogPortalState = true;
 
@@ -88,6 +95,9 @@ private:
 	void TryActivatePortalFromRunState();
 	void EvaluatePortalCharge(float DeltaSeconds);
 	void CompletePortal();
+	void SpawnPortalBossIfNeeded();
+	bool IsPortalBossDefeated() const;
+	void CleanupPortalBoss();
 	bool CountLivingPlayersInRange(int32& OutRequiredLivingPlayerCount, int32& OutPresentLivingPlayerCount) const;
 	void UpdatePortalRadiusPreview();
 	void SetPortalActive(bool bNewIsPortalActive);
@@ -131,4 +141,7 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_PortalResetSerial)
 	int32 PortalResetSerial = 0;
+
+	TWeakObjectPtr<ATunicEnemyCharacter> SpawnedPortalBossEnemy;
+	bool bPortalBossSpawnFailed = false;
 };

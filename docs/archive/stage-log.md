@@ -1297,7 +1297,7 @@ Validation and review:
 
 Commit:
 
-- Pending at archive time.
+- `b8789e7 [Feature] 增加交互式传送门事件（Add Interactive Portal Event）`
 
 Summary:
 
@@ -1317,5 +1317,26 @@ Validation and review:
 - Accepted limitation: v1 uses a world scan for interactable target selection. Switch to overlap registration or an interaction component when pickup/interactable density grows.
 - Accepted limitation: `PortalEventActive` is global run state and assumes one active test portal. Add per-portal event ownership only when multiple portals can coexist.
 - Accepted limitation: no final in-world prompt or screen message yet. HUD RunState and logs are enough for this stage.
+
+## Boss Spawn On Portal v1
+
+Commit:
+
+- `c12eaa1 [Feature] 增加 Portal 测试 Boss 生成（Add Portal Test Boss Spawn）`
+
+Summary:
+
+- `ATunicPortalActor` can optionally spawn one configured existing `ATunicEnemyCharacter` subclass Blueprint as a test Boss when the Portal Event becomes active.
+- The Portal exposes `PortalBossEnemyClass` and optional `PortalBossSpawnPoint` for authored test setup.
+- If no Boss class is configured, the Portal keeps the previous direct-charge behavior.
+- If a Boss class is configured, portal charging is blocked until the spawned Boss is dead, destroyed, or otherwise gone.
+- Floor stub reset destroys any remaining Portal-spawned Boss and clears the Portal-owned weak reference.
+- The Boss is not registered into `ATunicEncounterSpawner` and does not receive special XP, drops, UI, phase logic, or a dedicated Boss C++ class in this v1 stage.
+
+Validation and review:
+
+- User confirmed focused testing passed.
+- Strict review found no blocking issue. Spawn is server-only, duplicate spawn is guarded, reset cleanup is explicit, and configured spawn failure blocks charging instead of silently skipping the Boss gate.
+- `tunicplan.md` records deferred Boss C++ class, Elite class, Boss DataAsset, Boss UI, Boss phase, and Boss reward work as later adoption points rather than current scope.
 
 
