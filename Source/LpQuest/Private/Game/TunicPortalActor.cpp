@@ -56,6 +56,7 @@ void ATunicPortalActor::Tick(float DeltaSeconds)
 	if (bIsPortalActive)
 	{
 		EvaluatePortalCharge(DeltaSeconds);
+		TickPortalPressureSpawns(DeltaSeconds);
 	}
 }
 
@@ -107,6 +108,40 @@ float ATunicPortalActor::GetInteractionRadius() const
 	return InteractionRadius;
 }
 
+int32 ATunicPortalActor::ConsumePortalPressureExperienceReward(ATunicEnemyCharacter* DeadEnemy)
+{
+	if (!HasAuthority() || !DeadEnemy || !OwnsPortalPressureEnemy(DeadEnemy) || HasPortalPressureEnemyBeenRewarded(DeadEnemy))
+	{
+		return 0;
+	}
+
+	RewardedPortalPressureEnemies.Add(DeadEnemy);
+	if (RemainingPortalPressureExperienceBudget <= 0)
+	{
+		if (bLogPortalState)
+		{
+			UE_LOG(LogLpQuestPortal, Display, TEXT("Portal pressure XP skipped: budget exhausted | Portal=%s | Enemy=%s"),
+				*GetNameSafe(this),
+				*GetNameSafe(DeadEnemy));
+		}
+		return 0;
+	}
+
+	const int32 RewardAmount = FMath::Min(DeadEnemy->GetExperienceReward(), RemainingPortalPressureExperienceBudget);
+	RemainingPortalPressureExperienceBudget -= RewardAmount;
+
+	if (bLogPortalState)
+	{
+		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal pressure XP consumed | Portal=%s | Enemy=%s | Amount=%d | RemainingBudget=%d"),
+			*GetNameSafe(this),
+			*GetNameSafe(DeadEnemy),
+			RewardAmount,
+			RemainingPortalPressureExperienceBudget);
+	}
+
+	return RewardAmount;
+}
+
 void ATunicPortalActor::ResetPortalForNextFloorStub()
 {
 	if (!HasAuthority())
@@ -120,6 +155,8 @@ void ATunicPortalActor::ResetPortalForNextFloorStub()
 	SetActivationProgress(0.0f);
 	SetPortalPlayerCounts(0, 0);
 	CleanupPortalBoss();
+	CleanupPortalPressureEnemies();
+	ResetPortalPressureState();
 
 	++PortalResetSerial;
 	if (bLogPortalState)
@@ -190,6 +227,7 @@ void ATunicPortalActor::TryActivatePortalFromRunState()
 	}
 
 	SetPortalActive(true);
+	ResetPortalPressureState();
 	SpawnPortalBossIfNeeded();
 }
 
@@ -238,6 +276,7 @@ void ATunicPortalActor::CompletePortal()
 	SetActivationProgress(1.0f);
 	SetPortalCharging(false);
 	SetPortalReady(true);
+	CleanupPortalPressureEnemies();
 
 	if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
 	{
@@ -322,6 +361,168 @@ void ATunicPortalActor::CleanupPortalBoss()
 
 	SpawnedPortalBossEnemy.Reset();
 	bPortalBossSpawnFailed = false;
+}
+
+void ATunicPortalActor::ResetPortalPressureState()
+{
+	SpawnedPortalPressureEnemies.Reset();
+	RewardedPortalPressureEnemies.Reset();
+	PortalPressureSpawnTimer = FMath::Max(0.1f, PortalPressureSpawnInterval);
+	PortalPressureSpawnPointIndex = 0;
+	RemainingPortalPressureExperienceBudget = FMath::Max(0, PortalPressureExperienceBudget);
+}
+
+void ATunicPortalActor::TickPortalPressureSpawns(float DeltaSeconds)
+{
+	if (!ShouldSpawnPortalPressure())
+	{
+		return;
+	}
+
+	PortalPressureSpawnTimer -= DeltaSeconds;
+	if (PortalPressureSpawnTimer > 0.0f)
+	{
+		return;
+	}
+
+	SpawnPortalPressureEnemy();
+	PortalPressureSpawnTimer = FMath::Max(0.1f, PortalPressureSpawnInterval);
+}
+
+bool ATunicPortalActor::ShouldSpawnPortalPressure() const
+{
+	const ATunicGameState* TunicGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
+	return HasAuthority()
+		&& bIsPortalActive
+		&& !bIsPortalReady
+		&& TunicGameState
+		&& TunicGameState->IsPortalEventActive()
+		&& IsPortalBossDefeated()
+		&& PortalPressureEnemyClass
+		&& MaxAlivePortalPressureEnemies > 0
+		&& GetAlivePortalPressureEnemyCount() < MaxAlivePortalPressureEnemies;
+}
+
+void ATunicPortalActor::SpawnPortalPressureEnemy()
+{
+	UWorld* World = GetWorld();
+	if (!World || !PortalPressureEnemyClass)
+	{
+		return;
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = this;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	ATunicEnemyCharacter* SpawnedEnemy = World->SpawnActor<ATunicEnemyCharacter>(PortalPressureEnemyClass, GetNextPortalPressureSpawnTransform(), SpawnParameters);
+	if (!SpawnedEnemy)
+	{
+		if (bLogPortalState)
+		{
+			UE_LOG(LogLpQuestPortal, Warning, TEXT("Portal pressure spawn failed | Portal=%s | EnemyClass=%s"),
+				*GetNameSafe(this),
+				*GetNameSafe(PortalPressureEnemyClass.Get()));
+		}
+		return;
+	}
+
+	SpawnedPortalPressureEnemies.Add(SpawnedEnemy);
+	if (bLogPortalState)
+	{
+		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal pressure enemy spawned | Portal=%s | Enemy=%s | Alive=%d/%d | RemainingXPBudget=%d"),
+			*GetNameSafe(this),
+			*GetNameSafe(SpawnedEnemy),
+			GetAlivePortalPressureEnemyCount(),
+			MaxAlivePortalPressureEnemies,
+			RemainingPortalPressureExperienceBudget);
+	}
+}
+
+FTransform ATunicPortalActor::GetNextPortalPressureSpawnTransform()
+{
+	const int32 SpawnPointCount = PortalPressureSpawnPoints.Num();
+	if (SpawnPointCount > 0)
+	{
+		for (int32 AttemptIndex = 0; AttemptIndex < SpawnPointCount; ++AttemptIndex)
+		{
+			const int32 SpawnPointIndex = (PortalPressureSpawnPointIndex + AttemptIndex) % SpawnPointCount;
+			if (AActor* SpawnPoint = PortalPressureSpawnPoints[SpawnPointIndex])
+			{
+				PortalPressureSpawnPointIndex = (SpawnPointIndex + 1) % SpawnPointCount;
+				return SpawnPoint->GetActorTransform();
+			}
+		}
+	}
+
+	if (bLogPortalState)
+	{
+		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal pressure spawn using portal transform fallback | Portal=%s"),
+			*GetNameSafe(this));
+	}
+	return GetActorTransform();
+}
+
+int32 ATunicPortalActor::GetAlivePortalPressureEnemyCount() const
+{
+	int32 AliveCount = 0;
+	for (const TWeakObjectPtr<ATunicEnemyCharacter>& PressureEnemy : SpawnedPortalPressureEnemies)
+	{
+		const ATunicEnemyCharacter* EnemyCharacter = PressureEnemy.Get();
+		if (EnemyCharacter && !EnemyCharacter->IsDead())
+		{
+			++AliveCount;
+		}
+	}
+	return AliveCount;
+}
+
+bool ATunicPortalActor::OwnsPortalPressureEnemy(const ATunicEnemyCharacter* EnemyCharacter) const
+{
+	if (!EnemyCharacter)
+	{
+		return false;
+	}
+
+	for (const TWeakObjectPtr<ATunicEnemyCharacter>& PressureEnemy : SpawnedPortalPressureEnemies)
+	{
+		if (PressureEnemy.Get() == EnemyCharacter)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool ATunicPortalActor::HasPortalPressureEnemyBeenRewarded(const ATunicEnemyCharacter* EnemyCharacter) const
+{
+	if (!EnemyCharacter)
+	{
+		return false;
+	}
+
+	for (const TWeakObjectPtr<ATunicEnemyCharacter>& RewardedEnemy : RewardedPortalPressureEnemies)
+	{
+		if (RewardedEnemy.Get() == EnemyCharacter)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void ATunicPortalActor::CleanupPortalPressureEnemies()
+{
+	for (const TWeakObjectPtr<ATunicEnemyCharacter>& PressureEnemy : SpawnedPortalPressureEnemies)
+	{
+		if (ATunicEnemyCharacter* EnemyCharacter = PressureEnemy.Get())
+		{
+			EnemyCharacter->Destroy();
+		}
+	}
+
+	SpawnedPortalPressureEnemies.Reset();
+	RewardedPortalPressureEnemies.Reset();
 }
 
 bool ATunicPortalActor::CountLivingPlayersInRange(int32& OutRequiredLivingPlayerCount, int32& OutPresentLivingPlayerCount) const

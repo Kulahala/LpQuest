@@ -47,6 +47,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|Portal", meta = (ToolTip = "Portal 交互半径，单位 cm。玩家在范围内按统一交互键 E，服务器验证后可启动 Portal Event。"))
 	float GetInteractionRadius() const;
 
+	int32 ConsumePortalPressureExperienceReward(ATunicEnemyCharacter* DeadEnemy);
 	void ResetPortalForNextFloorStub();
 	virtual bool CanInteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer) override;
 	virtual void InteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer) override;
@@ -73,6 +74,21 @@ protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Tunic|Portal|Boss", meta = (ToolTip = "测试 Boss 出生点。未配置时使用 Portal 自身 Transform。"))
 	TObjectPtr<AActor> PortalBossSpawnPoint;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal|Pressure", meta = (ToolTip = "Portal 充能压力刷怪使用的普通敌人类。Boss 死亡且 Portal Event 仍激活时，服务器按间隔生成；未配置则不刷压力怪。"))
+	TSubclassOf<ATunicEnemyCharacter> PortalPressureEnemyClass;
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Tunic|Portal|Pressure", meta = (ToolTip = "Portal 压力怪出生点列表。为空或引用无效时 fallback 到 Portal 自身 Transform。"))
+	TArray<TObjectPtr<AActor>> PortalPressureSpawnPoints;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal|Pressure", meta = (ClampMin = "0.1", Units = "s", ToolTip = "Portal 充能阶段压力怪生成间隔，单位秒。玩家离开充能圈只暂停充能，不暂停压力刷怪。"))
+	float PortalPressureSpawnInterval = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal|Pressure", meta = (ClampMin = "0", ToolTip = "同一 Portal Event 中最多同时存活的压力怪数量。0 表示不生成压力怪。"))
+	int32 MaxAlivePortalPressureEnemies = 4;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal|Pressure", meta = (ClampMin = "0", ToolTip = "同一 Portal Event 中压力怪最多可授予的共享 XP 总预算。0 表示压力怪不给 XP。"))
+	int32 PortalPressureExperienceBudget = 100;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug", meta = (ToolTip = "是否输出 Portal 激活、人数、充能、ready 和 reset 日志。只用于验证，不影响玩法。"))
 	bool bLogPortalState = true;
 
@@ -98,6 +114,15 @@ private:
 	void SpawnPortalBossIfNeeded();
 	bool IsPortalBossDefeated() const;
 	void CleanupPortalBoss();
+	void ResetPortalPressureState();
+	void TickPortalPressureSpawns(float DeltaSeconds);
+	bool ShouldSpawnPortalPressure() const;
+	void SpawnPortalPressureEnemy();
+	FTransform GetNextPortalPressureSpawnTransform();
+	int32 GetAlivePortalPressureEnemyCount() const;
+	bool OwnsPortalPressureEnemy(const ATunicEnemyCharacter* EnemyCharacter) const;
+	bool HasPortalPressureEnemyBeenRewarded(const ATunicEnemyCharacter* EnemyCharacter) const;
+	void CleanupPortalPressureEnemies();
 	bool CountLivingPlayersInRange(int32& OutRequiredLivingPlayerCount, int32& OutPresentLivingPlayerCount) const;
 	void UpdatePortalRadiusPreview();
 	void SetPortalActive(bool bNewIsPortalActive);
@@ -144,4 +169,9 @@ private:
 
 	TWeakObjectPtr<ATunicEnemyCharacter> SpawnedPortalBossEnemy;
 	bool bPortalBossSpawnFailed = false;
+	TArray<TWeakObjectPtr<ATunicEnemyCharacter>> SpawnedPortalPressureEnemies;
+	TArray<TWeakObjectPtr<ATunicEnemyCharacter>> RewardedPortalPressureEnemies;
+	float PortalPressureSpawnTimer = 0.0f;
+	int32 PortalPressureSpawnPointIndex = 0;
+	int32 RemainingPortalPressureExperienceBudget = 0;
 };

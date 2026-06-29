@@ -1339,4 +1339,26 @@ Validation and review:
 - Strict review found no blocking issue. Spawn is server-only, duplicate spawn is guarded, reset cleanup is explicit, and configured spawn failure blocks charging instead of silently skipping the Boss gate.
 - `tunicplan.md` records deferred Boss C++ class, Elite class, Boss DataAsset, Boss UI, Boss phase, and Boss reward work as later adoption points rather than current scope.
 
+## Portal Charge Pressure v1
+
+Commit:
+
+- pending user-approved commit
+
+Summary:
+
+- Added Portal-owned pressure spawning after the Portal Boss gate opens. The Portal now spawns ordinary pressure enemies during the charging phase instead of handing that job to `ATunicEncounterSpawner`.
+- Pressure spawning uses the Portal's authored pressure enemy class, optional spawn-point list, spawn interval, max alive cap, and per-event XP budget.
+- Leaving the charge radius pauses charging only; pressure spawning continues until the alive cap is reached or the Portal becomes ready.
+- Portal ready and floor reset clean up remaining Portal-owned pressure enemies.
+- `ATunicGameMode::HandleEnemyDeath()` still awards encounter XP first. Non-encounter enemies can now receive shared XP only if the active Portal owns them as pressure enemies and still has budget.
+- The Portal pressure loop is intentionally small and Portal-local. It does not add a generic Director, DataAsset, or encounter membership reuse in v1.
+
+Validation and review:
+
+- User confirmed focused testing passed.
+- User confirmed the Portal-spawned Boss still gives no XP; this is an accepted v1 limitation and should be handled by a separate Boss reward stage if needed.
+- Strict review found no blocking issue. Pressure spawn is authority-only, waits for the Boss gate, respects the alive cap, does not enter encounter membership, and is cleaned on ready/reset.
+- `Boss Reward v1` remains a separate future follow-up if Boss deaths should start granting XP/drop/reward.
+
 

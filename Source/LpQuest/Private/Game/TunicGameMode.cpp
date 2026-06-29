@@ -137,9 +137,34 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 
 	ATunicEncounterSpawner* EncounterSpawner = FindEncounterSpawner();
 	const bool bIsEncounterEnemy = EncounterSpawner && EncounterSpawner->IsEncounterEnemy(DeadEnemy);
+	int32 ExperienceReward = 0;
+	const TCHAR* RewardSource = TEXT("none");
 	if (bIsEncounterEnemy)
 	{
-		const int32 ExperienceReward = DeadEnemy->GetExperienceReward();
+		ExperienceReward = DeadEnemy->GetExperienceReward();
+		RewardSource = TEXT("encounter");
+	}
+	else
+	{
+		for (TActorIterator<ATunicPortalActor> PortalIt(GetWorld()); PortalIt; ++PortalIt)
+		{
+			ATunicPortalActor* PortalActor = *PortalIt;
+			if (!PortalActor || !PortalActor->IsPortalActive())
+			{
+				continue;
+			}
+
+			ExperienceReward = PortalActor->ConsumePortalPressureExperienceReward(DeadEnemy);
+			if (ExperienceReward > 0)
+			{
+				RewardSource = TEXT("portal pressure");
+				break;
+			}
+		}
+	}
+
+	if (ExperienceReward > 0)
+	{
 		const int32 OldSharedRunLevel = TunicGameState->GetSharedRunLevel();
 		TunicGameState->AddSharedRunExperience(ExperienceReward, DeadEnemy);
 		const int32 NewSharedRunLevel = TunicGameState->GetSharedRunLevel();
@@ -148,14 +173,15 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 			GrantPendingRunUpgradeChoices(NewSharedRunLevel - OldSharedRunLevel);
 		}
 
-		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP awarded | Enemy=%s | Amount=%d | TotalSharedXP=%d"),
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP awarded | Enemy=%s | Amount=%d | Source=%s | TotalSharedXP=%d"),
 			*GetNameSafe(DeadEnemy),
 			ExperienceReward,
+			RewardSource,
 			TunicGameState->GetSharedRunExperience());
 	}
-	else
+	else if (!bIsEncounterEnemy)
 	{
-		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP skipped: enemy is not part of active encounter | Enemy=%s"),
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP skipped: enemy is not part of active encounter or funded portal pressure | Enemy=%s"),
 			*GetNameSafe(DeadEnemy));
 	}
 
