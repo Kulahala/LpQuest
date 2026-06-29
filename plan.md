@@ -21,6 +21,7 @@ Current working state:
 
 Most recent commits:
 
+- Pending commit: `Pickup / Equipment Interaction v1` has been validated, strictly reviewed, and archived.
 - `7fed449 [Refactor] 清理敌人旧近战扫掠字段（Clean Enemy Legacy Sweep Fields）`
 - `11c435e [Refactor] 删除敌人原型自动攻击（Remove Enemy Prototype AutoAttack）`
 - `1f42212 [Refactor] 清理旧 RunState 和升级 Stub（Clean RunState and Upgrade Stub）`
@@ -29,14 +30,16 @@ Most recent commits:
 
 Current stage:
 
-- No active implementation stage. `Combat Hit Window Cleanup v1` is complete, validated, strictly reviewed, archived, and ready for commit sync.
+- No active implementation stage after `Pickup / Equipment Interaction v1`.
+- The pickup stage outcome has been recorded in `docs/archive/stage-log.md` and is ready for the approved commit.
+- Next likely stage: `Enemy Drop Source v1`, using the new pickup path as the world-item consumption endpoint.
 
 Near-term TODOs:
 
 - `Enemy Drop Source v1`: after `Pickup / Equipment Interaction v1` exists, add one server-authoritative enemy drop routing path instead of special-casing Boss / pressure / encounter drops separately.
 - `Enemy Variant Profile Cleanup v2` after current Portal work: when Guard / Wild / Spawn / Elite only differ by tuning, fold them toward one enemy class plus profile DataAssets instead of keeping separate Blueprints for each variant.
 - `Safe Travel Portal v1`: later, when safe zones / shop areas / hub return need pure interaction travel, add a separate lightweight interactable travel portal instead of subclassing the combat Portal Event actor or disabling most of its Boss/charging/pressure behavior.
-- `Pickup / Equipment Interaction v1`: reuse `ITunicInteractableInterface` and `IA_Interact=E` for weapon or item pickup after the equipment path is ready.
+- `Equipment DataAsset / Inventory Slots v2`: add only when multiple weapons, item stats, icons, descriptions, ability grants, or switching between several carried items become real scope.
 
 Current accepted risks:
 

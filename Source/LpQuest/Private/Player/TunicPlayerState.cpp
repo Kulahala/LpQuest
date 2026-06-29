@@ -21,6 +21,7 @@ void ATunicPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ATunicPlayerState, PendingRunUpgradeChoices);
+	DOREPLIFETIME(ATunicPlayerState, CurrentEquipmentId);
 }
 
 UAbilitySystemComponent* ATunicPlayerState::GetAbilitySystemComponent() const
@@ -41,6 +42,11 @@ UTunicAttributeSet* ATunicPlayerState::GetAttributeSet() const
 int32 ATunicPlayerState::GetPendingRunUpgradeChoices() const
 {
 	return PendingRunUpgradeChoices;
+}
+
+FName ATunicPlayerState::GetCurrentEquipmentId() const
+{
+	return CurrentEquipmentId;
 }
 
 void ATunicPlayerState::AddPendingRunUpgradeChoices(int32 Amount)
@@ -71,6 +77,24 @@ bool ATunicPlayerState::TryConsumePendingRunUpgradeChoice()
 	return true;
 }
 
+bool ATunicPlayerState::SetCurrentEquipmentId(FName NewEquipmentId)
+{
+	if (!HasAuthority() || NewEquipmentId.IsNone())
+	{
+		return false;
+	}
+
+	if (CurrentEquipmentId == NewEquipmentId)
+	{
+		return true;
+	}
+
+	CurrentEquipmentId = NewEquipmentId;
+	OnCurrentEquipmentChangedEvent.Broadcast(CurrentEquipmentId);
+	OnCurrentEquipmentChanged(CurrentEquipmentId);
+	return true;
+}
+
 void ATunicPlayerState::OnPendingRunUpgradeChoicesChanged_Implementation(int32)
 {
 }
@@ -79,10 +103,20 @@ void ATunicPlayerState::OnRunUpgradeChoiceConsumed_Implementation()
 {
 }
 
+void ATunicPlayerState::OnCurrentEquipmentChanged_Implementation(FName)
+{
+}
+
 void ATunicPlayerState::OnRep_PendingRunUpgradeChoices()
 {
 	OnPendingRunUpgradeChoicesChangedEvent.Broadcast(PendingRunUpgradeChoices);
 	OnPendingRunUpgradeChoicesChanged(PendingRunUpgradeChoices);
+}
+
+void ATunicPlayerState::OnRep_CurrentEquipmentId()
+{
+	OnCurrentEquipmentChangedEvent.Broadcast(CurrentEquipmentId);
+	OnCurrentEquipmentChanged(CurrentEquipmentId);
 }
 
 

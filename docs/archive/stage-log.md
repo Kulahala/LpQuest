@@ -1462,4 +1462,24 @@ Validation and review:
 - User confirmed enemy attacks with configured Montage + hit-window Notify still damage, while missing enemy Montage / Notify does not damage and logs warning.
 - Strict review found no blocking issue. The cleanup intentionally removes fake-success fallback behavior so missing authored setup is surfaced immediately.
 
+## Pickup / Equipment Interaction v1
+
+Summary:
+
+- Added `ATunicPickupActor` as the first minimal world pickup actor.
+- Pickup actors implement `ITunicInteractableInterface` and reuse the existing unified `E` interaction path through `ATunicPlayerCharacter::ServerRequestInteract()`.
+- Successful server-confirmed pickup writes the authored `PickupId` into the interacting player's replicated `ATunicPlayerState::CurrentEquipmentId`, then consumes the world pickup.
+- `ATunicPlayerState` now replicates `CurrentEquipmentId` and exposes Blueprint-facing change events / hooks for presentation.
+- `PickupId=None` rejects interaction with a warning instead of pretending the pickup succeeded.
+- The stage intentionally does not add inventory, equipment slots, weapon switching, Equipment DataAssets, ability grants, attribute changes, enemy drops, or attack-data changes.
+- Added / moved test pickup-related Blueprint assets under `Content/_Game/Item` for current PIE validation.
+
+Validation and review:
+
+- User confirmed compile and PIE validation passed.
+- During validation, fixed a UHT-generated `C4458` compile error by renaming the `OnCurrentEquipmentChanged` BlueprintNativeEvent parameter so it no longer shadows the `CurrentEquipmentId` member.
+- Strict review found no blocking issue. Clients only request interaction; equipment state is written on server authority to PlayerState; consumed pickup destruction replicates; invalid config fails visibly.
+- Accepted follow-up: `Equipment DataAsset / Inventory Slots v2` must decide duplicate-pickup behavior, because v1 consumes a pickup even when it sets the same `CurrentEquipmentId` again.
+- Accepted follow-up: if local interact prompts are added, they need a read-only presentation query instead of treating the current authority-only `CanInteractWithTunicPlayer()` as client UI truth.
+
 

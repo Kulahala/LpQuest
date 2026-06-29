@@ -14,6 +14,7 @@ class FLifetimeProperty;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicPendingRunUpgradeChoicesChangedSignature, int32, PendingChoices);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FTunicRunUpgradeChoiceConsumedSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicCurrentEquipmentChangedSignature, FName, CurrentEquipmentId);
 
 UCLASS(Blueprintable)
 class LPQUEST_API ATunicPlayerState : public APlayerState, public IAbilitySystemInterface
@@ -35,14 +36,21 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "返回该玩家待选择的 run upgrade 次数。每个玩家独立拥有 pending，不是共享池。"))
 	int32 GetPendingRunUpgradeChoices() const;
 
+	UFUNCTION(BlueprintPure, Category = "Tunic|Equipment", meta = (ToolTip = "返回当前拾取/装备标记。v1 只保存一个 FName，不代表完整库存系统。"))
+	FName GetCurrentEquipmentId() const;
+
 	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
 	FTunicPendingRunUpgradeChoicesChangedSignature OnPendingRunUpgradeChoicesChangedEvent;
 
 	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
 	FTunicRunUpgradeChoiceConsumedSignature OnRunUpgradeChoiceConsumedEvent;
 
+	UPROPERTY(BlueprintAssignable, Category = "Tunic|Equipment")
+	FTunicCurrentEquipmentChangedSignature OnCurrentEquipmentChangedEvent;
+
 	void AddPendingRunUpgradeChoices(int32 Amount);
 	bool TryConsumePendingRunUpgradeChoice();
+	bool SetCurrentEquipmentId(FName NewEquipmentId);
 
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "Pending upgrade choice 数量变化时的表现 hook。不要在这里直接应用属性或技能奖励。"))
@@ -50,6 +58,9 @@ protected:
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "服务器成功消耗一次 pending upgrade choice 后触发的表现 hook。真实升级效果由 GameMode 授予到 PlayerState-owned ASC。"))
 	void OnRunUpgradeChoiceConsumed();
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Equipment", meta = (ToolTip = "当前装备标记变化时的表现 hook。v1 只表示拾取到的 CurrentEquipmentId，不要在这里授予 Ability 或改属性。"))
+	void OnCurrentEquipmentChanged(FName NewCurrentEquipmentId);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Ability")
 	TObjectPtr<UTunicAbilitySystemComponent> AbilitySystemComponent;
@@ -61,7 +72,13 @@ private:
 	UFUNCTION()
 	void OnRep_PendingRunUpgradeChoices();
 
+	UFUNCTION()
+	void OnRep_CurrentEquipmentId();
+
 	UPROPERTY(ReplicatedUsing = OnRep_PendingRunUpgradeChoices)
 	int32 PendingRunUpgradeChoices = 0;
+
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentEquipmentId)
+	FName CurrentEquipmentId = NAME_None;
 };
 
