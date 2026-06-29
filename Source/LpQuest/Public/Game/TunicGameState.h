@@ -12,15 +12,13 @@ class AActor;
 UENUM(BlueprintType)
 enum class ETunicRunState : uint8
 {
-	CombatActive UMETA(DisplayName = "Combat Active", ToolTip = "战斗进行中。Spawner/AI/击杀 XP 正常工作。"),
+	CombatActive = 0 UMETA(DisplayName = "Combat Active", ToolTip = "战斗进行中。Spawner/AI/击杀 XP 正常工作。"),
 
-	PartyWiped UMETA(DisplayName = "Party Wiped", ToolTip = "队伍全灭。不会自动进入下一层，也不会继续发放击杀 XP。"),
+	PartyWiped = 1 UMETA(DisplayName = "Party Wiped", ToolTip = "队伍全灭。不会自动进入下一层，也不会继续发放击杀 XP。"),
 
-	EncounterCleared UMETA(DisplayName = "Encounter Cleared", ToolTip = "当前测试 encounter 已清场。保留给 Spawner/奖励验证；Portal Event 长期由交互启动。"),
+	FloorTransitionReady = 3 UMETA(DisplayName = "Floor Transition Ready", ToolTip = "Portal 已 ready，等待 GameMode 的 floor transition stub 完成。"),
 
-	FloorTransitionReady UMETA(DisplayName = "Floor Transition Ready", ToolTip = "Portal 已 ready，等待 GameMode 的 floor transition stub 完成。"),
-
-	PortalEventActive UMETA(DisplayName = "Portal Event Active", ToolTip = "Portal event 已由玩家交互启动。后续 Boss、充能和压力刷怪基于这个状态推进。")
+	PortalEventActive = 4 UMETA(DisplayName = "Portal Event Active", ToolTip = "Portal event 已由玩家交互启动。后续 Boss、充能和压力刷怪基于这个状态推进。")
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicRunStateChangedSignature, ETunicRunState, NewRunState);
@@ -55,9 +53,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否为 PartyWiped。全灭状态不会被 Portal 或 floor stub 自动覆盖。"))
 	bool IsPartyWiped() const;
-
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否为 EncounterCleared。用于测试 encounter 清场显示；Portal Event 不再依赖它自动启动。"))
-	bool IsEncounterCleared() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否为 PortalEventActive。表示玩家已通过 Portal 交互启动本层事件。"))
 	bool IsPortalEventActive() const;

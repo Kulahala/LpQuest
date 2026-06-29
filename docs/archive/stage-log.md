@@ -1399,4 +1399,21 @@ Validation and review:
 - Strict review found no blocking issue. The fix removes the old automatic clear-to-run-state side effect without deleting the enum, UI text, or legacy helper surface that Blueprint/debug paths may still reference.
 - Accepted follow-up: `RunState Cleanup v2` can delete `EncounterCleared`, UI display text, and legacy clear helpers after confirming no Blueprint or debug workflow still needs them.
 
+## RunState Cleanup v2
+
+Summary:
+
+- Removed the old `EncounterCleared` RunState from `ETunicRunState`.
+- Removed `ATunicGameState::IsEncounterCleared()`, `ATunicGameMode::EvaluateEncounterClear()`, and `UTunicRunStatusWidget`'s `EncounterCleared` display branch.
+- Removed `ATunicEncounterSpawner::EvaluateEncounterClear()` and the `OnEncounterCleared` BlueprintNativeEvent, leaving Spawner focused on generated/placed membership, reward ownership, counts, and generated-enemy cleanup.
+- Removed the old `ATunicPlayerController::RequestSelectRunUpgradeStub()` compatibility wrapper; upgrade selection now uses `RequestSelectRunUpgrade()` as the only public entry.
+- Kept explicit `ETunicRunState` numeric values so deleting the removed enum entry does not shift `FloorTransitionReady` or `PortalEventActive`.
+- Updated `ARCHITECTURE.md`, `README.md`, and `tunicplan.md` so the current run-state surface no longer documents `EncounterCleared` as a retained legacy/debug state.
+
+Validation and review:
+
+- User confirmed focused build/PIE validation passed.
+- Strict review found no blocking issue. Source and current docs no longer reference `EncounterCleared`, `EvaluateEncounterClear`, `OnEncounterCleared`, or `RequestSelectRunUpgradeStub`.
+- Accepted risk: old Blueprint graphs may still contain orphaned nodes if they referenced removed Blueprint-callable APIs. If encountered, migrate them to the current Portal interaction or `RequestSelectRunUpgrade()` path rather than restoring the removed API.
+
 

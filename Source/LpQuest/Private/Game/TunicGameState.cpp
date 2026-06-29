@@ -48,11 +48,6 @@ bool ATunicGameState::IsPartyWiped() const
 	return RunState == ETunicRunState::PartyWiped;
 }
 
-bool ATunicGameState::IsEncounterCleared() const
-{
-	return RunState == ETunicRunState::EncounterCleared;
-}
-
 bool ATunicGameState::IsPortalEventActive() const
 {
 	return RunState == ETunicRunState::PortalEventActive;

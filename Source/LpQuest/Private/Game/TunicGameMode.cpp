@@ -145,34 +145,6 @@ void ATunicGameMode::EvaluatePartyWipe()
 	}
 }
 
-void ATunicGameMode::EvaluateEncounterClear()
-{
-	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
-	if (!HasAuthority() || !TunicGameState || TunicGameState->GetRunState() != ETunicRunState::CombatActive)
-	{
-		return;
-	}
-
-	ATunicEncounterSpawner* EncounterSpawner = FindEncounterSpawner();
-	if (!EncounterSpawner || !EncounterSpawner->HasActiveEncounter())
-	{
-		UE_LOG(LogLpQuestRunState, Display, TEXT("Encounter clear evaluation skipped: no active encounter spawner | Floor=%d"),
-			TunicGameState->GetCurrentFloorIndex());
-		return;
-	}
-
-	int32 TotalEnemyCount = 0;
-	int32 AliveEnemyCount = 0;
-	const bool bEncounterCleared = EncounterSpawner->EvaluateEncounterClear(TotalEnemyCount, AliveEnemyCount);
-
-	UE_LOG(LogLpQuestRunState, Display, TEXT("Encounter clear evaluation | Floor=%d | Spawner=%s | TotalEnemies=%d | AliveEnemies=%d | Triggered=%s"),
-		TunicGameState->GetCurrentFloorIndex(),
-		*GetNameSafe(EncounterSpawner),
-		TotalEnemyCount,
-		AliveEnemyCount,
-		bEncounterCleared ? TEXT("true") : TEXT("false"));
-}
-
 void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 {
 	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
@@ -206,7 +178,6 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 			*GetNameSafe(DeadEnemy));
 	}
 
-	// Encounter clear is now a legacy/debug query; ordinary enemy death should not stop remaining AI.
 }
 
 bool ATunicGameMode::TrySelectRunUpgradeForPlayer(ATunicPlayerState* TunicPlayerState)

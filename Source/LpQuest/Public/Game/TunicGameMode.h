@@ -23,7 +23,6 @@ public:
 	virtual void Logout(AController* Exiting) override;
 
 	void EvaluatePartyWipe();
-	void EvaluateEncounterClear();
 	bool TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlayer, ATunicPortalActor* PortalActor);
 	void MarkFloorTransitionReady();
 	void HandleEnemyDeath(class ATunicEnemyCharacter* DeadEnemy);

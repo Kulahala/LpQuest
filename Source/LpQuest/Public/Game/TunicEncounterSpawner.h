@@ -39,13 +39,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|Spawner", meta = (ToolTip = "返回本 spawner 当前仍存在的 generated encounter 敌人数量。"))
 	int32 GetSpawnedEncounterEnemyCount() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Spawner", meta = (ToolTip = "返回本 spawner 当前仍存在的 registered placed encounter 敌人数量。登记后参与当前测试 encounter clear 和 XP 奖励；未登记不会影响 Portal。"))
+	UFUNCTION(BlueprintPure, Category = "Tunic|Spawner", meta = (ToolTip = "返回本 spawner 当前仍存在的 registered placed encounter 敌人数量。登记后可通过 encounter ownership 给 XP；未登记不会通过 encounter ownership 给 XP。"))
 	int32 GetPlacedEncounterEnemyCount() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Spawner", meta = (ToolTip = "返回本 spawner 当前仍存在的全部 encounter 成员数量，包含 generated enemies 和 registered placed enemies。"))
 	int32 GetTotalEncounterEnemyCount() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Spawner", meta = (ToolTip = "返回本 spawner 当前仍存活的 encounter 成员数量，包含 generated enemies 和 registered placed enemies。清场判定使用这个值。"))
+	UFUNCTION(BlueprintPure, Category = "Tunic|Spawner", meta = (ToolTip = "返回本 spawner 当前仍存活的 encounter 成员数量，包含 generated enemies 和 registered placed enemies。用于调试、奖励归属和后续刷怪策略。"))
 	int32 GetAliveEncounterEnemyCount() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Spawner", meta = (ToolTip = "返回当前 encounter 对应的 floor index。0 表示还没有有效 encounter。"))
@@ -53,7 +53,6 @@ public:
 
 	void SpawnEncounterForFloor(int32 FloorIndex);
 	void ResetEncounterForNextFloor();
-	bool EvaluateEncounterClear(int32& OutTotalEnemyCount, int32& OutAliveEnemyCount);
 	bool IsEncounterEnemy(const ATunicEnemyCharacter* EnemyCharacter) const;
 
 protected:
@@ -63,7 +62,7 @@ protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Tunic|Spawner", meta = (ToolTip = "固定波次配置。每个 entry 指定敌人类和数量，本阶段不做随机刷怪。"))
 	TArray<FTunicEncounterSpawnEntry> SpawnEntries;
 
-	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Tunic|Spawner", meta = (ToolTip = "手动摆放并显式登记为本测试 encounter 成员的敌人。登记后参与 encounter clear，并按敌人自身 ExperienceReward 给 XP；未登记的手摆敌人不会影响 Portal。"))
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Tunic|Spawner", meta = (ToolTip = "手动摆放并显式登记为本 encounter 成员的敌人。登记后可通过 encounter ownership 按敌人自身 ExperienceReward 给 XP；未登记的手摆敌人不会通过 encounter ownership 给 XP。"))
 	TArray<TObjectPtr<ATunicEnemyCharacter>> PlacedEncounterEnemies;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug", meta = (ToolTip = "是否输出 Spawner 生成、清场评估和数量日志。只用于验证，不影响玩法。"))
@@ -71,9 +70,6 @@ protected:
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Spawner", meta = (ToolTip = "服务器激活 encounter 后触发的表现 hook。可能包含 generated enemies、registered placed enemies 或两者都有；不要在这里决定 RunState 或奖励。"))
 	void OnEncounterSpawned(int32 FloorIndex);
-
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Spawner", meta = (ToolTip = "本 spawner 追踪的 encounter 全部死亡后触发的表现 hook。RunState 仍由 GameMode 决定。"))
-	void OnEncounterCleared(int32 FloorIndex);
 
 private:
 	void CleanupSpawnedEnemies();

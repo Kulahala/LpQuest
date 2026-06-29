@@ -241,8 +241,6 @@ FText UTunicRunStatusWidget::GetRunStateText(ETunicRunState RunState)
 		return NSLOCTEXT("TunicRunStatus", "CombatActive", "CombatActive");
 	case ETunicRunState::PartyWiped:
 		return NSLOCTEXT("TunicRunStatus", "PartyWiped", "PartyWiped");
-	case ETunicRunState::EncounterCleared:
-		return NSLOCTEXT("TunicRunStatus", "EncounterCleared", "EncounterCleared");
 	case ETunicRunState::PortalEventActive:
 		return NSLOCTEXT("TunicRunStatus", "PortalEventActive", "PortalEventActive");
 	case ETunicRunState::FloorTransitionReady:

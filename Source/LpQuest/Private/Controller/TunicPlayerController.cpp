@@ -26,11 +26,6 @@ void ATunicPlayerController::RequestSelectRunUpgrade()
 	ServerRequestSelectRunUpgrade();
 }
 
-void ATunicPlayerController::RequestSelectRunUpgradeStub()
-{
-	RequestSelectRunUpgrade();
-}
-
 void ATunicPlayerController::BeginPlay()
 {
 	Super::BeginPlay();

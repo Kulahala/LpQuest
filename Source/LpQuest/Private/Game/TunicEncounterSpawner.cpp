@@ -191,32 +191,6 @@ void ATunicEncounterSpawner::ResetEncounterForNextFloor()
 	CurrentEncounterFloorIndex = 0;
 }
 
-bool ATunicEncounterSpawner::EvaluateEncounterClear(int32& OutTotalEnemyCount, int32& OutAliveEnemyCount)
-{
-	OutTotalEnemyCount = GetTotalEncounterEnemyCount();
-	OutAliveEnemyCount = GetAliveEncounterEnemyCount();
-
-	const bool bEncounterCleared = HasActiveEncounter() && OutTotalEnemyCount > 0 && OutAliveEnemyCount == 0;
-	if (bLogSpawnerState)
-	{
-		UE_LOG(LogLpQuestSpawner, Display, TEXT("Spawner encounter clear evaluation | Spawner=%s | Floor=%d | SpawnedEnemies=%d | PlacedEnemies=%d | TotalEnemies=%d | AliveEnemies=%d | Triggered=%s"),
-			*GetNameSafe(this),
-			CurrentEncounterFloorIndex,
-			GetSpawnedEncounterEnemyCount(),
-			GetPlacedEncounterEnemyCount(),
-			OutTotalEnemyCount,
-			OutAliveEnemyCount,
-			bEncounterCleared ? TEXT("true") : TEXT("false"));
-	}
-
-	if (bEncounterCleared)
-	{
-		OnEncounterCleared(CurrentEncounterFloorIndex);
-	}
-
-	return bEncounterCleared;
-}
-
 bool ATunicEncounterSpawner::IsEncounterEnemy(const ATunicEnemyCharacter* EnemyCharacter) const
 {
 	if (!EnemyCharacter)
@@ -244,10 +218,6 @@ bool ATunicEncounterSpawner::IsEncounterEnemy(const ATunicEnemyCharacter* EnemyC
 }
 
 void ATunicEncounterSpawner::OnEncounterSpawned_Implementation(int32)
-{
-}
-
-void ATunicEncounterSpawner::OnEncounterCleared_Implementation(int32)
 {
 }
 

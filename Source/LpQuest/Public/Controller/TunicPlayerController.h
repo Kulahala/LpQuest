@@ -20,9 +20,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Run", meta = (ToolTip = "本地 HUD 调用的 run upgrade 选择入口。请求会走 owning PlayerController 的 Server RPC，由 GameMode 校验 pending 并授予服务器 GameplayEffect。"))
 	void RequestSelectRunUpgrade();
 
-	UFUNCTION(BlueprintCallable, Category = "Tunic|Run", meta = (ToolTip = "兼容旧 Blueprint 的临时 wrapper。请改用 Request Select Run Upgrade；当前实现会转调正式升级选择入口。"))
-	void RequestSelectRunUpgradeStub();
-
 protected:
 	virtual void BeginPlay() override;
 
