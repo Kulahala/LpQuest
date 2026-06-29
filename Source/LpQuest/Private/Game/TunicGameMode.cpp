@@ -19,6 +19,58 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogLpQuestRunState, Log, All);
 
+namespace
+{
+struct FTunicResolvedExperienceReward
+{
+	int32 Amount = 0;
+	const TCHAR* Source = TEXT("none");
+	bool bIsEncounterEnemy = false;
+};
+
+FTunicResolvedExperienceReward ResolveEnemyExperienceReward(UWorld* World, ATunicEncounterSpawner* EncounterSpawner, ATunicEnemyCharacter* DeadEnemy)
+{
+	FTunicResolvedExperienceReward Result;
+	if (!World || !DeadEnemy)
+	{
+		return Result;
+	}
+
+	Result.bIsEncounterEnemy = EncounterSpawner && EncounterSpawner->IsEncounterEnemy(DeadEnemy);
+	if (Result.bIsEncounterEnemy)
+	{
+		Result.Amount = DeadEnemy->GetExperienceReward();
+		Result.Source = TEXT("encounter");
+		return Result;
+	}
+
+	for (TActorIterator<ATunicPortalActor> PortalIt(World); PortalIt; ++PortalIt)
+	{
+		ATunicPortalActor* PortalActor = *PortalIt;
+		if (!PortalActor || !PortalActor->IsPortalActive())
+		{
+			continue;
+		}
+
+		Result.Amount = PortalActor->ConsumePortalPressureExperienceReward(DeadEnemy);
+		if (Result.Amount > 0)
+		{
+			Result.Source = TEXT("portal pressure");
+			return Result;
+		}
+
+		if (PortalActor->OwnsPortalBossEnemy(DeadEnemy))
+		{
+			Result.Amount = DeadEnemy->GetExperienceReward();
+			Result.Source = TEXT("portal boss");
+			return Result;
+		}
+	}
+
+	return Result;
+}
+}
+
 ATunicGameMode::ATunicGameMode()
 {
 	DefaultPawnClass = ATunicPlayerCharacter::StaticClass();
@@ -136,37 +188,12 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 	}
 
 	ATunicEncounterSpawner* EncounterSpawner = FindEncounterSpawner();
-	const bool bIsEncounterEnemy = EncounterSpawner && EncounterSpawner->IsEncounterEnemy(DeadEnemy);
-	int32 ExperienceReward = 0;
-	const TCHAR* RewardSource = TEXT("none");
-	if (bIsEncounterEnemy)
-	{
-		ExperienceReward = DeadEnemy->GetExperienceReward();
-		RewardSource = TEXT("encounter");
-	}
-	else
-	{
-		for (TActorIterator<ATunicPortalActor> PortalIt(GetWorld()); PortalIt; ++PortalIt)
-		{
-			ATunicPortalActor* PortalActor = *PortalIt;
-			if (!PortalActor || !PortalActor->IsPortalActive())
-			{
-				continue;
-			}
+	const FTunicResolvedExperienceReward ResolvedReward = ResolveEnemyExperienceReward(GetWorld(), EncounterSpawner, DeadEnemy);
 
-			ExperienceReward = PortalActor->ConsumePortalPressureExperienceReward(DeadEnemy);
-			if (ExperienceReward > 0)
-			{
-				RewardSource = TEXT("portal pressure");
-				break;
-			}
-		}
-	}
-
-	if (ExperienceReward > 0)
+	if (ResolvedReward.Amount > 0)
 	{
 		const int32 OldSharedRunLevel = TunicGameState->GetSharedRunLevel();
-		TunicGameState->AddSharedRunExperience(ExperienceReward, DeadEnemy);
+		TunicGameState->AddSharedRunExperience(ResolvedReward.Amount, DeadEnemy);
 		const int32 NewSharedRunLevel = TunicGameState->GetSharedRunLevel();
 		if (NewSharedRunLevel > OldSharedRunLevel)
 		{
@@ -175,13 +202,13 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP awarded | Enemy=%s | Amount=%d | Source=%s | TotalSharedXP=%d"),
 			*GetNameSafe(DeadEnemy),
-			ExperienceReward,
-			RewardSource,
+			ResolvedReward.Amount,
+			ResolvedReward.Source,
 			TunicGameState->GetSharedRunExperience());
 	}
-	else if (!bIsEncounterEnemy)
+	else if (!ResolvedReward.bIsEncounterEnemy)
 	{
-		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP skipped: enemy is not part of active encounter or funded portal pressure | Enemy=%s"),
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP skipped: enemy has no active reward source | Enemy=%s"),
 			*GetNameSafe(DeadEnemy));
 	}
 

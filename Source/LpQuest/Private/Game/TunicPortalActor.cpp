@@ -108,6 +108,11 @@ float ATunicPortalActor::GetInteractionRadius() const
 	return InteractionRadius;
 }
 
+bool ATunicPortalActor::OwnsPortalBossEnemy(const ATunicEnemyCharacter* EnemyCharacter) const
+{
+	return EnemyCharacter && SpawnedPortalBossEnemy.Get() == EnemyCharacter;
+}
+
 int32 ATunicPortalActor::ConsumePortalPressureExperienceReward(ATunicEnemyCharacter* DeadEnemy)
 {
 	if (!HasAuthority() || !DeadEnemy || !OwnsPortalPressureEnemy(DeadEnemy) || HasPortalPressureEnemyBeenRewarded(DeadEnemy))

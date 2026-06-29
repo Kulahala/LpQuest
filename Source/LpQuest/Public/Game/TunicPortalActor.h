@@ -47,6 +47,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|Portal", meta = (ToolTip = "Portal 交互半径，单位 cm。玩家在范围内按统一交互键 E，服务器验证后可启动 Portal Event。"))
 	float GetInteractionRadius() const;
 
+	bool OwnsPortalBossEnemy(const ATunicEnemyCharacter* EnemyCharacter) const;
 	int32 ConsumePortalPressureExperienceReward(ATunicEnemyCharacter* DeadEnemy);
 	void ResetPortalForNextFloorStub();
 	virtual bool CanInteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer) override;

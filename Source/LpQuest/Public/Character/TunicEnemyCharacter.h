@@ -31,7 +31,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|Combat", meta = (ToolTip = "敌人当前是否死亡。死亡后停止 AI、移动和攻击。"))
 	bool IsDead() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Rewards", meta = (ToolTip = "敌人死亡时提供的 XP 奖励值。只有 Spawner encounter 成员死亡才会通过 GameMode 加到共享 XP。"))
+	UFUNCTION(BlueprintPure, Category = "Tunic|Rewards", meta = (ToolTip = "敌人死亡时提供的基础 shared XP 奖励值。是否实际发放由 GameMode 的 reward-source 路由决定。"))
 	int32 GetExperienceReward() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Combat", meta = (ToolTip = "请求激活敌人 melee Ability。AI/StateTree 使用；函数本身不直接造成伤害。"))
@@ -159,7 +159,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Abilities", meta = (ToolTip = "敌人默认授予的 melee GameplayAbility class。StateTree 只请求激活，不直接结算伤害。"))
 	TSubclassOf<UGameplayAbility> DefaultMeleeAttackAbilityClass;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Rewards", meta = (ClampMin = "0", ToolTip = "该敌人死亡时提供的共享 XP 奖励。只有 Spawner encounter 成员会通过 GameMode 发放。"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Rewards", meta = (ClampMin = "0", ToolTip = "该敌人死亡时提供的基础 shared XP 奖励。是否实际发放由 GameMode 的 reward-source 路由决定。0 表示不给 XP。"))
 	int32 ExperienceReward = 5;
 
 private:
