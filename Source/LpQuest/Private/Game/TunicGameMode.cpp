@@ -171,12 +171,6 @@ void ATunicGameMode::EvaluateEncounterClear()
 		TotalEnemyCount,
 		AliveEnemyCount,
 		bEncounterCleared ? TEXT("true") : TEXT("false"));
-
-	if (bEncounterCleared)
-	{
-		TunicGameState->SetRunState(ETunicRunState::EncounterCleared);
-		UE_LOG(LogLpQuestRunState, Display, TEXT("Run state changed to EncounterCleared"));
-	}
 }
 
 void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
@@ -212,7 +206,7 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 			*GetNameSafe(DeadEnemy));
 	}
 
-	EvaluateEncounterClear();
+	// Encounter clear is now a legacy/debug query; ordinary enemy death should not stop remaining AI.
 }
 
 bool ATunicGameMode::TrySelectRunUpgradeForPlayer(ATunicPlayerState* TunicPlayerState)

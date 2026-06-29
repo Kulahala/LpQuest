@@ -1383,4 +1383,20 @@ Validation and review:
 - Accepted follow-up: a zero-XP Portal pressure or Portal Boss enemy can still log as having no active reward source. This is harmless for gameplay; add an explicit source-found flag only if zero-XP logging becomes important.
 - `Enemy Drop Source v1` is deferred until `Pickup / Equipment Interaction v1` exists, so enemy drops can use one server-authoritative routing path instead of separate Boss / pressure / encounter branches.
 
+## Enemy Encounter Clear Decoupling v1
+
+Summary:
+
+- Ordinary enemy death no longer advances RunState to `EncounterCleared`.
+- `ATunicGameMode::HandleEnemyDeath()` still resolves shared XP, shared level, and pending upgrade choices through the existing server-authoritative reward path.
+- `ATunicGameMode::EvaluateEncounterClear()` remains available as a legacy/debug query, but no longer mutates RunState when all Spawner encounter members are dead.
+- Remaining hand-placed guards, whiteboard enemies, patrol enemies, Portal Bosses, and Portal pressure enemies can keep running AI while the run remains in `CombatActive` or `PortalEventActive`.
+- `ARCHITECTURE.md` and `README.md` now describe encounter clear as a legacy/debug surface rather than the current Portal or RunState gate.
+
+Validation and review:
+
+- User confirmed focused validation passed: killing a SpawnWave enemy no longer stops the remaining hand-placed Guard.
+- Strict review found no blocking issue. The fix removes the old automatic clear-to-run-state side effect without deleting the enum, UI text, or legacy helper surface that Blueprint/debug paths may still reference.
+- Accepted follow-up: `RunState Cleanup v2` can delete `EncounterCleared`, UI display text, and legacy clear helpers after confirming no Blueprint or debug workflow still needs them.
+
 
