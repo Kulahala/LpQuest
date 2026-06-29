@@ -364,11 +364,6 @@ void ATunicPlayerCharacter::SetAttributeDebugDrawEnabled(bool bEnabled)
 	bDrawAttributeDebug = bEnabled;
 }
 
-void ATunicPlayerCharacter::SetLightAttackTargetQueryLoggingEnabled(bool bEnabled)
-{
-	SetLightAttackHitSweepLoggingEnabled(bEnabled);
-}
-
 bool ATunicPlayerCharacter::GetMouseFacingYaw(float& OutYaw) const
 {
 	const APlayerController* PlayerController = Cast<APlayerController>(GetController());
@@ -960,23 +955,23 @@ void ATunicPlayerCharacter::LogLightAttackHitSweepDebug(const TArray<FHitResult>
 	}
 }
 
-void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget)
+void ATunicPlayerCharacter::ApplyLightAttackDamage(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget)
 {
-	if (!bApplyLightAttackDebugDamage)
+	if (!bApplyLightAttackDamage)
 	{
 		return;
 	}
 
 	if (!TargetActor || !CombatTarget)
 	{
-		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage skipped: no target | Character=%s"),
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage skipped: no target | Character=%s"),
 			*GetNameSafe(this));
 		return;
 	}
 
 	if (!CombatTarget->IsCombatTargetAvailable())
 	{
-		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage skipped: target unavailable | Character=%s | Target=%s"),
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage skipped: target unavailable | Character=%s | Target=%s"),
 			*GetNameSafe(this),
 			*GetNameSafe(TargetActor));
 		return;
@@ -986,7 +981,7 @@ void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(AActor* TargetActor, ITu
 	UTunicAttributeSet* TargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
 	if (!TargetAbilitySystemComponent || !TargetAttributeSet || !LightAttackDamageEffectClass)
 	{
-		UE_LOG(LogLpQuestGasDebug, Warning, TEXT("Light attack debug damage failed: missing target GAS data | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | EffectClass=%s"),
+		UE_LOG(LogLpQuestGasDebug, Warning, TEXT("Light attack damage failed: missing target GAS data | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | EffectClass=%s"),
 			*GetNameSafe(this),
 			*GetNameSafe(TargetActor),
 			*GetNameSafe(TargetAbilitySystemComponent),
@@ -1003,7 +998,7 @@ void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(AActor* TargetActor, ITu
 			TargetPlayerCharacter->NotifyDodgeInvulnerabilitySuccess(this);
 		}
 
-		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage skipped: target invulnerable | Character=%s | Target=%s | EffectClass=%s"),
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage skipped: target invulnerable | Character=%s | Target=%s | EffectClass=%s"),
 			*GetNameSafe(this),
 			*GetNameSafe(TargetActor),
 			*GetNameSafe(LightAttackDamageEffectClass.Get()));
@@ -1017,7 +1012,7 @@ void ATunicPlayerCharacter::ApplyLightAttackDebugDamage(AActor* TargetActor, ITu
 	TargetAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(LightAttackDamageEffectClass, 1.0f, EffectContext);
 	const float HealthAfter = TargetAttributeSet->GetHealth();
 
-	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack debug damage applied | Character=%s | Target=%s | EffectClass=%s | TargetHealth=%.1f->%.1f"),
+	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage applied | Character=%s | Target=%s | EffectClass=%s | TargetHealth=%.1f->%.1f"),
 		*GetNameSafe(this),
 		*GetNameSafe(TargetActor),
 		*GetNameSafe(LightAttackDamageEffectClass.Get()),
@@ -1040,7 +1035,7 @@ void ATunicPlayerCharacter::HandleLightAttackTargetHit(AActor* TargetActor, ITun
 
 	if (bCanApplyDamage)
 	{
-		ApplyLightAttackDebugDamage(TargetActor, CombatTarget);
+		ApplyLightAttackDamage(TargetActor, CombatTarget);
 	}
 	else
 	{

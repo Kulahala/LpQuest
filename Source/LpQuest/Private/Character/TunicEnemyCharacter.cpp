@@ -554,12 +554,11 @@ void ATunicEnemyCharacter::FinishEnemyMeleeTelegraphAndAttack()
 		return;
 	}
 
-	const bool bPlayedMontage = PlayMeleeAttackMontage();
-	if (bRunEnemyMeleeHitWindowOnRequest && !bPlayedMontage)
+	if (!PlayMeleeAttackMontage())
 	{
-		BeginEnemyMeleeHitWindow();
-		ProcessEnemyMeleeHitWindow();
-		EndEnemyMeleeHitWindow();
+		UE_LOG(LogLpQuestEnemyGasDebug, Warning, TEXT("Enemy melee attack skipped hit window: missing attack Montage | Character=%s | Montage=%s | Requires Combat Hit Window Notify"),
+			*GetNameSafe(this),
+			*GetNameSafe(MeleeAttackMontage.Get()));
 	}
 }
 

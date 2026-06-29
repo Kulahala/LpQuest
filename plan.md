@@ -14,31 +14,25 @@ Current working state:
 
 - Core loop is in place: server-authoritative player/enemy combat, enemy death, player death v1, RunState, Portal Event, Floor Stub, Spawner, Shared XP, shared run Level, pending upgrade choices, and fixed run-local upgrade selection.
 - Enemy AI uses `ATunicEnemyAIController` + StateTree + Sight/awareness policy + last-known investigation state + spline patrol route. StateTree owns intent flow; GameplayAbility / combat hit windows own final attack results.
-- Enemy melee attack uses `GameplayAbility -> telegraph -> Montage/fallback hit window -> server attack shape query -> GameplayEffect damage`.
+- Enemy melee attack uses `GameplayAbility -> telegraph -> Montage -> AnimNotify hit window -> server attack shape query -> GameplayEffect damage`; missing Montage or missing hit-window Notify should fail visibly instead of applying fallback damage.
 - Dodge movement is client-predicted through GAS `LocalPredicted` activation and `UAbilityTask_ApplyRootMotionConstantForce`; invulnerability, damage immunity, cooldown/action-lock, Health, and final correction remain server-authoritative.
 - Encounter membership supports generated enemies plus explicit `PlacedEncounterEnemies`. Registered placed enemies can grant XP through encounter ownership; unregistered placed enemies do not. Ordinary enemy death does not move RunState out of `CombatActive`.
 - Portal Event can be started through the unified `E` interact path. Portal can spawn one configured existing enemy Blueprint as a test Boss; charging is blocked until that Boss is dead or gone.
 
 Most recent commits:
 
+- `7fed449 [Refactor] 清理敌人旧近战扫掠字段（Clean Enemy Legacy Sweep Fields）`
+- `11c435e [Refactor] 删除敌人原型自动攻击（Remove Enemy Prototype AutoAttack）`
 - `1f42212 [Refactor] 清理旧 RunState 和升级 Stub（Clean RunState and Upgrade Stub）`
 - `5fb8499 [Fix] 拆掉敌人清场 RunState 推进（Decouple Enemy Clear RunState）`
 - `1623d91 [Docs] 调整阶段归档提交规则（Refine Stage Archive Commit Rule）`
-- `3e654f7 [Docs] 归档敌人奖励来源阶段（Archive Enemy Reward Source Stage）`
-- `1b29094 [Feature] 统一敌人死亡 XP 来源（Unify Enemy Reward Source）`
 
 Current stage:
 
-- `Enemy Melee Legacy Sweep Field Cleanup v1` is complete, validated, reviewed, and ready to commit after archive sync.
-- `Enemy Prototype AutoAttack Cleanup v1` is complete, archived, and committed.
-- Code change: deleted the old `EnemyMeleeSweep*` serialized fields from `ATunicEnemyCharacter`; enemy melee tuning now exposes only the fan attack shape fields.
-- Code change: renamed the enemy melee hit-window query stat from `EnemyMeleeHitSweep` to `EnemyMeleeAttackShapeOverlap`.
-- Validation: user confirmed focused compile / PIE passed; Guard, SpawnWave, Portal Boss, and Portal pressure enemies still telegraph, hit, and apply damage through the fan attack shape.
-- Strict review: no blocking issue found. The cleanup is a straight removal of dead legacy tuning fields, not a behavior change.
+- No active implementation stage. `Combat Hit Window Cleanup v1` is complete, validated, strictly reviewed, archived, and ready for commit sync.
 
 Near-term TODOs:
 
-- `Player Light Attack Naming Cleanup v1`: later, rename `ApplyLightAttackDebugDamage` when player weapon/attack data stops using the current prototype light-attack bridge.
 - `Enemy Drop Source v1`: after `Pickup / Equipment Interaction v1` exists, add one server-authoritative enemy drop routing path instead of special-casing Boss / pressure / encounter drops separately.
 - `Enemy Variant Profile Cleanup v2` after current Portal work: when Guard / Wild / Spawn / Elite only differ by tuning, fold them toward one enemy class plus profile DataAssets instead of keeping separate Blueprints for each variant.
 - `Safe Travel Portal v1`: later, when safe zones / shop areas / hub return need pure interaction travel, add a separate lightweight interactable travel portal instead of subclassing the combat Portal Event actor or disabling most of its Boss/charging/pressure behavior.

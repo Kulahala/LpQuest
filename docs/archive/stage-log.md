@@ -1434,10 +1434,6 @@ Validation and review:
 
 ## Enemy Melee Legacy Sweep Field Cleanup v1
 
-Commit:
-
-- Pending commit after archive sync.
-
 Summary:
 
 - Deleted the legacy `EnemyMeleeSweepRadius`, `EnemyMeleeSweepHalfHeight`, `EnemyMeleeSweepStartOffset`, and `EnemyMeleeSweepEndOffset` serialized fields from `ATunicEnemyCharacter`.
@@ -1450,5 +1446,20 @@ Validation and review:
 - User confirmed compile and PIE validation passed.
 - Strict review found no blocking issue. This is a pure cleanup of obsolete serialized fields, not a gameplay change.
 - Accepted risk: old Blueprint assets that still stored the removed legacy fields may show missing-property warnings until they are re-saved against the current fan-shape tuning surface.
+
+## Combat Hit Window Cleanup v1
+
+Summary:
+
+- Removed the enemy melee no-Montage fallback hit window path. Enemy melee now requires a configured attack Montage plus `UTunicAnimNotifyState_CombatHitWindow` for actual damage.
+- Missing enemy Montage or missing hit-window Notify now fails visibly with a warning instead of silently producing fake-success damage.
+- Cleaned player light-attack helper naming so it no longer says debug damage, while leaving the current server-authoritative capsule sweep light-attack behavior unchanged.
+- Removed the deprecated `SetLightAttackTargetQueryLoggingEnabled()` wrapper. The current light-attack hit-sweep logging entry point remains `SetLightAttackHitSweepLoggingEnabled()`.
+
+Validation and review:
+
+- User confirmed `LpQuestEditor Win64 Development` compile and focused PIE passed.
+- User confirmed enemy attacks with configured Montage + hit-window Notify still damage, while missing enemy Montage / Notify does not damage and logs warning.
+- Strict review found no blocking issue. The cleanup intentionally removes fake-success fallback behavior so missing authored setup is surfaced immediately.
 
 

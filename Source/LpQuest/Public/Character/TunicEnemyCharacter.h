@@ -87,10 +87,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug", meta = (ToolTip = "是否在屏幕/世界中绘制敌人属性调试信息。只用于开发验证。"))
 	bool bDrawAttributeDebug = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ToolTip = "请求敌人 melee attack 时是否立即跑一次 hit window。用于没有完整动画通知时的 prototype 验证。"))
-	bool bRunEnemyMeleeHitWindowOnRequest = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Telegraph", meta = (ClampMin = "0.0", Units = "s", ToolTip = "敌人 melee attack 命中前的预警时间，单位秒。预警结束后才播放攻击 Montage 或 fallback hit window。"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Telegraph", meta = (ClampMin = "0.0", Units = "s", ToolTip = "敌人 melee attack 命中前的预警时间，单位秒。预警结束后播放攻击 Montage；真正命中必须由 Montage 上的 Combat Hit Window Notify 触发。"))
 	float EnemyMeleeTelegraphDuration = 0.35f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Telegraph", meta = (ToolTip = "是否绘制敌人 melee telegraph 范围。只用于开发验证，不参与伤害判定。"))

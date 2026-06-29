@@ -173,9 +173,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug", meta = (ToolTip = "运行时开关玩家属性调试绘制。只影响显示，不影响属性值。"))
 	void SetAttributeDebugDrawEnabled(bool bEnabled);
 
-	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug", meta = (DeprecatedFunction, DeprecationMessage = "Use SetLightAttackHitSweepLoggingEnabled.", ToolTip = "已废弃：请使用 SetLightAttackHitSweepLoggingEnabled。保留只为旧蓝图兼容。"))
-	void SetLightAttackTargetQueryLoggingEnabled(bool bEnabled);
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ToolTip = "请求轻击时是否立即跑一次 hit window。用于没有完整动画通知时的 prototype 验证。"))
 	bool bRunLightAttackHitWindowOnRequest = true;
 
@@ -191,10 +188,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (Units = "cm", ToolTip = "轻击 sweep 终点的角色本地偏移，单位 cm。决定攻击向前覆盖多远。"))
 	FVector LightAttackSweepEndOffset = FVector(225.0f, 0.0f, 45.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Debug", meta = (ToolTip = "命中目标时是否应用当前 debug damage GameplayEffect。只用于 prototype 伤害验证。"))
-	bool bApplyLightAttackDebugDamage = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Damage", meta = (ToolTip = "轻击命中目标时是否应用 LightAttackDamageEffectClass。只影响当前服务器轻击伤害结算。"))
+	bool bApplyLightAttackDamage = true;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Debug", meta = (ToolTip = "轻击命中时应用的 debug damage GameplayEffect class。后续正式武器/技能会替代这个路径。"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Damage", meta = (ToolTip = "轻击命中时应用的 damage GameplayEffect class。后续武器/技能数据可以替换这个默认效果。"))
 	TSubclassOf<UGameplayEffect> LightAttackDamageEffectClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Combat|Animation", meta = (ToolTip = "轻击播放的 Montage。表现播放不直接决定最终伤害，伤害仍由服务器 hit window 确认。"))
@@ -257,7 +254,7 @@ private:
 	void DrawAttributeDebug() const;
 	FVector GetLightAttackSweepPoint(const FVector& LocalOffset) const;
 	void LogLightAttackHitSweepDebug(const TArray<FHitResult>& HitResults, int32 ProcessedHitCount) const;
-	void ApplyLightAttackDebugDamage(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget);
+	void ApplyLightAttackDamage(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget);
 	void HandleLightAttackTargetHit(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget);
 	void LogServerInputRequestDebug(const TCHAR* RequestName, bool bShouldLog) const;
 	AActor* FindBestInteractableActor();
