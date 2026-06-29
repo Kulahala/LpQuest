@@ -7,6 +7,8 @@
 #include "TunicGameMode.generated.h"
 
 class ATunicPlayerState;
+class ATunicPlayerCharacter;
+class ATunicPortalActor;
 class UGameplayEffect;
 
 UCLASS(Blueprintable)
@@ -22,6 +24,7 @@ public:
 
 	void EvaluatePartyWipe();
 	void EvaluateEncounterClear();
+	bool TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlayer, ATunicPortalActor* PortalActor);
 	void MarkFloorTransitionReady();
 	void HandleEnemyDeath(class ATunicEnemyCharacter* DeadEnemy);
 	bool TrySelectRunUpgradeForPlayer(ATunicPlayerState* TunicPlayerState);

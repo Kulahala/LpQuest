@@ -40,7 +40,7 @@ int32 ATunicGameState::GetSharedRunLevel() const
 
 bool ATunicGameState::IsCombatActive() const
 {
-	return RunState == ETunicRunState::CombatActive;
+	return RunState == ETunicRunState::CombatActive || RunState == ETunicRunState::PortalEventActive;
 }
 
 bool ATunicGameState::IsPartyWiped() const
@@ -51,6 +51,11 @@ bool ATunicGameState::IsPartyWiped() const
 bool ATunicGameState::IsEncounterCleared() const
 {
 	return RunState == ETunicRunState::EncounterCleared;
+}
+
+bool ATunicGameState::IsPortalEventActive() const
+{
+	return RunState == ETunicRunState::PortalEventActive;
 }
 
 bool ATunicGameState::IsFloorTransitionReady() const

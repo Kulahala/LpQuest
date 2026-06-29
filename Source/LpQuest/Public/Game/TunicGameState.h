@@ -16,9 +16,11 @@ enum class ETunicRunState : uint8
 
 	PartyWiped UMETA(DisplayName = "Party Wiped", ToolTip = "队伍全灭。不会自动进入下一层，也不会继续发放击杀 XP。"),
 
-	EncounterCleared UMETA(DisplayName = "Encounter Cleared", ToolTip = "当前 encounter 已清场。Portal 可以在这个状态激活。"),
+	EncounterCleared UMETA(DisplayName = "Encounter Cleared", ToolTip = "当前测试 encounter 已清场。保留给 Spawner/奖励验证；Portal Event 长期由交互启动。"),
 
-	FloorTransitionReady UMETA(DisplayName = "Floor Transition Ready", ToolTip = "Portal 已 ready，等待 GameMode 的 floor transition stub 完成。")
+	FloorTransitionReady UMETA(DisplayName = "Floor Transition Ready", ToolTip = "Portal 已 ready，等待 GameMode 的 floor transition stub 完成。"),
+
+	PortalEventActive UMETA(DisplayName = "Portal Event Active", ToolTip = "Portal event 已由玩家交互启动。后续 Boss、充能和压力刷怪基于这个状态推进。")
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicRunStateChangedSignature, ETunicRunState, NewRunState);
@@ -48,14 +50,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "返回全队共享的 run-local Level。服务器根据 SharedRunExperience 和 SharedExperiencePerLevel 推导。"))
 	int32 GetSharedRunLevel() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否为 CombatActive。AI、Spawner 和击杀奖励通常只在该状态推进。"))
+	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否允许普通战斗、AI、Spawner 和击杀奖励推进。CombatActive 和 PortalEventActive 都返回 true。"))
 	bool IsCombatActive() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否为 PartyWiped。全灭状态不会被 Portal 或 floor stub 自动覆盖。"))
 	bool IsPartyWiped() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否为 EncounterCleared。Portal 会在该状态后激活。"))
+	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否为 EncounterCleared。用于测试 encounter 清场显示；Portal Event 不再依赖它自动启动。"))
 	bool IsEncounterCleared() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否为 PortalEventActive。表示玩家已通过 Portal 交互启动本层事件。"))
+	bool IsPortalEventActive() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否为 FloorTransitionReady。表示 Portal 已充满并等待 GameMode stub。"))
 	bool IsFloorTransitionReady() const;

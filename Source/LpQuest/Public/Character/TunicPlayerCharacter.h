@@ -152,6 +152,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug", meta = (ToolTip = "是否输出玩家死亡状态日志。只用于验证死亡复制和表现路径。"))
 	bool bLogDeathState = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Interaction", meta = (ClampMin = "1.0", Units = "cm", ToolTip = "统一交互检测半径，单位 cm。玩家按 E 后服务器在这个范围内选择最近可交互对象。"))
+	float InteractionRadius = 250.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug", meta = (ToolTip = "是否输出玩家交互请求、服务器查找和交互结果日志。只用于验证统一交互入口。"))
+	bool bLogInteractionRequests = true;
+
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Debug", meta = (ToolTip = "运行时开关轻击请求日志。只影响日志，不影响攻击。"))
 	void SetLightAttackRequestLoggingEnabled(bool bEnabled);
 
@@ -254,9 +260,13 @@ private:
 	void ApplyLightAttackDebugDamage(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget);
 	void HandleLightAttackTargetHit(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget);
 	void LogServerInputRequestDebug(const TCHAR* RequestName, bool bShouldLog) const;
+	AActor* FindBestInteractableActor();
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestLightAttack();
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestInteract();
 
 	UFUNCTION(Server, Unreliable)
 	void ServerSetFacingYaw(float NewYaw, bool bSnap);

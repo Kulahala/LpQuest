@@ -1293,4 +1293,29 @@ Validation and review:
 - Strict review found no blocking issue.
 - Accepted limitation: red fan debug draw still shows the base fan shape, not the extra target-radius tolerance envelope used by the hit query.
 
+## Portal Event Foundation v1
+
+Commit:
+
+- Pending at archive time.
+
+Summary:
+
+- Added `ITunicInteractableInterface` as the first shared server-confirmed interaction contract for Portal now and pickups later.
+- `ATunicPlayerCharacter::Interact()` now keeps the local presentation hook and sends a server RPC. The server selects the nearest valid interactable actor in `InteractionRadius`.
+- `ATunicPortalActor` implements the interactable interface, exposes `InteractionRadius`, and starts the Portal Event through `ATunicGameMode::TryStartPortalEvent()`.
+- Added `ETunicRunState::PortalEventActive` at the end of the enum to avoid shifting older run-state values.
+- Portal activation and charging now depend on `PortalEventActive`, not `EncounterCleared`.
+- `EvaluateEncounterClear()` and `SpawnEncounterForCurrentFloor()` stay strict `CombatActive` only, so the temporary encounter-clear flow cannot overwrite an active Portal Event.
+- `UTunicRunStatusWidget` now displays `PortalEventActive` instead of falling back to `Unknown`.
+- Documentation records that encounter clear is now a test/reward state, while the long-term floor loop should use Portal interaction, Boss death, and charge pressure.
+
+Validation and review:
+
+- User confirmed Portal testing passed.
+- Strict review found no blocking issue.
+- Accepted limitation: v1 uses a world scan for interactable target selection. Switch to overlap registration or an interaction component when pickup/interactable density grows.
+- Accepted limitation: `PortalEventActive` is global run state and assumes one active test portal. Add per-portal event ownership only when multiple portals can coexist.
+- Accepted limitation: no final in-world prompt or screen message yet. HUD RunState and logs are enough for this stage.
+
 

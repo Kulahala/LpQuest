@@ -25,6 +25,7 @@
 #include "Engine/EngineTypes.h"
 #include "Engine/HitResult.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -33,6 +34,7 @@
 #include "GameplayEffect.h"
 #include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
+#include "Interaction/TunicInteractableInterface.h"
 #include "InputActionValue.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/TunicPlayerState.h"
@@ -288,6 +290,7 @@ void ATunicPlayerCharacter::Interact(const FInputActionValue& Value)
 	}
 
 	OnInteractRequested();
+	ServerRequestInteract();
 }
 
 void ATunicPlayerCharacter::SwitchWeapon(const FInputActionValue& Value)
@@ -621,6 +624,35 @@ void ATunicPlayerCharacter::ServerRequestLightAttack_Implementation()
 	}
 
 	HandleLightAttackRequest();
+}
+
+void ATunicPlayerCharacter::ServerRequestInteract_Implementation()
+{
+	if (bIsDead)
+	{
+		return;
+	}
+
+	AActor* InteractableActor = FindBestInteractableActor();
+	if (!InteractableActor)
+	{
+		if (bLogInteractionRequests)
+		{
+			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Interact request found no target | Character=%s | Radius=%.1f"),
+				*GetNameSafe(this),
+				InteractionRadius);
+		}
+		return;
+	}
+
+	if (bLogInteractionRequests)
+	{
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Interact request accepted | Character=%s | Target=%s"),
+			*GetNameSafe(this),
+			*GetNameSafe(InteractableActor));
+	}
+
+	ITunicInteractableInterface::Execute_InteractWithTunicPlayer(InteractableActor, this);
 }
 
 void ATunicPlayerCharacter::HandleLightAttackRequest()
@@ -1241,6 +1273,45 @@ void ATunicPlayerCharacter::LogServerInputRequestDebug(const TCHAR* RequestName,
 		GetAttributeSet() ? GetAttributeSet()->GetMaxStamina() : 0.0f,
 		static_cast<int32>(GetLocalRole()),
 		static_cast<int32>(GetRemoteRole()));
+}
+
+AActor* ATunicPlayerCharacter::FindBestInteractableActor()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	const float InteractionRadiusSquared = FMath::Square(FMath::Max(1.0f, InteractionRadius));
+	const FVector PlayerLocation = GetActorLocation();
+	AActor* BestInteractableActor = nullptr;
+	float BestDistanceSquared = TNumericLimits<float>::Max();
+
+	for (TActorIterator<AActor> ActorIt(World); ActorIt; ++ActorIt)
+	{
+		AActor* CandidateActor = *ActorIt;
+		if (!CandidateActor || CandidateActor == this || !CandidateActor->GetClass()->ImplementsInterface(UTunicInteractableInterface::StaticClass()))
+		{
+			continue;
+		}
+
+		const float DistanceSquared2D = FVector::DistSquared2D(PlayerLocation, CandidateActor->GetActorLocation());
+		if (DistanceSquared2D > InteractionRadiusSquared || DistanceSquared2D >= BestDistanceSquared)
+		{
+			continue;
+		}
+
+		if (!ITunicInteractableInterface::Execute_CanInteractWithTunicPlayer(CandidateActor, this))
+		{
+			continue;
+		}
+
+		BestInteractableActor = CandidateActor;
+		BestDistanceSquared = DistanceSquared2D;
+	}
+
+	return BestInteractableActor;
 }
 
 bool ATunicPlayerCharacter::IsDead() const

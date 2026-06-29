@@ -101,6 +101,11 @@ int32 ATunicPortalActor::GetPresentLivingPlayerCount() const
 	return PresentLivingPlayerCount;
 }
 
+float ATunicPortalActor::GetInteractionRadius() const
+{
+	return InteractionRadius;
+}
+
 void ATunicPortalActor::ResetPortalForNextFloorStub()
 {
 	if (!HasAuthority())
@@ -144,6 +149,31 @@ void ATunicPortalActor::OnPortalReset_Implementation()
 {
 }
 
+bool ATunicPortalActor::CanInteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer)
+{
+	if (!HasAuthority() || !InteractingPlayer || InteractingPlayer->IsDead() || bIsPortalReady)
+	{
+		return false;
+	}
+
+	const ATunicGameState* TunicGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
+	if (!TunicGameState || TunicGameState->IsPartyWiped() || TunicGameState->IsFloorTransitionReady())
+	{
+		return false;
+	}
+
+	const float InteractionRadiusSquared = FMath::Square(FMath::Max(1.0f, InteractionRadius));
+	return FVector::DistSquared2D(InteractingPlayer->GetActorLocation(), GetActorLocation()) <= InteractionRadiusSquared;
+}
+
+void ATunicPortalActor::InteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer)
+{
+	if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
+	{
+		TunicGameMode->TryStartPortalEvent(InteractingPlayer, this);
+	}
+}
+
 void ATunicPortalActor::TryActivatePortalFromRunState()
 {
 	if (bIsPortalActive)
@@ -152,7 +182,7 @@ void ATunicPortalActor::TryActivatePortalFromRunState()
 	}
 
 	const ATunicGameState* TunicGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
-	if (!TunicGameState || !TunicGameState->IsEncounterCleared())
+	if (!TunicGameState || !TunicGameState->IsPortalEventActive())
 	{
 		return;
 	}
@@ -163,7 +193,7 @@ void ATunicPortalActor::TryActivatePortalFromRunState()
 void ATunicPortalActor::EvaluatePortalCharge(float DeltaSeconds)
 {
 	const ATunicGameState* TunicGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
-	if (!TunicGameState || !TunicGameState->IsEncounterCleared())
+	if (!TunicGameState || !TunicGameState->IsPortalEventActive())
 	{
 		SetPortalCharging(false);
 		return;

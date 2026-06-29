@@ -4,14 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Interaction/TunicInteractableInterface.h"
 #include "TunicPortalActor.generated.h"
 
+class ATunicPlayerCharacter;
 class FLifetimeProperty;
 class USceneComponent;
 class USphereComponent;
 
 UCLASS(Blueprintable)
-class LPQUEST_API ATunicPortalActor : public AActor
+class LPQUEST_API ATunicPortalActor : public AActor, public ITunicInteractableInterface
 {
 	GENERATED_BODY()
 
@@ -23,7 +25,7 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Portal", meta = (ToolTip = "Portal 当前是否已激活。只有 EncounterCleared 后服务器才会激活 Portal。"))
+	UFUNCTION(BlueprintPure, Category = "Tunic|Portal", meta = (ToolTip = "Portal 当前是否已激活。玩家通过统一交互键启动 Portal Event 后，服务器会激活 Portal。"))
 	bool IsPortalActive() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Portal", meta = (ToolTip = "Portal 当前是否正在充能。需要足够存活玩家在范围内。"))
@@ -41,7 +43,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|Portal", meta = (ToolTip = "当前已经在 Portal 范围内的存活玩家数量。用于验证充能条件。"))
 	int32 GetPresentLivingPlayerCount() const;
 
+	UFUNCTION(BlueprintPure, Category = "Tunic|Portal", meta = (ToolTip = "Portal 交互半径，单位 cm。玩家在范围内按统一交互键 E，服务器验证后可启动 Portal Event。"))
+	float GetInteractionRadius() const;
+
 	void ResetPortalForNextFloorStub();
+	virtual bool CanInteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer) override;
+	virtual void InteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Portal")
@@ -53,13 +60,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal", meta = (ClampMin = "1.0", Units = "cm", ToolTip = "Portal 检测玩家的半径，单位 cm。OnConstruction 会同步预览 Sphere 半径。"))
 	float ActivationRadius = 300.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal", meta = (ClampMin = "1.0", Units = "cm", ToolTip = "玩家按统一交互键 E 启动 Portal Event 的最大距离，单位 cm。与充能半径分开，便于后续交互提示和充能范围分别调参。"))
+	float InteractionRadius = 300.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal", meta = (ClampMin = "0.0", Units = "s", ToolTip = "满足人数后充满 Portal 所需时间，单位秒。0 表示满足条件后立即 ready。"))
 	float ChargeDuration = 5.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug", meta = (ToolTip = "是否输出 Portal 激活、人数、充能、ready 和 reset 日志。只用于验证，不影响玩法。"))
 	bool bLogPortalState = true;
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Portal", meta = (ToolTip = "Portal 从 EncounterCleared 激活时触发的表现 hook。不要在这里推进 RunState。"))
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Portal", meta = (ToolTip = "Portal Event 由玩家交互启动后激活 Portal 时触发的表现 hook。不要在这里推进 RunState。"))
 	void OnPortalActivated();
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Portal", meta = (ToolTip = "Portal 充能开始或暂停时触发的表现 hook。可用于开关特效或音效。"))

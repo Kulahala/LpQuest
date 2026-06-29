@@ -96,7 +96,7 @@ void ATunicGameMode::EvaluatePartyWipe()
 void ATunicGameMode::EvaluateEncounterClear()
 {
 	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
-	if (!HasAuthority() || !TunicGameState || !TunicGameState->IsCombatActive())
+	if (!HasAuthority() || !TunicGameState || TunicGameState->GetRunState() != ETunicRunState::CombatActive)
 	{
 		return;
 	}
@@ -226,10 +226,62 @@ bool ATunicGameMode::TrySelectRunUpgradeForPlayer(ATunicPlayerState* TunicPlayer
 	return true;
 }
 
+bool ATunicGameMode::TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlayer, ATunicPortalActor* PortalActor)
+{
+	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
+	if (!HasAuthority() || !TunicGameState || !InteractingPlayer || !PortalActor)
+	{
+		UE_LOG(LogLpQuestRunState, Warning, TEXT("Portal event start rejected: missing authority, game state, player, or portal | Player=%s | Portal=%s"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor));
+		return false;
+	}
+
+	if (InteractingPlayer->IsDead())
+	{
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Portal event start rejected: dead player | Player=%s | Portal=%s"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor));
+		return false;
+	}
+
+	if (TunicGameState->IsPartyWiped() || TunicGameState->IsFloorTransitionReady())
+	{
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Portal event start rejected: run state does not allow portal interaction | Player=%s | Portal=%s | RunState=%d"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor),
+			static_cast<int32>(TunicGameState->GetRunState()));
+		return false;
+	}
+
+	if (TunicGameState->IsPortalEventActive())
+	{
+		return true;
+	}
+
+	const float InteractionRadius = FMath::Max(1.0f, PortalActor->GetInteractionRadius());
+	const float DistanceSquared2D = FVector::DistSquared2D(InteractingPlayer->GetActorLocation(), PortalActor->GetActorLocation());
+	if (DistanceSquared2D > FMath::Square(InteractionRadius))
+	{
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Portal event start rejected: player outside interaction radius | Player=%s | Portal=%s | Distance=%.1f | Radius=%.1f"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor),
+			FMath::Sqrt(DistanceSquared2D),
+			InteractionRadius);
+		return false;
+	}
+
+	TunicGameState->SetRunState(ETunicRunState::PortalEventActive);
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Run state changed to PortalEventActive | Player=%s | Portal=%s"),
+		*GetNameSafe(InteractingPlayer),
+		*GetNameSafe(PortalActor));
+	return true;
+}
+
 void ATunicGameMode::MarkFloorTransitionReady()
 {
 	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
-	if (!HasAuthority() || !TunicGameState || !TunicGameState->IsEncounterCleared())
+	if (!HasAuthority() || !TunicGameState || !TunicGameState->IsPortalEventActive())
 	{
 		return;
 	}
@@ -323,7 +375,7 @@ void ATunicGameMode::SpawnEncounterForCurrentFloor()
 	}
 
 	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
-	if (!TunicGameState || !TunicGameState->IsCombatActive())
+	if (!TunicGameState || TunicGameState->GetRunState() != ETunicRunState::CombatActive)
 	{
 		return;
 	}
