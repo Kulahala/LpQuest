@@ -102,7 +102,6 @@ void ATunicEnemyCharacter::Tick(float DeltaSeconds)
 
 	EnsureLiveEnemyMovementMode();
 	DrawAttributeDebug();
-	UpdatePrototypeAutoAttack(DeltaSeconds);
 }
 
 void ATunicEnemyCharacter::BeginPlay()
@@ -488,78 +487,6 @@ void ATunicEnemyCharacter::DrawAttributeDebug() const
 		AttributeSet->GetMaxStamina());
 
 	DrawDebugString(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 115.0f), DebugText, nullptr, bIsDead ? FColor::Silver : FColor::Red, 0.0f, true, 1.0f);
-}
-
-void ATunicEnemyCharacter::UpdatePrototypeAutoAttack(float DeltaSeconds)
-{
-	if (!HasAuthority() || !bEnablePrototypeAutoAttack || bIsDead)
-	{
-		return;
-	}
-
-	PrototypeAutoAttackElapsedTime += FMath::Max(0.0f, DeltaSeconds);
-	if (PrototypeAutoAttackElapsedTime < PrototypeAutoAttackInterval)
-	{
-		return;
-	}
-
-	PrototypeAutoAttackElapsedTime = 0.0f;
-	AActor* TargetActor = FindPrototypeAutoAttackTarget();
-	if (!TargetActor)
-	{
-		return;
-	}
-
-	const FVector ToTarget = TargetActor->GetActorLocation() - GetActorLocation();
-	const FVector ToTarget2D(ToTarget.X, ToTarget.Y, 0.0f);
-	if (!ToTarget2D.IsNearlyZero())
-	{
-		SetActorRotation(ToTarget2D.Rotation());
-	}
-
-	TryActivateEnemyMeleeAttack();
-}
-
-AActor* ATunicEnemyCharacter::FindPrototypeAutoAttackTarget() const
-{
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return nullptr;
-	}
-
-	const FVector QueryLocation = GetActorLocation();
-	const FCollisionShape QueryShape = FCollisionShape::MakeSphere(PrototypeAutoAttackRange);
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemyPrototypeAutoAttack), false, this);
-	TArray<FOverlapResult> OverlapResults;
-	World->OverlapMultiByChannel(
-		OverlapResults,
-		QueryLocation,
-		FQuat::Identity,
-		ECC_Pawn,
-		QueryShape,
-		QueryParams);
-
-	AActor* BestTarget = nullptr;
-	float BestDistanceSquared = TNumericLimits<float>::Max();
-	for (const FOverlapResult& OverlapResult : OverlapResults)
-	{
-		AActor* TargetActor = OverlapResult.GetActor();
-		const ITunicCombatTargetInterface* CombatTarget = Cast<ITunicCombatTargetInterface>(TargetActor);
-		if (!TargetActor || !CombatTarget || !CombatTarget->IsCombatTargetAvailable() || CombatTarget->GetCombatTargetTeam() != ETunicCombatTeam::Player)
-		{
-			continue;
-		}
-
-		const float DistanceSquared = FVector::DistSquared2D(QueryLocation, TargetActor->GetActorLocation());
-		if (DistanceSquared < BestDistanceSquared)
-		{
-			BestDistanceSquared = DistanceSquared;
-			BestTarget = TargetActor;
-		}
-	}
-
-	return BestTarget;
 }
 
 void ATunicEnemyCharacter::StartEnemyMeleeTelegraph()

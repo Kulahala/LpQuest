@@ -1416,4 +1416,20 @@ Validation and review:
 - Strict review found no blocking issue. Source and current docs no longer reference `EncounterCleared`, `EvaluateEncounterClear`, `OnEncounterCleared`, or `RequestSelectRunUpgradeStub`.
 - Accepted risk: old Blueprint graphs may still contain orphaned nodes if they referenced removed Blueprint-callable APIs. If encountered, migrate them to the current Portal interaction or `RequestSelectRunUpgrade()` path rather than restoring the removed API.
 
+## Enemy Prototype AutoAttack Cleanup v1
+
+Summary:
+
+- Removed the disabled prototype auto-attack path from `ATunicEnemyCharacter`.
+- Deleted `bEnablePrototypeAutoAttack`, prototype range/interval tuning, the prototype elapsed timer, `UpdatePrototypeAutoAttack()`, and `FindPrototypeAutoAttackTarget()`.
+- Enemy melee attack now depends on the current StateTree / GameplayAbility path: AI requests `TryActivateEnemyMeleeAttack()`, the enemy melee Ability calls `ExecuteEnemyMeleeAttackAbility()`, and telegraph / hit window / attack shape / GameplayEffect damage remain unchanged.
+- `ATunicEnemyCharacter::Tick()` still keeps live movement-mode repair and attribute debug drawing; only the old sphere-overlap auto-attack call was removed.
+- `plan.md` now tracks remaining legacy cleanup candidates after this deletion.
+
+Validation and review:
+
+- User confirmed focused testing passed.
+- Strict review found no blocking issue. No `PrototypeAutoAttack` source references remain, and the formal AIController / GameplayAbility melee chain still exists.
+- Accepted risk: old Blueprint assets may still contain serialized values for the removed prototype fields. If warnings appear, migrate those assets to StateTree attack configuration rather than restoring the old hidden fallback.
+
 

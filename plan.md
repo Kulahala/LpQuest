@@ -29,13 +29,15 @@ Most recent commits:
 
 Current stage:
 
-- Legacy cleanup pass before returning to mainline pickup/drop work.
+- `Enemy Prototype AutoAttack Cleanup v1` implemented and user-validated; strict review completed with no blocking findings.
 - `RunState Cleanup v2` is complete, archived, and committed. Current source/docs no longer reference `EncounterCleared`, `EvaluateEncounterClear`, `OnEncounterCleared`, or `RequestSelectRunUpgradeStub`.
-- Next cleanup candidate: `Enemy Prototype AutoAttack Cleanup v1`, deleting the disabled prototype enemy auto-attack path now that StateTree-driven melee validation covers the current enemy attack flow.
+- Code change: deleted the disabled enemy prototype auto-attack path from `ATunicEnemyCharacter`; enemy melee attack now relies on the StateTree / GameplayAbility path only.
+- Validation: user confirmed focused testing passed.
+- Strict review: no `PrototypeAutoAttack` source references remain; `ATunicEnemyAIController::TryActivateCurrentTargetMeleeAttack()` still calls `TryActivateEnemyMeleeAttack()`, and `UTunicGameplayAbility_EnemyMeleeAttack` still calls `ExecuteEnemyMeleeAttackAbility()`.
+- Accepted risk: old Blueprint assets may show missing-property warnings if they still stored values for the removed prototype fields. Do not restore the old path; migrate those assets to StateTree attack configuration if encountered.
 
 Near-term TODOs:
 
-- `Enemy Prototype AutoAttack Cleanup v1`: remove the disabled `bEnablePrototypeAutoAttack` path, prototype range/interval fields, tick update helper, and target query helper from `ATunicEnemyCharacter`.
 - `Enemy Melee Legacy Sweep Field Cleanup v1`: later, remove old serialized `EnemyMeleeSweep*` fields only after confirming Blueprint assets no longer need compatibility with the replaced capsule sweep tuning.
 - `Player Light Attack Naming Cleanup v1`: later, rename `ApplyLightAttackDebugDamage` when player weapon/attack data stops using the current prototype light-attack bridge.
 - `Enemy Drop Source v1`: after `Pickup / Equipment Interaction v1` exists, add one server-authoritative enemy drop routing path instead of special-casing Boss / pressure / encounter drops separately.

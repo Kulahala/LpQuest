@@ -87,15 +87,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug", meta = (ToolTip = "是否在屏幕/世界中绘制敌人属性调试信息。只用于开发验证。"))
 	bool bDrawAttributeDebug = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Prototype AI", meta = (ToolTip = "旧 prototype 自动攻击开关。正式 AI 应使用 AIController + StateTree，这个只保留作调试 fallback。"))
-	bool bEnablePrototypeAutoAttack = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Prototype AI", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "prototype 自动攻击距离，单位 cm。正式 StateTree AI 不应依赖这个值。"))
-	float PrototypeAutoAttackRange = 260.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Prototype AI", meta = (ClampMin = "0.05", Units = "s", ToolTip = "prototype 自动攻击间隔，单位秒。只用于旧调试路径。"))
-	float PrototypeAutoAttackInterval = 1.0f;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ToolTip = "请求敌人 melee attack 时是否立即跑一次 hit window。用于没有完整动画通知时的 prototype 验证。"))
 	bool bRunEnemyMeleeHitWindowOnRequest = true;
 
@@ -173,8 +164,6 @@ private:
 	void EnsureLiveEnemyMovementMode();
 	void LogEnemyAbilitySystemDebug() const;
 	void DrawAttributeDebug() const;
-	void UpdatePrototypeAutoAttack(float DeltaSeconds);
-	AActor* FindPrototypeAutoAttackTarget() const;
 	void StartEnemyMeleeTelegraph();
 	void FinishEnemyMeleeTelegraphAndAttack();
 	void ClearEnemyMeleeTelegraph();
@@ -211,7 +200,6 @@ private:
 	bool bEnemyMeleeHitWindowActive = false;
 	int32 MeleeAttackMontageActivationSerial = 0;
 	int32 MeleeAttackMontageHitWindowSerial = 0;
-	float PrototypeAutoAttackElapsedTime = 0.0f;
 	FTimerHandle EnemyMeleeTelegraphTimerHandle;
 	TSet<TWeakObjectPtr<AActor>> EnemyMeleeHitTargets;
 };
