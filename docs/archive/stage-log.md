@@ -1432,4 +1432,23 @@ Validation and review:
 - Strict review found no blocking issue. No `PrototypeAutoAttack` source references remain, and the formal AIController / GameplayAbility melee chain still exists.
 - Accepted risk: old Blueprint assets may still contain serialized values for the removed prototype fields. If warnings appear, migrate those assets to StateTree attack configuration rather than restoring the old hidden fallback.
 
+## Enemy Melee Legacy Sweep Field Cleanup v1
+
+Commit:
+
+- Pending commit after archive sync.
+
+Summary:
+
+- Deleted the legacy `EnemyMeleeSweepRadius`, `EnemyMeleeSweepHalfHeight`, `EnemyMeleeSweepStartOffset`, and `EnemyMeleeSweepEndOffset` serialized fields from `ATunicEnemyCharacter`.
+- Enemy melee tuning now exposes only the current fan attack shape fields: range, angle, half-height, and origin forward offset.
+- Renamed the enemy melee hit-window query stat from `EnemyMeleeHitSweep` to `EnemyMeleeAttackShapeOverlap` so the trace name matches the actual overlap-based shape query.
+- The enemy melee telegraph / hit window / damage path is unchanged; only dead legacy tuning surface was removed.
+
+Validation and review:
+
+- User confirmed compile and PIE validation passed.
+- Strict review found no blocking issue. This is a pure cleanup of obsolete serialized fields, not a gameplay change.
+- Accepted risk: old Blueprint assets that still stored the removed legacy fields may show missing-property warnings until they are re-saved against the current fan-shape tuning surface.
+
 

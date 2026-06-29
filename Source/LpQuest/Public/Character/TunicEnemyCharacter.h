@@ -114,18 +114,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Hit Confirmation", meta = (ToolTip = "是否绘制 hit window 实际使用的敌人 melee 扇形攻击范围。只用于验证，不参与伤害判定。"))
 	bool bDrawEnemyMeleeAttackShapeDebug = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Tunic|Combat|Hit Confirmation|Legacy", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "Legacy serialized field：旧 capsule sweep 半径。当前 melee 命中逻辑不读取这个值，请使用 EnemyMeleeAttackRange / Angle / HalfHeight。"))
-	float EnemyMeleeSweepRadius = 65.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Tunic|Combat|Hit Confirmation|Legacy", meta = (ClampMin = "0.0", Units = "cm", ToolTip = "Legacy serialized field：旧 capsule sweep 半高。当前 melee 命中逻辑不读取这个值，请使用 EnemyMeleeAttackRange / Angle / HalfHeight。"))
-	float EnemyMeleeSweepHalfHeight = 75.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Tunic|Combat|Hit Confirmation|Legacy", meta = (Units = "cm", ToolTip = "Legacy serialized field：旧 capsule sweep 起点偏移。当前 melee 命中逻辑不读取这个值，请使用配置化扇形形状。"))
-	FVector EnemyMeleeSweepStartOffset = FVector(55.0f, 0.0f, 45.0f);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Tunic|Combat|Hit Confirmation|Legacy", meta = (Units = "cm", ToolTip = "Legacy serialized field：旧 capsule sweep 终点偏移。当前 melee 命中逻辑不读取这个值，请使用配置化扇形形状。"))
-	FVector EnemyMeleeSweepEndOffset = FVector(190.0f, 0.0f, 45.0f);
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Combat|Debug", meta = (ToolTip = "命中目标时是否应用敌人 melee damage GameplayEffect。只用于当前 prototype 伤害路径。"))
 	bool bApplyEnemyMeleeDamage = true;
 

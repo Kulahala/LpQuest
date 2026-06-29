@@ -192,7 +192,7 @@ void ATunicEnemyCharacter::ProcessEnemyMeleeHitWindow()
 		return;
 	}
 
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemyMeleeHitSweep), false, this);
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemyMeleeAttackShapeOverlap), false, this);
 	TArray<FOverlapResult> OverlapResults;
 	const float OverlapQueryRadius = FMath::Sqrt(FMath::Square(AttackRange) + FMath::Square(AttackHalfHeight));
 	World->OverlapMultiByChannel(

@@ -29,16 +29,15 @@ Most recent commits:
 
 Current stage:
 
-- `Enemy Prototype AutoAttack Cleanup v1` implemented and user-validated; strict review completed with no blocking findings.
-- `RunState Cleanup v2` is complete, archived, and committed. Current source/docs no longer reference `EncounterCleared`, `EvaluateEncounterClear`, `OnEncounterCleared`, or `RequestSelectRunUpgradeStub`.
-- Code change: deleted the disabled enemy prototype auto-attack path from `ATunicEnemyCharacter`; enemy melee attack now relies on the StateTree / GameplayAbility path only.
-- Validation: user confirmed focused testing passed.
-- Strict review: no `PrototypeAutoAttack` source references remain; `ATunicEnemyAIController::TryActivateCurrentTargetMeleeAttack()` still calls `TryActivateEnemyMeleeAttack()`, and `UTunicGameplayAbility_EnemyMeleeAttack` still calls `ExecuteEnemyMeleeAttackAbility()`.
-- Accepted risk: old Blueprint assets may show missing-property warnings if they still stored values for the removed prototype fields. Do not restore the old path; migrate those assets to StateTree attack configuration if encountered.
+- `Enemy Melee Legacy Sweep Field Cleanup v1` is complete, validated, reviewed, and ready to commit after archive sync.
+- `Enemy Prototype AutoAttack Cleanup v1` is complete, archived, and committed.
+- Code change: deleted the old `EnemyMeleeSweep*` serialized fields from `ATunicEnemyCharacter`; enemy melee tuning now exposes only the fan attack shape fields.
+- Code change: renamed the enemy melee hit-window query stat from `EnemyMeleeHitSweep` to `EnemyMeleeAttackShapeOverlap`.
+- Validation: user confirmed focused compile / PIE passed; Guard, SpawnWave, Portal Boss, and Portal pressure enemies still telegraph, hit, and apply damage through the fan attack shape.
+- Strict review: no blocking issue found. The cleanup is a straight removal of dead legacy tuning fields, not a behavior change.
 
 Near-term TODOs:
 
-- `Enemy Melee Legacy Sweep Field Cleanup v1`: later, remove old serialized `EnemyMeleeSweep*` fields only after confirming Blueprint assets no longer need compatibility with the replaced capsule sweep tuning.
 - `Player Light Attack Naming Cleanup v1`: later, rename `ApplyLightAttackDebugDamage` when player weapon/attack data stops using the current prototype light-attack bridge.
 - `Enemy Drop Source v1`: after `Pickup / Equipment Interaction v1` exists, add one server-authoritative enemy drop routing path instead of special-casing Boss / pressure / encounter drops separately.
 - `Enemy Variant Profile Cleanup v2` after current Portal work: when Guard / Wild / Spawn / Elite only differ by tuning, fold them toward one enemy class plus profile DataAssets instead of keeping separate Blueprints for each variant.
