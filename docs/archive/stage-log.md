@@ -1322,7 +1322,7 @@ Validation and review:
 
 Commit:
 
-- `c12eaa1 [Feature] 增加 Portal 测试 Boss 生成（Add Portal Test Boss Spawn）`
+- `aa85bb3 [Feature] 增加 Portal 测试 Boss 生成（Add Portal Test Boss Spawn）`
 
 Summary:
 

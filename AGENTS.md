@@ -115,7 +115,7 @@ Use `plan.md` for the current stage's implementation scope, validation status, s
 
 Do not delete or broadly rewrite `plan.md` just because chat context was compacted, a note looks old, or a previous conversation summary is incomplete. Before cleanup, read `plan.md`'s Active Snapshot, compare it with `git log`, `docs/archive/stage-log.md`, live source/assets, and recent commits, then remove only entries that are confirmed archived, completed, rejected, superseded, or no longer relevant to the near-term work.
 
-Before starting a new stage plan, committing a completed stage, or replacing a failed/superseded stage with a new approach, check whether the previous stage outcome is already recorded in `docs/archive/stage-log.md`. If it is missing, archive the completed, rejected, or superseded stage first, then update `plan.md` to focus only on the current stage and near-term TODOs. Do not archive unfinished plan drafts; archive outcomes.
+After a stage is validated, strict-reviewed, approved, and committed, record that completed stage outcome in `docs/archive/stage-log.md` as part of closeout. If the completed stage appears as a TODO in `tunicplan.md`, remove it from the active TODO list and fold the durable result into the normal roadmap text or a completed-foundation section. Do not turn `tunicplan.md` into a second stage log. Do not archive unfinished plan drafts; archive only completed, rejected, or superseded outcomes.
 
 Do not store reusable compiler/runtime/debugging lessons in `plan.md` except as a brief stage note that the issue occurred and was resolved. Move durable lessons to server-memory MCP.
 
@@ -123,7 +123,7 @@ Keep `ARCHITECTURE.md` focused on stable ownership, flow, boundaries, and class/
 
 If a StateTree, Blueprint, or other authored asset changes the stable gameplay architecture, state flow, ownership boundary, or data source of truth, update `ARCHITECTURE.md` in the same stage. Do not leave asset-only architecture changes documented only in chat or `plan.md`.
 
-When `plan.md` records a StateTree asset handoff, use enough operational detail for the next session to recreate or review the graph: parent/child state topology, enter conditions, tasks, important property bindings, transition triggers, transition conditions including `bInvert`, and required Tasks completion mode. Keep this detailed graph wiring in `plan.md`; keep `ARCHITECTURE.md` at the stable responsibility and state-flow level.
+When `plan.md` records a StateTree asset handoff, use enough operational detail for the next session to recreate or review the graph: parent/child state topology, enter conditions, tasks, important property bindings, transition triggers, transition conditions including `bInvert`, and required Tasks completion mode. Keep stage-specific wiring steps and migration notes in `plan.md`. When that topology becomes the stable expected asset structure, summarize the durable topology in `ARCHITECTURE.md` so future StateTree edits have a current source of truth. Keep full historical graph iterations in `docs/archive/stage-log.md`.
 
 Before any commit, check whether `README.md`, `ARCHITECTURE.md`, and `AGENTS.md` need updates for the completed change. Only update them when their documented scope actually changed.
 
