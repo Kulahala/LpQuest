@@ -72,17 +72,13 @@ No dedicated test module exists yet. For now, every gameplay change should at le
 - Focused single-player PIE check when relevant.
 - Listen-server PIE check for networking-sensitive logic.
 
-For GAS/networking work, verify OwnerActor, AvatarActor, AttributeSet ownership, and replication behavior before adding gameplay on top.
-
-At the end of each stage, do a strict review pass before moving on. Run both a normal review and an adversarial review: first look for bugs, reliability risks, behavior regressions, missing validation, coupling problems, architecture debt, and multiplayer/GAS shortcuts; then defend the key design choices and mark anything that cannot be defended as a risk.
+For GAS/networking work, verify OwnerActor, AvatarActor, AttributeSet ownership, and replication behavior before adding gameplay on top. At the end of each stage, run a strict review pass with both a normal review and an adversarial review.
 
 ## Planning Workflow
 
 For complex, multi-file, architecture-sensitive, networking-sensitive, or asset-heavy tasks, write a concrete plan before implementation. The plan should cover scope, affected systems/files, execution order, validation, documentation impact, and commit boundaries.
 
-The agent must do this proactively even if the user forgets to ask for a plan. Do not start implementing while the plan is still being discovered. If new information materially changes the plan, pause and explain the revised plan before continuing. If the task is borderline, default to writing the plan first and ask for user approval before editing files.
-
-Plans and roadmap constraints are defaults for deliberate work, not permanent bans. If the user's actual requirement conflicts with the current plan or reveals that a planned architecture no longer fits, adjust the plan deliberately: explain the mismatch, compare the viable options, update the relevant docs, and then implement the revised plan after approval.
+The agent must do this proactively even if the user forgets to ask for a plan. Do not start implementing while the plan is still being discovered. If new information materially changes the plan, pause, explain the revised plan, update the relevant docs, and continue only after approval. If the task is borderline, default to writing the plan first and ask for user approval before editing files.
 
 Complex or cross-boundary tasks include:
 
@@ -102,9 +98,7 @@ During the code-writing to compile/runtime-validation loop, proactively query se
 
 If server-memory MCP is unavailable during error复盘, say so explicitly and include the memory lookup that would have been useful. Do not silently skip this step when fixing compile/runtime errors.
 
-Reusable error patterns belong in server-memory MCP, not in `plan.md`. A reusable pattern should include the trigger scenario, typical symptom/error text, wrong approach, correct fix, and applicable scope. `plan.md` may mention that a compile/runtime issue occurred and was fixed during the current stage, but it should not become the long-term error library.
-
-Stage-end strict review does not need server-memory by default. It should focus on live source/assets, architecture boundaries, multiplayer/GAS authority, coupling, validation gaps, and long-term risk. Query server-memory during a review only if the review uncovers an actual error pattern or repeated failure mode that memory could help diagnose.
+Reusable error patterns belong in server-memory MCP, not in `plan.md`. Record trigger scenario, typical symptom/error text, wrong approach, correct fix, and applicable scope in memory; keep `plan.md` to current-stage notes. Stage-end strict review does not need server-memory by default; query it during review only if a concrete repeated error pattern appears.
 
 ## Documentation Roles
 
@@ -148,9 +142,9 @@ If the repository has an explicit commit format, follow it. If not, use bilingua
 
 The Chinese title should describe the actual change. The English title should be concise and natural, not a rigid word-for-word translation. Keep titles short; put complex details in the body.
 
-Simple changes do not need a long body. Use a title-only commit only for narrow changes such as one- or two-file edits, documentation-only wording updates, or small compile fixes.
+Default to writing a commit body. Title-only commits are acceptable only for truly narrow non-behavioral changes such as single-file wording fixes, comment-only edits, or small compile fixes that do not change behavior.
 
-Use a commit body for complex changes, especially changes that include any of the following:
+The following changes must include a commit body:
 
 - C++ plus `.uasset` changes;
 - multiplayer, GAS, replication, RPC, GameplayAbility, or GameplayEffect behavior;
@@ -158,7 +152,7 @@ Use a commit body for complex changes, especially changes that include any of th
 - stage-level feature checkpoints;
 - asset migrations, renames, or LFS-heavy updates.
 
-For complex changes, the body should explain what changed, why it changed, and whether there are migration, compatibility, or validation notes. If the user manually verified behavior, write that as `User confirmed ...`. If validation was not run or was blocked, say so directly instead of implying it passed.
+The body should explain what changed, why it changed, and whether there are migration, compatibility, or validation notes. If the user manually verified behavior, write that as `User confirmed ...`. If validation was not run or was blocked, say so directly instead of implying it passed.
 
 阶段型 gameplay 提交的正文默认使用中文，除类名、函数名、属性名、资产名、GameplayTag、StateTree、Blueprint、GAS、API 等必要专业词汇外，不要用英文段落概括。正文要像阶段收尾摘要，而不是抽象概括；优先贴近“提交内容包括”的风格，用短句写清实现了什么行为、关键默认值或调参、哪些 API/StateTree/权责边界保持不变、文档同步、验证状态，以及 strict review 中修了什么或接受了什么后续 TODO。提交正文应该让以后只看 Git 也能明白本阶段做了什么，不需要回翻聊天记录。
 
@@ -193,6 +187,8 @@ When a new system replaces an old system and the project is still early, prefer 
 If a user request is vague, directionally unclear, or has multiple plausible interpretations that would affect architecture, assets, commits, or gameplay behavior, ask a concise clarifying question before editing.
 
 If a requested approach is technically unsound, high-risk, likely to damage the existing architecture, or clearly worse than another path, push back directly with the technical reason and propose a better alternative.
+
+For low-risk read-only support work, lightweight subagents may be used to locate relevant files, trace call paths, and extract short `plan.md`, roadmap, or documentation excerpts. Keep plan decisions, architecture tradeoffs, multiplayer/GAS authority boundaries, Blueprint or asset architecture judgments, strict review conclusions, and behavior-sensitive implementation choices with the main agent.
 
 Default code-navigation architecture:
 
