@@ -1482,4 +1482,22 @@ Validation and review:
 - Accepted follow-up: `Equipment DataAsset / Inventory Slots v2` must decide duplicate-pickup behavior, because v1 consumes a pickup even when it sets the same `CurrentEquipmentId` again.
 - Accepted follow-up: if local interact prompts are added, they need a read-only presentation query instead of treating the current authority-only `CanInteractWithTunicPlayer()` as client UI truth.
 
+## Enemy Drop Source v1
+
+Summary:
+
+- Added an optional `DroppedPickupClass` to `ATunicEnemyCharacter`.
+- `DroppedPickupClass=None` is a valid silent no-drop configuration.
+- `ATunicGameMode::HandleEnemyDeath()` remains the single enemy-death reward entry: it keeps the existing XP reward-source routing, then spawns the configured pickup on the server from the dead enemy transform.
+- Dropped pickups reuse `ATunicPickupActor`, the unified `E` interaction path, and `ATunicPlayerState::CurrentEquipmentId`.
+- The pickup Blueprint still owns `PickupId`; the enemy only chooses which pickup Actor class to spawn.
+- The stage intentionally does not add drop tables, random weights, rarity, shared/solo ownership policy, inventory, equipment slots, weapon switching, attribute changes, or Ability grants.
+- `ARCHITECTURE.md`, `README.md`, and `plan.md` were synced for the completed stage.
+
+Validation and review:
+
+- User confirmed compile / PIE validation passed.
+- Strict review found no blocking issue. Drop spawning is server-only through `HandleEnemyDeath()`, XP routing remains unchanged, unconfigured enemies do not warn, configured pickup actors still require normal `E` interaction, and pickup consumption updates only the interacting player's replicated `CurrentEquipmentId`.
+- Accepted follow-up: `PickupId` is a v1 bridge payload. `Equipment DataAsset / Inventory Slots v2` should replace or absorb it when weapons need stats, icons, descriptions, Ability grants, switching, duplicate handling, or inventory semantics.
+
 

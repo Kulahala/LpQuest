@@ -21,25 +21,25 @@ Current working state:
 
 Most recent commits:
 
-- Pending commit: `Pickup / Equipment Interaction v1` has been validated, strictly reviewed, and archived.
+- `bf3b338 [Feature] 添加拾取装备交互闭环（Add Pickup Equipment Interaction）`
+- `ea5a693 [Refactor] 清理战斗命中兜底与命名（Clean Combat Hit Window Fallback and Naming）`
 - `7fed449 [Refactor] 清理敌人旧近战扫掠字段（Clean Enemy Legacy Sweep Fields）`
 - `11c435e [Refactor] 删除敌人原型自动攻击（Remove Enemy Prototype AutoAttack）`
-- `1f42212 [Refactor] 清理旧 RunState 和升级 Stub（Clean RunState and Upgrade Stub）`
-- `5fb8499 [Fix] 拆掉敌人清场 RunState 推进（Decouple Enemy Clear RunState）`
-- `1623d91 [Docs] 调整阶段归档提交规则（Refine Stage Archive Commit Rule）`
+- `f04bb2d [Docs] 纳入当前阶段计划（Track Active Stage Plan）`
 
 Current stage:
 
-- No active implementation stage after `Pickup / Equipment Interaction v1`.
-- The pickup stage outcome has been recorded in `docs/archive/stage-log.md` and is ready for the approved commit.
-- Next likely stage: `Enemy Drop Source v1`, using the new pickup path as the world-item consumption endpoint.
+- No active implementation stage after `Enemy Drop Source v1`.
+- `Enemy Drop Source v1` is completed, user build / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
+- Recent implemented foundation: enemies can optionally expose `DroppedPickupClass`; `ATunicGameMode::HandleEnemyDeath()` keeps XP routing, then spawns the configured pickup on server authority. Dropped pickups reuse `ATunicPickupActor`, the unified `E` interaction path, and the replicated `CurrentEquipmentId` bridge.
+- Next stage should be chosen deliberately from the near-term TODOs below rather than inferred from this completed stage.
 
 Near-term TODOs:
 
-- `Enemy Drop Source v1`: after `Pickup / Equipment Interaction v1` exists, add one server-authoritative enemy drop routing path instead of special-casing Boss / pressure / encounter drops separately.
 - `Enemy Variant Profile Cleanup v2` after current Portal work: when Guard / Wild / Spawn / Elite only differ by tuning, fold them toward one enemy class plus profile DataAssets instead of keeping separate Blueprints for each variant.
 - `Safe Travel Portal v1`: later, when safe zones / shop areas / hub return need pure interaction travel, add a separate lightweight interactable travel portal instead of subclassing the combat Portal Event actor or disabling most of its Boss/charging/pressure behavior.
 - `Equipment DataAsset / Inventory Slots v2`: add only when multiple weapons, item stats, icons, descriptions, ability grants, or switching between several carried items become real scope.
+- `Enemy Drop Profile / Equipment DataAsset v2`: add only when several enemies repeat drop setup, random drop pools, rarity, weights, ownership policy, or equipment stats become real scope.
 
 Current accepted risks:
 

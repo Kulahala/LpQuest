@@ -11,6 +11,7 @@
 
 class FLifetimeProperty;
 class AActor;
+class ATunicPickupActor;
 class UAnimMontage;
 class UGameplayAbility;
 class UGameplayEffect;
@@ -33,6 +34,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Rewards", meta = (ToolTip = "敌人死亡时提供的基础 shared XP 奖励值。是否实际发放由 GameMode 的 reward-source 路由决定。"))
 	int32 GetExperienceReward() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|Rewards", meta = (ToolTip = "敌人死亡时由服务器生成的 pickup class。None 表示不掉落。"))
+	TSubclassOf<ATunicPickupActor> GetDroppedPickupClass() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Tunic|Combat", meta = (ToolTip = "请求激活敌人 melee Ability。AI/StateTree 使用；函数本身不直接造成伤害。"))
 	bool TryActivateEnemyMeleeAttack();
@@ -137,6 +141,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Rewards", meta = (ClampMin = "0", ToolTip = "该敌人死亡时提供的基础 shared XP 奖励。是否实际发放由 GameMode 的 reward-source 路由决定。0 表示不给 XP。"))
 	int32 ExperienceReward = 5;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Rewards", meta = (ToolTip = "敌人死亡时由服务器生成的 pickup Blueprint。None 表示不掉落；PickupId 由 pickup Blueprint 自己配置。"))
+	TSubclassOf<ATunicPickupActor> DroppedPickupClass;
 
 private:
 	UFUNCTION()

@@ -7,6 +7,8 @@
 #include "Character/TunicEnemyCharacter.h"
 #include "Character/TunicPlayerCharacter.h"
 #include "Controller/TunicPlayerController.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Game/TunicEncounterSpawner.h"
 #include "Game/TunicGameState.h"
@@ -14,6 +16,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameplayEffect.h"
 #include "GameplayEffectTypes.h"
+#include "Interaction/TunicPickupActor.h"
 #include "Player/TunicPlayerState.h"
 #include "TimerManager.h"
 
@@ -178,6 +181,7 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 			*GetNameSafe(DeadEnemy));
 	}
 
+	SpawnEnemyDropPickup(DeadEnemy);
 }
 
 bool ATunicGameMode::TrySelectRunUpgradeForPlayer(ATunicPlayerState* TunicPlayerState)
@@ -432,5 +436,44 @@ void ATunicGameMode::GrantPendingRunUpgradeChoices(int32 LevelDelta)
 	UE_LOG(LogLpQuestRunState, Display, TEXT("Pending run upgrade choices granted | LevelDelta=%d | Players=%d"),
 		LevelDelta,
 		GrantedPlayerCount);
+}
+
+void ATunicGameMode::SpawnEnemyDropPickup(ATunicEnemyCharacter* DeadEnemy)
+{
+	if (!HasAuthority() || !DeadEnemy)
+	{
+		return;
+	}
+
+	TSubclassOf<ATunicPickupActor> DroppedPickupClass = DeadEnemy->GetDroppedPickupClass();
+	if (!DroppedPickupClass)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = DeadEnemy;
+	SpawnParameters.Instigator = DeadEnemy->GetInstigator();
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	ATunicPickupActor* SpawnedPickup = World->SpawnActor<ATunicPickupActor>(DroppedPickupClass, DeadEnemy->GetActorTransform(), SpawnParameters);
+	if (!SpawnedPickup)
+	{
+		UE_LOG(LogLpQuestRunState, Warning, TEXT("Enemy drop spawn failed | Enemy=%s | PickupClass=%s"),
+			*GetNameSafe(DeadEnemy),
+			*GetNameSafe(DroppedPickupClass.Get()));
+		return;
+	}
+
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Enemy drop spawned | Enemy=%s | Pickup=%s | PickupClass=%s"),
+		*GetNameSafe(DeadEnemy),
+		*GetNameSafe(SpawnedPickup),
+		*GetNameSafe(DroppedPickupClass.Get()));
 }
 

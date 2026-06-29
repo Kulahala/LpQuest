@@ -9,6 +9,7 @@
 class ATunicPlayerState;
 class ATunicPlayerCharacter;
 class ATunicPortalActor;
+class ATunicEnemyCharacter;
 class UGameplayEffect;
 
 UCLASS(Blueprintable)
@@ -25,7 +26,7 @@ public:
 	void EvaluatePartyWipe();
 	bool TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlayer, ATunicPortalActor* PortalActor);
 	void MarkFloorTransitionReady();
-	void HandleEnemyDeath(class ATunicEnemyCharacter* DeadEnemy);
+	void HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy);
 	bool TrySelectRunUpgradeForPlayer(ATunicPlayerState* TunicPlayerState);
 
 protected:
@@ -40,5 +41,6 @@ private:
 	void SpawnEncounterForCurrentFloor();
 	void CompleteFloorTransitionStub();
 	void GrantPendingRunUpgradeChoices(int32 LevelDelta);
+	void SpawnEnemyDropPickup(ATunicEnemyCharacter* DeadEnemy);
 };
 

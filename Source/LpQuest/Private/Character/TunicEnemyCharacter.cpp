@@ -129,6 +129,11 @@ int32 ATunicEnemyCharacter::GetExperienceReward() const
 	return FMath::Max(0, ExperienceReward);
 }
 
+TSubclassOf<ATunicPickupActor> ATunicEnemyCharacter::GetDroppedPickupClass() const
+{
+	return DroppedPickupClass;
+}
+
 bool ATunicEnemyCharacter::TryActivateEnemyMeleeAttack()
 {
 	if (!HasAuthority() || bIsDead || !AbilitySystemComponent)

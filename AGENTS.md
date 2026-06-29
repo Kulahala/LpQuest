@@ -80,6 +80,8 @@ For complex, multi-file, architecture-sensitive, networking-sensitive, or asset-
 
 The agent must do this proactively even if the user forgets to ask for a plan. Do not start implementing while the plan is still being discovered. If new information materially changes the plan, pause, explain the revised plan, update the relevant docs, and continue only after approval. If the task is borderline, default to writing the plan first and ask for user approval before editing files.
 
+When a UE staged plan is requested or `ue-stage-workflow` is used, also use `ponytail` when available to keep the plan minimal, and load the most relevant UE domain skill for the task before finalizing the plan. Pick only the matching skill surface, for example `ue5-world-interaction` for pickups/spawners/portals, `ue5-cpp-gameplay` for Actor/Component/DataAsset C++ work, `ue5-blueprint-workflow` for Blueprint graph work, `ue5-ui-umg-slate` for UI, `ue5-save-load-replication` for save/replication boundaries, `ue5-debug-validation` for bug triage, `ue5-architecture` for module/ownership boundaries, `ue5-performance-packaging` for performance/package readiness, or `unreal-mcp` for live Editor asset work. Do not load broad or unrelated UE skills just because they are available; source/assets remain the primary truth.
+
 Complex or cross-boundary tasks include:
 
 - multi-file C++ changes;
