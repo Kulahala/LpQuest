@@ -1361,4 +1361,26 @@ Validation and review:
 - Strict review found no blocking issue. Pressure spawn is authority-only, waits for the Boss gate, respects the alive cap, does not enter encounter membership, and is cleaned on ready/reset.
 - `Boss Reward v1` remains a separate future follow-up if Boss deaths should start granting XP/drop/reward.
 
+## Enemy Reward Source v1
+
+Commit:
+
+- `1b29094 [Feature] 统一敌人死亡 XP 来源（Unify Enemy Reward Source）`
+
+Summary:
+
+- Unified enemy-death shared XP routing through `ATunicGameMode::HandleEnemyDeath()`.
+- Reward-source order is encounter member, active Portal pressure enemy with remaining budget, active Portal Boss enemy, then none.
+- Portal pressure enemies still consume `PortalPressureExperienceBudget`; Portal Boss enemies use their own `ExperienceReward` and do not need a Boss C++ class or Spawner membership.
+- `ATunicPortalActor` exposes Boss ownership for GameMode reward routing.
+- `ATunicEnemyCharacter::ExperienceReward` tooltip now describes base shared XP, with GameMode deciding whether the reward source is eligible.
+- `ARCHITECTURE.md` and `README.md` record the stable reward-source facts.
+
+Validation and review:
+
+- User confirmed focused validation passed.
+- Strict review found no blocking issue. XP, shared level, and pending upgrade choices remain server-owned through GameMode / GameState / PlayerState.
+- Accepted follow-up: a zero-XP Portal pressure or Portal Boss enemy can still log as having no active reward source. This is harmless for gameplay; add an explicit source-found flag only if zero-XP logging becomes important.
+- `Enemy Drop Source v1` is deferred until `Pickup / Equipment Interaction v1` exists, so enemy drops can use one server-authoritative routing path instead of separate Boss / pressure / encounter branches.
+
 
