@@ -1500,4 +1500,23 @@ Validation and review:
 - Strict review found no blocking issue. Drop spawning is server-only through `HandleEnemyDeath()`, XP routing remains unchanged, unconfigured enemies do not warn, configured pickup actors still require normal `E` interaction, and pickup consumption updates only the interacting player's replicated `CurrentEquipmentId`.
 - Accepted follow-up: `PickupId` is a v1 bridge payload. `Equipment DataAsset / Inventory Slots v2` should replace or absorb it when weapons need stats, icons, descriptions, Ability grants, switching, duplicate handling, or inventory semantics.
 
+## Enemy Spawn Source Foundation v1
+
+Summary:
+
+- Added `ATunicEnemySpawnSource` and `ATunicFloorWaveEnemySpawnSource` as the ordinary floor-wave authored source path.
+- A placed floor-wave spawn source now owns enemy class, count, spawn location, optional random radius, optional NavMesh projection, generated-enemy tracking, cleanup, and floor-wave spawn timing.
+- `SpawnRadius <= 0` uses the spawn source Actor's exact transform without random offset or NavMesh projection. Positive radius samples an XY disk and can project the sampled point to NavMesh.
+- `ATunicGameMode` now scans floor-wave spawn sources during `CombatActive`, resets them during the floor-transition stub, and resolves generated floor-wave XP through spawn-source ownership.
+- Removed the uncommitted `ATunicSpawnPoint` / `BP_SpawnPoint` draft path so ordinary floor waves no longer use the confusing `Spawner + SpawnPoint` split.
+- `ATunicEncounterSpawner` was narrowed to a placed enemy registry for explicit hand-placed encounter members. It no longer owns generated wave class/count/location setup.
+- Portal Boss and Portal pressure spawning remain Portal-owned fixed Actor transform references in this stage.
+- Added current Blueprint assets for the new floor-wave spawn source and placed encounter registry setup.
+
+Validation and review:
+
+- User confirmed compile / PIE validation passed.
+- Strict review found no blocking issue. Ordinary generated wave spawning is server-authoritative, floor-wave ownership remains the XP/drop source for generated enemies, `SpawnRadius=0` keeps exact fixed-point behavior, and Portal Boss / pressure behavior was not migrated accidentally.
+- Accepted follow-up: `ATunicEncounterSpawner` and old `BP_EnemySpawner` naming is now misleading because the class only registers placed enemies. Rename to `PlacedEncounterRegistry` in a focused cleanup stage if the registry remains useful; delete it if hand-placed enemy XP ownership is no longer needed.
+
 

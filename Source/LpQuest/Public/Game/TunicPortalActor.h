@@ -48,6 +48,7 @@ public:
 	float GetInteractionRadius() const;
 
 	bool OwnsPortalBossEnemy(const ATunicEnemyCharacter* EnemyCharacter) const;
+	bool OwnsPortalPressureEnemy(const ATunicEnemyCharacter* EnemyCharacter) const;
 	int32 ConsumePortalPressureExperienceReward(ATunicEnemyCharacter* DeadEnemy);
 	void ResetPortalForNextFloorStub();
 	virtual bool CanInteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer) override;
@@ -121,7 +122,6 @@ private:
 	void SpawnPortalPressureEnemy();
 	FTransform GetNextPortalPressureSpawnTransform();
 	int32 GetAlivePortalPressureEnemyCount() const;
-	bool OwnsPortalPressureEnemy(const ATunicEnemyCharacter* EnemyCharacter) const;
 	bool HasPortalPressureEnemyBeenRewarded(const ATunicEnemyCharacter* EnemyCharacter) const;
 	void CleanupPortalPressureEnemies();
 	bool CountLivingPlayersInRange(int32& OutRequiredLivingPlayerCount, int32& OutPresentLivingPlayerCount) const;

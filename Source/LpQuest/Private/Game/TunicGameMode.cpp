@@ -11,6 +11,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Game/TunicEncounterSpawner.h"
+#include "Game/TunicEnemySpawnSource.h"
 #include "Game/TunicGameState.h"
 #include "Game/TunicPortalActor.h"
 #include "GameFramework/GameStateBase.h"
@@ -28,10 +29,10 @@ struct FTunicResolvedExperienceReward
 {
 	int32 Amount = 0;
 	const TCHAR* Source = TEXT("none");
-	bool bIsEncounterEnemy = false;
+	bool bHasEnemyRewardSource = false;
 };
 
-FTunicResolvedExperienceReward ResolveEnemyExperienceReward(UWorld* World, ATunicEncounterSpawner* EncounterSpawner, ATunicEnemyCharacter* DeadEnemy)
+FTunicResolvedExperienceReward ResolveEnemyExperienceReward(UWorld* World, ATunicEncounterSpawner* PlacedEncounterRegistry, ATunicEnemyCharacter* DeadEnemy)
 {
 	FTunicResolvedExperienceReward Result;
 	if (!World || !DeadEnemy)
@@ -39,11 +40,23 @@ FTunicResolvedExperienceReward ResolveEnemyExperienceReward(UWorld* World, ATuni
 		return Result;
 	}
 
-	Result.bIsEncounterEnemy = EncounterSpawner && EncounterSpawner->IsEncounterEnemy(DeadEnemy);
-	if (Result.bIsEncounterEnemy)
+	for (TActorIterator<ATunicFloorWaveEnemySpawnSource> SpawnSourceIt(World); SpawnSourceIt; ++SpawnSourceIt)
 	{
+		const ATunicFloorWaveEnemySpawnSource* SpawnSource = *SpawnSourceIt;
+		if (SpawnSource && SpawnSource->OwnsSpawnedEnemy(DeadEnemy))
+		{
+			Result.bHasEnemyRewardSource = true;
+			Result.Amount = DeadEnemy->GetExperienceReward();
+			Result.Source = TEXT("floor wave");
+			return Result;
+		}
+	}
+
+	if (PlacedEncounterRegistry && PlacedEncounterRegistry->IsEncounterEnemy(DeadEnemy))
+	{
+		Result.bHasEnemyRewardSource = true;
 		Result.Amount = DeadEnemy->GetExperienceReward();
-		Result.Source = TEXT("encounter");
+		Result.Source = TEXT("placed encounter");
 		return Result;
 	}
 
@@ -55,15 +68,17 @@ FTunicResolvedExperienceReward ResolveEnemyExperienceReward(UWorld* World, ATuni
 			continue;
 		}
 
-		Result.Amount = PortalActor->ConsumePortalPressureExperienceReward(DeadEnemy);
-		if (Result.Amount > 0)
+		if (PortalActor->OwnsPortalPressureEnemy(DeadEnemy))
 		{
+			Result.bHasEnemyRewardSource = true;
+			Result.Amount = PortalActor->ConsumePortalPressureExperienceReward(DeadEnemy);
 			Result.Source = TEXT("portal pressure");
 			return Result;
 		}
 
 		if (PortalActor->OwnsPortalBossEnemy(DeadEnemy))
 		{
+			Result.bHasEnemyRewardSource = true;
 			Result.Amount = DeadEnemy->GetExperienceReward();
 			Result.Source = TEXT("portal boss");
 			return Result;
@@ -87,7 +102,7 @@ void ATunicGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SpawnEncounterForCurrentFloor();
+	SpawnFloorWavesForCurrentFloor();
 }
 
 void ATunicGameMode::Logout(AController* Exiting)
@@ -156,8 +171,8 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 		return;
 	}
 
-	ATunicEncounterSpawner* EncounterSpawner = FindEncounterSpawner();
-	const FTunicResolvedExperienceReward ResolvedReward = ResolveEnemyExperienceReward(GetWorld(), EncounterSpawner, DeadEnemy);
+	ATunicEncounterSpawner* PlacedEncounterRegistry = FindPlacedEncounterRegistry();
+	const FTunicResolvedExperienceReward ResolvedReward = ResolveEnemyExperienceReward(GetWorld(), PlacedEncounterRegistry, DeadEnemy);
 
 	if (ResolvedReward.Amount > 0)
 	{
@@ -175,7 +190,7 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 			ResolvedReward.Source,
 			TunicGameState->GetSharedRunExperience());
 	}
-	else if (!ResolvedReward.bIsEncounterEnemy)
+	else if (!ResolvedReward.bHasEnemyRewardSource)
 	{
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP skipped: enemy has no active reward source | Enemy=%s"),
 			*GetNameSafe(DeadEnemy));
@@ -345,31 +360,31 @@ void ATunicGameMode::CompleteFloorTransitionStub()
 		++ResetPortalCount;
 	}
 
-	int32 ResetSpawnerCount = 0;
-	for (TActorIterator<ATunicEncounterSpawner> SpawnerIt(GetWorld()); SpawnerIt; ++SpawnerIt)
+	int32 ResetSpawnSourceCount = 0;
+	for (TActorIterator<ATunicFloorWaveEnemySpawnSource> SpawnSourceIt(GetWorld()); SpawnSourceIt; ++SpawnSourceIt)
 	{
-		ATunicEncounterSpawner* EncounterSpawner = *SpawnerIt;
-		if (!EncounterSpawner)
+		ATunicFloorWaveEnemySpawnSource* SpawnSource = *SpawnSourceIt;
+		if (!SpawnSource)
 		{
 			continue;
 		}
 
-		EncounterSpawner->ResetEncounterForNextFloor();
-		++ResetSpawnerCount;
+		SpawnSource->ResetForNextFloor();
+		++ResetSpawnSourceCount;
 	}
 
 	TunicGameState->SetCurrentFloorIndex(NewFloorIndex);
 	TunicGameState->SetRunState(ETunicRunState::CombatActive);
-	SpawnEncounterForCurrentFloor();
+	SpawnFloorWavesForCurrentFloor();
 
-	UE_LOG(LogLpQuestRunState, Display, TEXT("Floor transition stub completed | PreviousFloor=%d | NewFloor=%d | ResetPortals=%d | ResetSpawners=%d"),
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Floor transition stub completed | PreviousFloor=%d | NewFloor=%d | ResetPortals=%d | ResetSpawnSources=%d"),
 		PreviousFloorIndex,
 		NewFloorIndex,
 		ResetPortalCount,
-		ResetSpawnerCount);
+		ResetSpawnSourceCount);
 }
 
-ATunicEncounterSpawner* ATunicGameMode::FindEncounterSpawner() const
+ATunicEncounterSpawner* ATunicGameMode::FindPlacedEncounterRegistry() const
 {
 	UWorld* World = GetWorld();
 	if (!World)
@@ -389,7 +404,7 @@ ATunicEncounterSpawner* ATunicGameMode::FindEncounterSpawner() const
 	return nullptr;
 }
 
-void ATunicGameMode::SpawnEncounterForCurrentFloor()
+void ATunicGameMode::SpawnFloorWavesForCurrentFloor()
 {
 	if (!HasAuthority())
 	{
@@ -402,15 +417,31 @@ void ATunicGameMode::SpawnEncounterForCurrentFloor()
 		return;
 	}
 
-	ATunicEncounterSpawner* EncounterSpawner = FindEncounterSpawner();
-	if (!EncounterSpawner)
+	int32 SpawnSourceCount = 0;
+	int32 SpawnedEnemyCount = 0;
+	for (TActorIterator<ATunicFloorWaveEnemySpawnSource> SpawnSourceIt(GetWorld()); SpawnSourceIt; ++SpawnSourceIt)
 	{
-		UE_LOG(LogLpQuestRunState, Display, TEXT("Encounter spawn skipped: no encounter spawner | Floor=%d"),
+		ATunicFloorWaveEnemySpawnSource* SpawnSource = *SpawnSourceIt;
+		if (!SpawnSource)
+		{
+			continue;
+		}
+
+		++SpawnSourceCount;
+		SpawnedEnemyCount += SpawnSource->SpawnForFloor(TunicGameState->GetCurrentFloorIndex());
+	}
+
+	if (SpawnSourceCount <= 0)
+	{
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Floor wave spawn skipped: no floor wave enemy spawn sources | Floor=%d"),
 			TunicGameState->GetCurrentFloorIndex());
 		return;
 	}
 
-	EncounterSpawner->SpawnEncounterForFloor(TunicGameState->GetCurrentFloorIndex());
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Floor wave spawn completed | Floor=%d | SpawnSources=%d | SpawnedEnemies=%d"),
+		TunicGameState->GetCurrentFloorIndex(),
+		SpawnSourceCount,
+		SpawnedEnemyCount);
 }
 
 void ATunicGameMode::GrantPendingRunUpgradeChoices(int32 LevelDelta)

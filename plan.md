@@ -12,26 +12,27 @@ Reusable compiler/runtime/debugging lessons belong in server-memory MCP, not in 
 
 Current working state:
 
-- Core loop is in place: server-authoritative player/enemy combat, enemy death, player death v1, RunState, Portal Event, Floor Stub, Spawner, Shared XP, shared run Level, pending upgrade choices, and fixed run-local upgrade selection.
+- Core loop is in place: server-authoritative player/enemy combat, enemy death, player death v1, RunState, Portal Event, Floor Stub, floor-wave spawn sources, placed enemy registry, Shared XP, shared run Level, pending upgrade choices, and fixed run-local upgrade selection.
 - Enemy AI uses `ATunicEnemyAIController` + StateTree + Sight/awareness policy + last-known investigation state + spline patrol route. StateTree owns intent flow; GameplayAbility / combat hit windows own final attack results.
 - Enemy melee attack uses `GameplayAbility -> telegraph -> Montage -> AnimNotify hit window -> server attack shape query -> GameplayEffect damage`; missing Montage or missing hit-window Notify should fail visibly instead of applying fallback damage.
 - Dodge movement is client-predicted through GAS `LocalPredicted` activation and `UAbilityTask_ApplyRootMotionConstantForce`; invulnerability, damage immunity, cooldown/action-lock, Health, and final correction remain server-authoritative.
-- Encounter membership supports generated enemies plus explicit `PlacedEncounterEnemies`. Registered placed enemies can grant XP through encounter ownership; unregistered placed enemies do not. Ordinary enemy death does not move RunState out of `CombatActive`.
+- Ordinary floor waves now use placed `ATunicFloorWaveEnemySpawnSource` actors as the single authored source for enemy class, count, location, optional radius sampling, tracking, cleanup, and XP/drop ownership.
+- `ATunicEncounterSpawner` is retained only as a placed enemy registry for explicit hand-placed encounter members. Registered placed enemies can grant XP through encounter ownership; unregistered placed enemies do not. Ordinary enemy death does not move RunState out of `CombatActive`.
 - Portal Event can be started through the unified `E` interact path. Portal can spawn one configured existing enemy Blueprint as a test Boss; charging is blocked until that Boss is dead or gone.
 
 Most recent commits:
 
+- `f957a7b [Feature] 添加敌人死亡拾取掉落（Add Enemy Drop Pickup Source）`
 - `bf3b338 [Feature] 添加拾取装备交互闭环（Add Pickup Equipment Interaction）`
 - `ea5a693 [Refactor] 清理战斗命中兜底与命名（Clean Combat Hit Window Fallback and Naming）`
 - `7fed449 [Refactor] 清理敌人旧近战扫掠字段（Clean Enemy Legacy Sweep Fields）`
 - `11c435e [Refactor] 删除敌人原型自动攻击（Remove Enemy Prototype AutoAttack）`
-- `f04bb2d [Docs] 纳入当前阶段计划（Track Active Stage Plan）`
 
 Current stage:
 
-- No active implementation stage after `Enemy Drop Source v1`.
-- `Enemy Drop Source v1` is completed, user build / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
-- Recent implemented foundation: enemies can optionally expose `DroppedPickupClass`; `ATunicGameMode::HandleEnemyDeath()` keeps XP routing, then spawns the configured pickup on server authority. Dropped pickups reuse `ATunicPickupActor`, the unified `E` interaction path, and the replicated `CurrentEquipmentId` bridge.
+- No active implementation stage after `Enemy Spawn Source Foundation v1`.
+- `Enemy Spawn Source Foundation v1` is completed, user build / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
+- Recent implemented foundation: ordinary floor waves now use placed `ATunicFloorWaveEnemySpawnSource` actors as the single authored source for enemy class, count, spawn location, optional radius sampling, NavMesh projection, generated enemy tracking, cleanup, and XP/drop ownership.
 - Next stage should be chosen deliberately from the near-term TODOs below rather than inferred from this completed stage.
 
 Near-term TODOs:
@@ -43,8 +44,9 @@ Near-term TODOs:
 
 Current accepted risks:
 
-- Pressure spawn uses Portal-local logic and a world iterator XP hook rather than a generic Director. Add `Spawn Director / Spawn Profile v2` only when exploration spawns, portal pressure, Boss minions, or floor scaling repeat the same spawn ownership logic.
-- Pressure spawn points are simple actor references on the Portal. Add richer spawn selection only when map layout, navigation safety, or enemy archetype rules need it.
+- `ATunicEncounterSpawner` and old `BP_EnemySpawner` naming is now misleading because the class only registers placed enemies. Rename to `PlacedEncounterRegistry` in a focused cleanup stage if the registry remains useful; delete it if hand-placed enemy XP ownership is no longer needed.
+- Pressure spawn uses Portal-local logic and a world iterator XP hook rather than the floor-wave spawn source. Add `Portal Spawn Source Integration v2` or `Spawn Director / Spawn Profile v2` only when exploration spawns, portal pressure, Boss minions, or floor scaling repeat the same spawn ownership logic.
+- Pressure spawn points are simple fixed Actor references on the Portal. Add richer spawn selection only when map layout, navigation safety, or enemy archetype rules need it.
 - Boss v1 remains an existing enemy Blueprint spawned by Portal. Add Boss-specific class/component only when phase logic, Boss UI, arena mechanics, or dedicated Boss-only state appears.
 - Portal Event state is still global. Add per-portal event ownership only when multiple active portals can coexist.
 - Player death v1 is still one-way. Revive, respawn, spectator/free-camera, party wipe resolution, and floor fail UI remain deferred.

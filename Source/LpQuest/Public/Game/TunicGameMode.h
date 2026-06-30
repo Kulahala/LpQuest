@@ -37,8 +37,8 @@ protected:
 	TSubclassOf<UGameplayEffect> DefaultRunUpgradeGameplayEffectClass;
 
 private:
-	class ATunicEncounterSpawner* FindEncounterSpawner() const;
-	void SpawnEncounterForCurrentFloor();
+	class ATunicEncounterSpawner* FindPlacedEncounterRegistry() const;
+	void SpawnFloorWavesForCurrentFloor();
 	void CompleteFloorTransitionStub();
 	void GrantPendingRunUpgradeChoices(int32 LevelDelta);
 	void SpawnEnemyDropPickup(ATunicEnemyCharacter* DeadEnemy);
