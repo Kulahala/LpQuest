@@ -47,9 +47,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|Portal", meta = (ToolTip = "Portal 交互半径，单位 cm。玩家在范围内按统一交互键 E，服务器验证后可启动 Portal Event。"))
 	float GetInteractionRadius() const;
 
-	bool OwnsPortalBossEnemy(const ATunicEnemyCharacter* EnemyCharacter) const;
-	bool OwnsPortalPressureEnemy(const ATunicEnemyCharacter* EnemyCharacter) const;
-	int32 ConsumePortalPressureExperienceReward(ATunicEnemyCharacter* DeadEnemy);
 	void ResetPortalForNextFloorStub();
 	virtual bool CanInteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer) override;
 	virtual void InteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer) override;
@@ -88,9 +85,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal|Pressure", meta = (ClampMin = "0", ToolTip = "同一 Portal Event 中最多同时存活的压力怪数量。0 表示不生成压力怪。"))
 	int32 MaxAlivePortalPressureEnemies = 4;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal|Pressure", meta = (ClampMin = "0", ToolTip = "同一 Portal Event 中压力怪最多可授予的共享 XP 总预算。0 表示压力怪不给 XP。"))
-	int32 PortalPressureExperienceBudget = 100;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Debug", meta = (ToolTip = "是否输出 Portal 激活、人数、充能、ready 和 reset 日志。只用于验证，不影响玩法。"))
 	bool bLogPortalState = true;
 
@@ -122,7 +116,6 @@ private:
 	void SpawnPortalPressureEnemy();
 	FTransform GetNextPortalPressureSpawnTransform();
 	int32 GetAlivePortalPressureEnemyCount() const;
-	bool HasPortalPressureEnemyBeenRewarded(const ATunicEnemyCharacter* EnemyCharacter) const;
 	void CleanupPortalPressureEnemies();
 	bool CountLivingPlayersInRange(int32& OutRequiredLivingPlayerCount, int32& OutPresentLivingPlayerCount) const;
 	void UpdatePortalRadiusPreview();
@@ -171,8 +164,6 @@ private:
 	TWeakObjectPtr<ATunicEnemyCharacter> SpawnedPortalBossEnemy;
 	bool bPortalBossSpawnFailed = false;
 	TArray<TWeakObjectPtr<ATunicEnemyCharacter>> SpawnedPortalPressureEnemies;
-	TArray<TWeakObjectPtr<ATunicEnemyCharacter>> RewardedPortalPressureEnemies;
 	float PortalPressureSpawnTimer = 0.0f;
 	int32 PortalPressureSpawnPointIndex = 0;
-	int32 RemainingPortalPressureExperienceBudget = 0;
 };

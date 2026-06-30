@@ -60,24 +60,6 @@ int32 ATunicEnemySpawnSource::GetAliveSpawnedEnemyCount() const
 	return AliveEnemyCount;
 }
 
-bool ATunicEnemySpawnSource::OwnsSpawnedEnemy(const ATunicEnemyCharacter* EnemyCharacter) const
-{
-	if (!EnemyCharacter)
-	{
-		return false;
-	}
-
-	for (const TWeakObjectPtr<ATunicEnemyCharacter>& EnemyPtr : SpawnedEnemies)
-	{
-		if (EnemyPtr.Get() == EnemyCharacter)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
 int32 ATunicEnemySpawnSource::SpawnEnemies()
 {
 	if (!HasAuthority())

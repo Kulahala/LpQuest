@@ -10,7 +10,6 @@
 #include "Engine/EngineTypes.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
-#include "Game/TunicEncounterSpawner.h"
 #include "Game/TunicEnemySpawnSource.h"
 #include "Game/TunicGameState.h"
 #include "Game/TunicPortalActor.h"
@@ -22,72 +21,6 @@
 #include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLpQuestRunState, Log, All);
-
-namespace
-{
-struct FTunicResolvedExperienceReward
-{
-	int32 Amount = 0;
-	const TCHAR* Source = TEXT("none");
-	bool bHasEnemyRewardSource = false;
-};
-
-FTunicResolvedExperienceReward ResolveEnemyExperienceReward(UWorld* World, ATunicEncounterSpawner* PlacedEncounterRegistry, ATunicEnemyCharacter* DeadEnemy)
-{
-	FTunicResolvedExperienceReward Result;
-	if (!World || !DeadEnemy)
-	{
-		return Result;
-	}
-
-	for (TActorIterator<ATunicFloorWaveEnemySpawnSource> SpawnSourceIt(World); SpawnSourceIt; ++SpawnSourceIt)
-	{
-		const ATunicFloorWaveEnemySpawnSource* SpawnSource = *SpawnSourceIt;
-		if (SpawnSource && SpawnSource->OwnsSpawnedEnemy(DeadEnemy))
-		{
-			Result.bHasEnemyRewardSource = true;
-			Result.Amount = DeadEnemy->GetExperienceReward();
-			Result.Source = TEXT("floor wave");
-			return Result;
-		}
-	}
-
-	if (PlacedEncounterRegistry && PlacedEncounterRegistry->IsEncounterEnemy(DeadEnemy))
-	{
-		Result.bHasEnemyRewardSource = true;
-		Result.Amount = DeadEnemy->GetExperienceReward();
-		Result.Source = TEXT("placed encounter");
-		return Result;
-	}
-
-	for (TActorIterator<ATunicPortalActor> PortalIt(World); PortalIt; ++PortalIt)
-	{
-		ATunicPortalActor* PortalActor = *PortalIt;
-		if (!PortalActor || !PortalActor->IsPortalActive())
-		{
-			continue;
-		}
-
-		if (PortalActor->OwnsPortalPressureEnemy(DeadEnemy))
-		{
-			Result.bHasEnemyRewardSource = true;
-			Result.Amount = PortalActor->ConsumePortalPressureExperienceReward(DeadEnemy);
-			Result.Source = TEXT("portal pressure");
-			return Result;
-		}
-
-		if (PortalActor->OwnsPortalBossEnemy(DeadEnemy))
-		{
-			Result.bHasEnemyRewardSource = true;
-			Result.Amount = DeadEnemy->GetExperienceReward();
-			Result.Source = TEXT("portal boss");
-			return Result;
-		}
-	}
-
-	return Result;
-}
-}
 
 ATunicGameMode::ATunicGameMode()
 {
@@ -171,28 +104,26 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 		return;
 	}
 
-	ATunicEncounterSpawner* PlacedEncounterRegistry = FindPlacedEncounterRegistry();
-	const FTunicResolvedExperienceReward ResolvedReward = ResolveEnemyExperienceReward(GetWorld(), PlacedEncounterRegistry, DeadEnemy);
+	const int32 ExperienceReward = DeadEnemy->GetExperienceReward();
 
-	if (ResolvedReward.Amount > 0)
+	if (ExperienceReward > 0)
 	{
 		const int32 OldSharedRunLevel = TunicGameState->GetSharedRunLevel();
-		TunicGameState->AddSharedRunExperience(ResolvedReward.Amount, DeadEnemy);
+		TunicGameState->AddSharedRunExperience(ExperienceReward, DeadEnemy);
 		const int32 NewSharedRunLevel = TunicGameState->GetSharedRunLevel();
 		if (NewSharedRunLevel > OldSharedRunLevel)
 		{
 			GrantPendingRunUpgradeChoices(NewSharedRunLevel - OldSharedRunLevel);
 		}
 
-		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP awarded | Enemy=%s | Amount=%d | Source=%s | TotalSharedXP=%d"),
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP awarded | Enemy=%s | Amount=%d | Source=enemy config | TotalSharedXP=%d"),
 			*GetNameSafe(DeadEnemy),
-			ResolvedReward.Amount,
-			ResolvedReward.Source,
+			ExperienceReward,
 			TunicGameState->GetSharedRunExperience());
 	}
-	else if (!ResolvedReward.bHasEnemyRewardSource)
+	else
 	{
-		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP skipped: enemy has no active reward source | Enemy=%s"),
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP skipped: enemy ExperienceReward is 0 | Enemy=%s"),
 			*GetNameSafe(DeadEnemy));
 	}
 
@@ -382,26 +313,6 @@ void ATunicGameMode::CompleteFloorTransitionStub()
 		NewFloorIndex,
 		ResetPortalCount,
 		ResetSpawnSourceCount);
-}
-
-ATunicEncounterSpawner* ATunicGameMode::FindPlacedEncounterRegistry() const
-{
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return nullptr;
-	}
-
-	for (TActorIterator<ATunicEncounterSpawner> SpawnerIt(World); SpawnerIt; ++SpawnerIt)
-	{
-		ATunicEncounterSpawner* EncounterSpawner = *SpawnerIt;
-		if (EncounterSpawner)
-		{
-			return EncounterSpawner;
-		}
-	}
-
-	return nullptr;
 }
 
 void ATunicGameMode::SpawnFloorWavesForCurrentFloor()

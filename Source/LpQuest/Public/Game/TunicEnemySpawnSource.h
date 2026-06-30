@@ -26,7 +26,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|Spawn", meta = (ToolTip = "返回本生成源当前仍存活的 generated 敌人数量。"))
 	int32 GetAliveSpawnedEnemyCount() const;
 
-	bool OwnsSpawnedEnemy(const ATunicEnemyCharacter* EnemyCharacter) const;
 	int32 SpawnEnemies();
 	void CleanupSpawnedEnemies();
 

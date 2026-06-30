@@ -1519,4 +1519,22 @@ Validation and review:
 - Strict review found no blocking issue. Ordinary generated wave spawning is server-authoritative, floor-wave ownership remains the XP/drop source for generated enemies, `SpawnRadius=0` keeps exact fixed-point behavior, and Portal Boss / pressure behavior was not migrated accidentally.
 - Accepted follow-up: `ATunicEncounterSpawner` and old `BP_EnemySpawner` naming is now misleading because the class only registers placed enemies. Rename to `PlacedEncounterRegistry` in a focused cleanup stage if the registry remains useful; delete it if hand-placed enemy XP ownership is no longer needed.
 
+## Enemy Reward Ownership Cleanup v1
+
+Summary:
+
+- Simplified enemy death XP routing so every enemy that reaches `ATunicGameMode::HandleEnemyDeath()` grants shared XP from its own `ExperienceReward`.
+- `ExperienceReward=0` is now the supported no-XP configuration for ordinary enemies, hand-placed enemies, Portal Bosses, and Portal pressure enemies.
+- Removed the old `ATunicEncounterSpawner` C++ registry and the placed registry assets because hand-placed enemies no longer need explicit registration to grant XP.
+- Removed Portal pressure XP budget state/API. Portal pressure enemies now use the same enemy-configured XP rule as every other enemy.
+- Kept enemy drop spawning on the same GameMode death path; `DroppedPickupClass` behavior was not changed.
+- Spawn sources still track and clean up generated enemies, but no longer participate in reward ownership.
+- `ARCHITECTURE.md`, `README.md`, and `plan.md` were synced for the completed stage.
+
+Validation and review:
+
+- User confirmed compile / PIE validation passed.
+- Strict review found no blocking issue. XP, shared level, and pending upgrade choices remain server-owned through GameMode / GameState / PlayerState.
+- Accepted risk: pressure enemies can grant unlimited XP if their Blueprint keeps nonzero `ExperienceReward` and players prolong the Portal event. Current v1 policy is to configure pressure-only no-XP enemies with `ExperienceReward=0`; add `Enemy Reward Profile` or `Spawn Director` only when design needs justify it.
+
 

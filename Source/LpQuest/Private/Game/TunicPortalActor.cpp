@@ -108,45 +108,6 @@ float ATunicPortalActor::GetInteractionRadius() const
 	return InteractionRadius;
 }
 
-bool ATunicPortalActor::OwnsPortalBossEnemy(const ATunicEnemyCharacter* EnemyCharacter) const
-{
-	return EnemyCharacter && SpawnedPortalBossEnemy.Get() == EnemyCharacter;
-}
-
-int32 ATunicPortalActor::ConsumePortalPressureExperienceReward(ATunicEnemyCharacter* DeadEnemy)
-{
-	if (!HasAuthority() || !DeadEnemy || !OwnsPortalPressureEnemy(DeadEnemy) || HasPortalPressureEnemyBeenRewarded(DeadEnemy))
-	{
-		return 0;
-	}
-
-	RewardedPortalPressureEnemies.Add(DeadEnemy);
-	if (RemainingPortalPressureExperienceBudget <= 0)
-	{
-		if (bLogPortalState)
-		{
-			UE_LOG(LogLpQuestPortal, Display, TEXT("Portal pressure XP skipped: budget exhausted | Portal=%s | Enemy=%s"),
-				*GetNameSafe(this),
-				*GetNameSafe(DeadEnemy));
-		}
-		return 0;
-	}
-
-	const int32 RewardAmount = FMath::Min(DeadEnemy->GetExperienceReward(), RemainingPortalPressureExperienceBudget);
-	RemainingPortalPressureExperienceBudget -= RewardAmount;
-
-	if (bLogPortalState)
-	{
-		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal pressure XP consumed | Portal=%s | Enemy=%s | Amount=%d | RemainingBudget=%d"),
-			*GetNameSafe(this),
-			*GetNameSafe(DeadEnemy),
-			RewardAmount,
-			RemainingPortalPressureExperienceBudget);
-	}
-
-	return RewardAmount;
-}
-
 void ATunicPortalActor::ResetPortalForNextFloorStub()
 {
 	if (!HasAuthority())
@@ -371,10 +332,8 @@ void ATunicPortalActor::CleanupPortalBoss()
 void ATunicPortalActor::ResetPortalPressureState()
 {
 	SpawnedPortalPressureEnemies.Reset();
-	RewardedPortalPressureEnemies.Reset();
 	PortalPressureSpawnTimer = FMath::Max(0.1f, PortalPressureSpawnInterval);
 	PortalPressureSpawnPointIndex = 0;
-	RemainingPortalPressureExperienceBudget = FMath::Max(0, PortalPressureExperienceBudget);
 }
 
 void ATunicPortalActor::TickPortalPressureSpawns(float DeltaSeconds)
@@ -435,12 +394,11 @@ void ATunicPortalActor::SpawnPortalPressureEnemy()
 	SpawnedPortalPressureEnemies.Add(SpawnedEnemy);
 	if (bLogPortalState)
 	{
-		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal pressure enemy spawned | Portal=%s | Enemy=%s | Alive=%d/%d | RemainingXPBudget=%d"),
+		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal pressure enemy spawned | Portal=%s | Enemy=%s | Alive=%d/%d"),
 			*GetNameSafe(this),
 			*GetNameSafe(SpawnedEnemy),
 			GetAlivePortalPressureEnemyCount(),
-			MaxAlivePortalPressureEnemies,
-			RemainingPortalPressureExperienceBudget);
+			MaxAlivePortalPressureEnemies);
 	}
 }
 
@@ -482,40 +440,6 @@ int32 ATunicPortalActor::GetAlivePortalPressureEnemyCount() const
 	return AliveCount;
 }
 
-bool ATunicPortalActor::OwnsPortalPressureEnemy(const ATunicEnemyCharacter* EnemyCharacter) const
-{
-	if (!EnemyCharacter)
-	{
-		return false;
-	}
-
-	for (const TWeakObjectPtr<ATunicEnemyCharacter>& PressureEnemy : SpawnedPortalPressureEnemies)
-	{
-		if (PressureEnemy.Get() == EnemyCharacter)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-bool ATunicPortalActor::HasPortalPressureEnemyBeenRewarded(const ATunicEnemyCharacter* EnemyCharacter) const
-{
-	if (!EnemyCharacter)
-	{
-		return false;
-	}
-
-	for (const TWeakObjectPtr<ATunicEnemyCharacter>& RewardedEnemy : RewardedPortalPressureEnemies)
-	{
-		if (RewardedEnemy.Get() == EnemyCharacter)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
 void ATunicPortalActor::CleanupPortalPressureEnemies()
 {
 	for (const TWeakObjectPtr<ATunicEnemyCharacter>& PressureEnemy : SpawnedPortalPressureEnemies)
@@ -527,7 +451,6 @@ void ATunicPortalActor::CleanupPortalPressureEnemies()
 	}
 
 	SpawnedPortalPressureEnemies.Reset();
-	RewardedPortalPressureEnemies.Reset();
 }
 
 bool ATunicPortalActor::CountLivingPlayersInRange(int32& OutRequiredLivingPlayerCount, int32& OutPresentLivingPlayerCount) const
