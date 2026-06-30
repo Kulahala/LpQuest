@@ -5,10 +5,21 @@
 #include "Character/TunicEnemyCharacter.h"
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
 #include "NavigationSystem.h"
+#include "UObject/ConstructorHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLpQuestSpawnSource, Log, All);
+
+namespace
+{
+	UStaticMesh* GetDefaultMarkerSphereMesh()
+	{
+		static ConstructorHelpers::FObjectFinder<UStaticMesh> MarkerMeshFinder(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+		return MarkerMeshFinder.Object;
+	}
+}
 
 ATunicEnemySpawnSource::ATunicEnemySpawnSource()
 {
@@ -22,6 +33,13 @@ ATunicEnemySpawnSource::ATunicEnemySpawnSource()
 	RadiusPreview->SetupAttachment(SceneRoot);
 	RadiusPreview->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	RadiusPreview->SetSphereRadius(SpawnRadius);
+
+	SpawnSourceEditorMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SpawnSourceEditorMarker"));
+	SpawnSourceEditorMarker->SetupAttachment(SceneRoot);
+	SpawnSourceEditorMarker->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	SpawnSourceEditorMarker->SetHiddenInGame(true);
+	SpawnSourceEditorMarker->SetRelativeScale3D(FVector(0.35f));
+	SpawnSourceEditorMarker->SetStaticMesh(GetDefaultMarkerSphereMesh());
 }
 
 void ATunicEnemySpawnSource::OnConstruction(const FTransform& Transform)

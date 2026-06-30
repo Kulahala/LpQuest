@@ -12,6 +12,7 @@ class ATunicPlayerCharacter;
 class FLifetimeProperty;
 class USceneComponent;
 class USphereComponent;
+class UStaticMeshComponent;
 
 UENUM(BlueprintType)
 enum class ETunicPortalCompletionMode : uint8
@@ -73,6 +74,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Portal")
 	TObjectPtr<USphereComponent> PortalRadiusPreview;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Portal")
+	TObjectPtr<UStaticMeshComponent> PortalVisualMarker;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal", meta = (ClampMin = "1.0", Units = "cm", ToolTip = "Portal 检测玩家的半径，单位 cm。OnConstruction 会同步预览 Sphere 半径。"))
 	float ActivationRadius = 300.0f;

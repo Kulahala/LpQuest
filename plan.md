@@ -22,21 +22,20 @@ Current working state:
 
 Most recent commits:
 
+- `fd9ef57 [Feature] 分离传送门目的地与完成模式（Split Portal Destination and Completion Mode）`
 - `096d973 [Refactor] 统一敌人死亡经验配置（Use Enemy Config XP Rewards）`
 - `119c88c [Feature] 统一楼层敌人生成源（Unify Floor Enemy Spawn Source）`
 - `f957a7b [Feature] 添加敌人死亡拾取掉落（Add Enemy Drop Pickup Source）`
 - `bf3b338 [Feature] 添加拾取装备交互闭环（Add Pickup Equipment Interaction）`
-- `ea5a693 [Refactor] 清理战斗命中兜底与命名（Clean Combat Hit Window Fallback and Naming）`
 
 Current stage:
 
-- No active implementation stage after `Portal Destination Foundation v1`.
-- `Portal Destination Foundation v1` is completed, user build / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
+- No active implementation stage after `Gameplay Actor Visual Marker v1`.
+- `Gameplay Actor Visual Marker v1` is completed, user build / editor / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
 - Next stage should be chosen deliberately from the near-term TODOs below rather than inferred from this completed stage.
 
 Near-term TODOs:
 
-- `Portal Editor Visual Marker v1`: add a simple visible editor/world marker for invisible placed gameplay actors such as Portal, preferably a native billboard/icon or small mesh/preview component on the actor Blueprint/C++ class. Keep it presentation-only and do not change interaction, charging, Boss, pressure, or destination logic.
 - `Portal Branch Choice Lock v1`: before using multiple CombatEvent portals as branch choices in one floor, lock the Portal Event to the interacted Portal and disable the other candidate portals for that event. This prevents every CombatEvent Portal from reacting to the global `PortalEventActive`. If two branch portals should share the same encounter, configure the same Boss enemy class on both; true shared pre-placed Boss instance ownership can wait until a real design needs it.
 - `Enemy Variant Profile Cleanup v2` after current Portal work: when Guard / Wild / Spawn / Elite only differ by tuning, fold them toward one enemy class plus profile DataAssets instead of keeping separate Blueprints for each variant.
 - `Portal Destination / Floor Route DataAsset v2`: when destination IDs, branch weights, floor types, safe/combat rules, map assets, room pools, or shop/hub rules start repeating, replace the current `FName PortalDestinationId` bridge with authored route/floor data.

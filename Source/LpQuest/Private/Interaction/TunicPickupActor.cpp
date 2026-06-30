@@ -7,8 +7,18 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/EngineTypes.h"
 #include "Player/TunicPlayerState.h"
+#include "UObject/ConstructorHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLpQuestPickup, Log, All);
+
+namespace
+{
+	UStaticMesh* GetDefaultPickupSphereMesh()
+	{
+		static ConstructorHelpers::FObjectFinder<UStaticMesh> PickupMeshFinder(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+		return PickupMeshFinder.Object;
+	}
+}
 
 ATunicPickupActor::ATunicPickupActor()
 {
@@ -20,6 +30,8 @@ ATunicPickupActor::ATunicPickupActor()
 	PickupMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PickupMesh"));
 	PickupMesh->SetupAttachment(SceneRoot);
 	PickupMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	PickupMesh->SetRelativeScale3D(FVector(0.25f));
+	PickupMesh->SetStaticMesh(GetDefaultPickupSphereMesh());
 }
 
 bool ATunicPickupActor::CanInteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer)

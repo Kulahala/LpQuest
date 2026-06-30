@@ -1559,4 +1559,22 @@ Validation and review:
 - Accepted follow-up: multiple CombatEvent branch portals are not safe yet because they can all observe the same global `PortalEventActive`. Add `Portal Branch Choice Lock v1` before authoring two Boss/charge branch portals in the same floor.
 - Accepted follow-up: invisible placed Portal actors are hard to find in the editor. Add `Portal Editor Visual Marker v1` as a presentation-only marker without changing Portal gameplay logic.
 
+## Gameplay Actor Visual Marker v1
+
+Summary:
+
+- Added a no-collision `PortalVisualMarker` to `ATunicPortalActor` using the engine basic sphere mesh. It is visible at runtime so players can find where to interact with the Portal.
+- Added a no-collision `SpawnSourceEditorMarker` to `ATunicEnemySpawnSource`; floor-wave spawn sources inherit it, and it is hidden in game because it is only an editor placement aid.
+- Updated `ATunicPickupActor::PickupMesh` to use a no-collision default sphere mesh so enemy-dropped pickups remain visible at runtime before a Blueprint supplies final art.
+- Added an `AGENTS.md` collaboration rule requiring future placed/selectable/configured gameplay/helper Actors to have an editor-visible marker, and runtime-visible fallback meshes for objects players must find or interact with.
+- Included current `BP_Portal` and `BP_PickupActor_Test` asset updates from validation/editor cleanup.
+- The stage intentionally does not add a generic marker component, editor plugin, interaction prompt UI, highlight outline, drop VFX, formal Portal art, or weapon/equipment presentation system.
+
+Validation and review:
+
+- User confirmed compile / editor / PIE validation passed.
+- User confirmed Portal and pickup fallback visibility behavior should be kept; temporary visuals can be replaced later when formal Portal art, weapon classes, or weapon-drop presentation exists.
+- Strict review found no blocking issue. Markers and fallback meshes are no-collision and do not change Portal, spawn, pickup, XP, drop, or equipment authority paths.
+- Accepted follow-up: replace the temporary sphere visuals when explicit Portal models, weapon classes, or formal drop weapon meshes are implemented.
+
 

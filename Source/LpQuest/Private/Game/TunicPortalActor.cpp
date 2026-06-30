@@ -6,14 +6,25 @@
 #include "Character/TunicPlayerCharacter.h"
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
 #include "Game/TunicGameMode.h"
 #include "Game/TunicGameState.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
+#include "UObject/ConstructorHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLpQuestPortal, Log, All);
+
+namespace
+{
+	UStaticMesh* GetDefaultMarkerSphereMesh()
+	{
+		static ConstructorHelpers::FObjectFinder<UStaticMesh> MarkerMeshFinder(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+		return MarkerMeshFinder.Object;
+	}
+}
 
 ATunicPortalActor::ATunicPortalActor()
 {
@@ -27,6 +38,13 @@ ATunicPortalActor::ATunicPortalActor()
 	PortalRadiusPreview->SetupAttachment(SceneRoot);
 	PortalRadiusPreview->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	PortalRadiusPreview->SetSphereRadius(ActivationRadius);
+
+	PortalVisualMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PortalVisualMarker"));
+	PortalVisualMarker->SetupAttachment(SceneRoot);
+	PortalVisualMarker->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	PortalVisualMarker->SetHiddenInGame(false);
+	PortalVisualMarker->SetRelativeScale3D(FVector(0.5f));
+	PortalVisualMarker->SetStaticMesh(GetDefaultMarkerSphereMesh());
 }
 
 void ATunicPortalActor::OnConstruction(const FTransform& Transform)

@@ -9,6 +9,7 @@
 class ATunicEnemyCharacter;
 class USceneComponent;
 class USphereComponent;
+class UStaticMeshComponent;
 
 UCLASS(Abstract, Blueprintable)
 class LPQUEST_API ATunicEnemySpawnSource : public AActor
@@ -35,6 +36,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Spawn")
 	TObjectPtr<USphereComponent> RadiusPreview;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Spawn")
+	TObjectPtr<UStaticMeshComponent> SpawnSourceEditorMarker;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Spawn", meta = (ToolTip = "本生成源要生成的敌人类。普通楼层波次直接在这个 Actor 上配置敌人类型。"))
 	TSubclassOf<ATunicEnemyCharacter> EnemyClass;
