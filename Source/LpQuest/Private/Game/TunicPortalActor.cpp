@@ -47,7 +47,7 @@ void ATunicPortalActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (!HasAuthority() || bIsPortalReady)
+	if (!HasAuthority() || bIsPortalReady || PortalCompletionMode != ETunicPortalCompletionMode::CombatEvent)
 	{
 		return;
 	}
@@ -108,6 +108,21 @@ float ATunicPortalActor::GetInteractionRadius() const
 	return InteractionRadius;
 }
 
+float ATunicPortalActor::GetActivationRadius() const
+{
+	return ActivationRadius;
+}
+
+ETunicPortalCompletionMode ATunicPortalActor::GetPortalCompletionMode() const
+{
+	return PortalCompletionMode;
+}
+
+FName ATunicPortalActor::GetPortalDestinationId() const
+{
+	return PortalDestinationId;
+}
+
 void ATunicPortalActor::ResetPortalForNextFloorStub()
 {
 	if (!HasAuthority())
@@ -161,6 +176,17 @@ bool ATunicPortalActor::CanInteractWithTunicPlayer_Implementation(ATunicPlayerCh
 		return false;
 	}
 
+	if (PortalDestinationId.IsNone())
+	{
+		if (bLogPortalState)
+		{
+			UE_LOG(LogLpQuestPortal, Warning, TEXT("Portal interaction rejected: missing destination id | Portal=%s | Player=%s"),
+				*GetNameSafe(this),
+				*GetNameSafe(InteractingPlayer));
+		}
+		return false;
+	}
+
 	const ATunicGameState* TunicGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
 	if (!TunicGameState || TunicGameState->IsPartyWiped() || TunicGameState->IsFloorTransitionReady())
 	{
@@ -175,6 +201,12 @@ void ATunicPortalActor::InteractWithTunicPlayer_Implementation(ATunicPlayerChara
 {
 	if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
 	{
+		if (PortalCompletionMode == ETunicPortalCompletionMode::DirectFloorExit)
+		{
+			TunicGameMode->TryUseDirectFloorExitPortal(InteractingPlayer, this);
+			return;
+		}
+
 		TunicGameMode->TryStartPortalEvent(InteractingPlayer, this);
 	}
 }
@@ -246,7 +278,7 @@ void ATunicPortalActor::CompletePortal()
 
 	if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
 	{
-		TunicGameMode->MarkFloorTransitionReady();
+		TunicGameMode->MarkFloorTransitionReady(PortalDestinationId);
 	}
 }
 

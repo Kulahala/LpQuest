@@ -205,6 +205,23 @@ bool ATunicGameMode::TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlaye
 		return false;
 	}
 
+	if (PortalActor->GetPortalDestinationId().IsNone())
+	{
+		UE_LOG(LogLpQuestRunState, Warning, TEXT("Portal event start rejected: missing destination id | Player=%s | Portal=%s"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor));
+		return false;
+	}
+
+	if (PortalActor->GetPortalCompletionMode() != ETunicPortalCompletionMode::CombatEvent)
+	{
+		UE_LOG(LogLpQuestRunState, Warning, TEXT("Portal event start rejected: portal is not CombatEvent mode | Player=%s | Portal=%s | Mode=%d"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor),
+			static_cast<int32>(PortalActor->GetPortalCompletionMode()));
+		return false;
+	}
+
 	if (InteractingPlayer->IsDead())
 	{
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Portal event start rejected: dead player | Player=%s | Portal=%s"),
@@ -246,25 +263,55 @@ bool ATunicGameMode::TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlaye
 	return true;
 }
 
-void ATunicGameMode::MarkFloorTransitionReady()
+bool ATunicGameMode::TryUseDirectFloorExitPortal(ATunicPlayerCharacter* InteractingPlayer, ATunicPortalActor* PortalActor)
 {
-	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
-	if (!HasAuthority() || !TunicGameState || !TunicGameState->IsPortalEventActive())
+	if (!PortalActor || PortalActor->GetPortalCompletionMode() != ETunicPortalCompletionMode::DirectFloorExit)
 	{
-		return;
+		UE_LOG(LogLpQuestRunState, Warning, TEXT("Direct floor exit rejected: invalid portal or wrong mode | Player=%s | Portal=%s"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor));
+		return false;
 	}
 
+	if (!CanUsePortalForFloorTransition(InteractingPlayer, PortalActor, true))
+	{
+		return false;
+	}
+
+	if (!MarkFloorTransitionReady(PortalActor->GetPortalDestinationId()))
+	{
+		return false;
+	}
+
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Direct floor exit accepted | Player=%s | Portal=%s | Destination=%s"),
+		*GetNameSafe(InteractingPlayer),
+		*GetNameSafe(PortalActor),
+		*PortalActor->GetPortalDestinationId().ToString());
+	return true;
+}
+
+bool ATunicGameMode::MarkFloorTransitionReady(FName DestinationId)
+{
+	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
+	if (!HasAuthority() || !TunicGameState || !(TunicGameState->IsPortalEventActive() || TunicGameState->GetRunState() == ETunicRunState::CombatActive) || DestinationId.IsNone())
+	{
+		return false;
+	}
+
+	PendingFloorDestinationId = DestinationId;
 	TunicGameState->SetRunState(ETunicRunState::FloorTransitionReady);
-	UE_LOG(LogLpQuestRunState, Display, TEXT("Run state changed to FloorTransitionReady"));
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Run state changed to FloorTransitionReady | Destination=%s"),
+		*PendingFloorDestinationId.ToString());
 
 	if (FloorTransitionStubDelay <= UE_SMALL_NUMBER)
 	{
 		CompleteFloorTransitionStub();
-		return;
+		return true;
 	}
 
 	FTimerHandle TimerHandle;
 	GetWorldTimerManager().SetTimer(TimerHandle, this, &ATunicGameMode::CompleteFloorTransitionStub, FloorTransitionStubDelay, false);
+	return true;
 }
 
 void ATunicGameMode::CompleteFloorTransitionStub()
@@ -305,14 +352,18 @@ void ATunicGameMode::CompleteFloorTransitionStub()
 	}
 
 	TunicGameState->SetCurrentFloorIndex(NewFloorIndex);
+	TunicGameState->SetCurrentFloorDestinationId(PendingFloorDestinationId);
 	TunicGameState->SetRunState(ETunicRunState::CombatActive);
 	SpawnFloorWavesForCurrentFloor();
 
-	UE_LOG(LogLpQuestRunState, Display, TEXT("Floor transition stub completed | PreviousFloor=%d | NewFloor=%d | ResetPortals=%d | ResetSpawnSources=%d"),
+	UE_LOG(LogLpQuestRunState, Display, TEXT("Floor transition stub completed | PreviousFloor=%d | NewFloor=%d | Destination=%s | ResetPortals=%d | ResetSpawnSources=%d"),
 		PreviousFloorIndex,
 		NewFloorIndex,
+		*PendingFloorDestinationId.ToString(),
 		ResetPortalCount,
 		ResetSpawnSourceCount);
+
+	PendingFloorDestinationId = TEXT("Next");
 }
 
 void ATunicGameMode::SpawnFloorWavesForCurrentFloor()
@@ -417,5 +468,103 @@ void ATunicGameMode::SpawnEnemyDropPickup(ATunicEnemyCharacter* DeadEnemy)
 		*GetNameSafe(DeadEnemy),
 		*GetNameSafe(SpawnedPickup),
 		*GetNameSafe(DroppedPickupClass.Get()));
+}
+
+bool ATunicGameMode::CanUsePortalForFloorTransition(ATunicPlayerCharacter* InteractingPlayer, ATunicPortalActor* PortalActor, bool bRequireAllLivingPlayersInPortalRadius)
+{
+	const ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
+	if (!HasAuthority() || !TunicGameState || !InteractingPlayer || !PortalActor)
+	{
+		UE_LOG(LogLpQuestRunState, Warning, TEXT("Portal floor transition rejected: missing authority, game state, player, or portal | Player=%s | Portal=%s"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor));
+		return false;
+	}
+
+	if (InteractingPlayer->IsDead())
+	{
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Portal floor transition rejected: dead player | Player=%s | Portal=%s"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor));
+		return false;
+	}
+
+	if (PortalActor->GetPortalDestinationId().IsNone())
+	{
+		UE_LOG(LogLpQuestRunState, Warning, TEXT("Portal floor transition rejected: missing destination id | Player=%s | Portal=%s"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor));
+		return false;
+	}
+
+	if (TunicGameState->IsPartyWiped() || TunicGameState->IsFloorTransitionReady() || TunicGameState->IsPortalEventActive())
+	{
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Portal floor transition rejected: run state does not allow direct exit | Player=%s | Portal=%s | RunState=%d"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor),
+			static_cast<int32>(TunicGameState->GetRunState()));
+		return false;
+	}
+
+	const float InteractionRadius = FMath::Max(1.0f, PortalActor->GetInteractionRadius());
+	const float DistanceSquared2D = FVector::DistSquared2D(InteractingPlayer->GetActorLocation(), PortalActor->GetActorLocation());
+	if (DistanceSquared2D > FMath::Square(InteractionRadius))
+	{
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Portal floor transition rejected: player outside interaction radius | Player=%s | Portal=%s | Distance=%.1f | Radius=%.1f"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor),
+			FMath::Sqrt(DistanceSquared2D),
+			InteractionRadius);
+		return false;
+	}
+
+	if (!bRequireAllLivingPlayersInPortalRadius)
+	{
+		return true;
+	}
+
+	const AGameStateBase* CurrentGameState = GameState;
+	if (!CurrentGameState)
+	{
+		return false;
+	}
+
+	const float ActivationRadiusSquared = FMath::Square(FMath::Max(0.0f, PortalActor->GetActivationRadius()));
+	const FVector PortalLocation = PortalActor->GetActorLocation();
+	int32 RequiredLivingPlayerCount = 0;
+	int32 PresentLivingPlayerCount = 0;
+
+	for (const APlayerState* PlayerState : CurrentGameState->PlayerArray)
+	{
+		if (!PlayerState)
+		{
+			continue;
+		}
+
+		const ATunicPlayerCharacter* PlayerCharacter = PlayerState->GetPawn<ATunicPlayerCharacter>();
+		if (!PlayerCharacter || PlayerCharacter->IsDead())
+		{
+			continue;
+		}
+
+		++RequiredLivingPlayerCount;
+		if (FVector::DistSquared2D(PlayerCharacter->GetActorLocation(), PortalLocation) <= ActivationRadiusSquared)
+		{
+			++PresentLivingPlayerCount;
+		}
+	}
+
+	const bool bAllLivingPlayersInRange = RequiredLivingPlayerCount > 0 && RequiredLivingPlayerCount == PresentLivingPlayerCount;
+	if (!bAllLivingPlayersInRange)
+	{
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Portal floor transition rejected: not all living players in portal radius | Player=%s | Portal=%s | PresentLivingPlayers=%d/%d"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor),
+			PresentLivingPlayerCount,
+			RequiredLivingPlayerCount);
+		return false;
+	}
+
+	return true;
 }
 

@@ -23,6 +23,7 @@ enum class ETunicRunState : uint8
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicRunStateChangedSignature, ETunicRunState, NewRunState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicFloorIndexChangedSignature, int32, NewFloorIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicFloorDestinationChangedSignature, FName, NewFloorDestinationId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FTunicSharedRunExperienceChangedSignature, int32, NewValue, int32, Delta, AActor*, SourceActor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTunicSharedRunLevelChangedSignature, int32, NewLevel);
 
@@ -41,6 +42,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "返回当前 run 内楼层编号。floor stub 完成后递增，不代表永久存档进度。"))
 	int32 GetCurrentFloorIndex() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "返回当前 floor transition 写入的目标 ID。v1 只用于调试显示，不代表真实地图加载。"))
+	FName GetCurrentFloorDestinationId() const;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "返回全队共享的 run-local XP。由 GameMode 在 spawned encounter 敌人死亡时增加。"))
 	int32 GetSharedRunExperience() const;
@@ -67,6 +71,9 @@ public:
 	FTunicFloorIndexChangedSignature OnFloorIndexChangedEvent;
 
 	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
+	FTunicFloorDestinationChangedSignature OnFloorDestinationChangedEvent;
+
+	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
 	FTunicSharedRunExperienceChangedSignature OnSharedRunExperienceChangedEvent;
 
 	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
@@ -74,6 +81,7 @@ public:
 
 	void SetRunState(ETunicRunState NewRunState);
 	void SetCurrentFloorIndex(int32 NewFloorIndex);
+	void SetCurrentFloorDestinationId(FName NewFloorDestinationId);
 	void AddSharedRunExperience(int32 Amount, AActor* SourceActor);
 
 protected:
@@ -82,6 +90,9 @@ protected:
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "楼层编号变化时的表现 hook。只用于 UI/音效/表现。"))
 	void OnFloorIndexChanged(int32 NewFloorIndex);
+
+	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "楼层目标 ID 变化时的表现 hook。v1 只用于 UI/音效/表现，不加载地图。"))
+	void OnFloorDestinationChanged(FName NewFloorDestinationId);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "共享 XP 变化时的表现 hook。SourceActor 是奖励来源，可能为空。"))
 	void OnSharedRunExperienceChanged(int32 NewValue, int32 Delta, AActor* SourceActor);
@@ -99,6 +110,9 @@ private:
 	void OnRep_CurrentFloorIndex();
 
 	UFUNCTION()
+	void OnRep_CurrentFloorDestinationId();
+
+	UFUNCTION()
 	void OnRep_SharedRunExperience(int32 OldSharedRunExperience);
 
 	UFUNCTION()
@@ -109,6 +123,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentFloorIndex)
 	int32 CurrentFloorIndex = 1;
+
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentFloorDestinationId)
+	FName CurrentFloorDestinationId = TEXT("Start");
 
 	UPROPERTY(ReplicatedUsing = OnRep_SharedRunExperience)
 	int32 SharedRunExperience = 0;

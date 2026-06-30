@@ -25,7 +25,8 @@ public:
 
 	void EvaluatePartyWipe();
 	bool TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlayer, ATunicPortalActor* PortalActor);
-	void MarkFloorTransitionReady();
+	bool TryUseDirectFloorExitPortal(ATunicPlayerCharacter* InteractingPlayer, ATunicPortalActor* PortalActor);
+	bool MarkFloorTransitionReady(FName DestinationId);
 	void HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy);
 	bool TrySelectRunUpgradeForPlayer(ATunicPlayerState* TunicPlayerState);
 
@@ -41,5 +42,8 @@ private:
 	void CompleteFloorTransitionStub();
 	void GrantPendingRunUpgradeChoices(int32 LevelDelta);
 	void SpawnEnemyDropPickup(ATunicEnemyCharacter* DeadEnemy);
+	bool CanUsePortalForFloorTransition(ATunicPlayerCharacter* InteractingPlayer, ATunicPortalActor* PortalActor, bool bRequireAllLivingPlayersInPortalRadius);
+
+	FName PendingFloorDestinationId = TEXT("Next");
 };
 

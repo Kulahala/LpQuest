@@ -13,6 +13,13 @@ class FLifetimeProperty;
 class USceneComponent;
 class USphereComponent;
 
+UENUM(BlueprintType)
+enum class ETunicPortalCompletionMode : uint8
+{
+	CombatEvent = 0 UMETA(DisplayName = "Combat Event", ToolTip = "玩家交互后启动 Portal Event，Boss / 充能 / 压力刷怪完成后推进 floor transition。"),
+	DirectFloorExit = 1 UMETA(DisplayName = "Direct Floor Exit", ToolTip = "玩家交互后直接请求 floor transition，不启动 Portal Event、不刷 Boss、不充能、不刷压力怪。")
+};
+
 UCLASS(Blueprintable)
 class LPQUEST_API ATunicPortalActor : public AActor, public ITunicInteractableInterface
 {
@@ -47,6 +54,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Tunic|Portal", meta = (ToolTip = "Portal 交互半径，单位 cm。玩家在范围内按统一交互键 E，服务器验证后可启动 Portal Event。"))
 	float GetInteractionRadius() const;
 
+	UFUNCTION(BlueprintPure, Category = "Tunic|Portal", meta = (ToolTip = "Portal 充能/全员集合半径，单位 cm。DirectFloorExit 模式也用它验证所有存活玩家是否在圈内。"))
+	float GetActivationRadius() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|Portal", meta = (ToolTip = "Portal 完成模式。CombatEvent 走 Boss/充能/压力流程；DirectFloorExit 直接推进 floor transition。"))
+	ETunicPortalCompletionMode GetPortalCompletionMode() const;
+
+	UFUNCTION(BlueprintPure, Category = "Tunic|Portal", meta = (ToolTip = "Portal 完成后写入 GameState 的目标 ID。v1 只复制和显示该 FName，不加载地图。"))
+	FName GetPortalDestinationId() const;
+
 	void ResetPortalForNextFloorStub();
 	virtual bool CanInteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer) override;
 	virtual void InteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer) override;
@@ -63,6 +79,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal", meta = (ClampMin = "1.0", Units = "cm", ToolTip = "玩家按统一交互键 E 启动 Portal Event 的最大距离，单位 cm。与充能半径分开，便于后续交互提示和充能范围分别调参。"))
 	float InteractionRadius = 300.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal", meta = (ToolTip = "Portal 完成模式。CombatEvent 保持当前战斗事件门；DirectFloorExit 只做全员在圈后的楼层出口。"))
+	ETunicPortalCompletionMode PortalCompletionMode = ETunicPortalCompletionMode::CombatEvent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal", meta = (ToolTip = "Portal 完成后写入 GameState 的目标 ID。None 会拒绝交互并输出 warning；v1 不解析地图，只复制和显示。"))
+	FName PortalDestinationId = TEXT("Next");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Portal", meta = (ClampMin = "0.0", Units = "s", ToolTip = "满足人数后充满 Portal 所需时间，单位秒。0 表示满足条件后立即 ready。"))
 	float ChargeDuration = 5.0f;

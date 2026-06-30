@@ -1537,4 +1537,26 @@ Validation and review:
 - Strict review found no blocking issue. XP, shared level, and pending upgrade choices remain server-owned through GameMode / GameState / PlayerState.
 - Accepted risk: pressure enemies can grant unlimited XP if their Blueprint keeps nonzero `ExperienceReward` and players prolong the Portal event. Current v1 policy is to configure pressure-only no-XP enemies with `ExperienceReward=0`; add `Enemy Reward Profile` or `Spawn Director` only when design needs justify it.
 
+## Portal Destination Foundation v1
+
+Summary:
+
+- Separated Portal completion mode from destination ID on `ATunicPortalActor`.
+- Added `ETunicPortalCompletionMode` with `CombatEvent` as the default existing behavior and `DirectFloorExit` as the direct floor-exit mode.
+- Added `PortalDestinationId`, defaulting to `Next`; `None` is rejected with a warning instead of silently advancing.
+- `CombatEvent` portals still use the existing interaction -> `PortalEventActive` -> Boss gate -> charge -> pressure -> floor-transition path, and pass their destination ID when charging completes.
+- `DirectFloorExit` portals skip `PortalEventActive`, Boss spawning, charging, and pressure spawning; server validation requires the interacting player to be alive and in interaction range, plus all living players in the Portal radius.
+- `ATunicGameMode::MarkFloorTransitionReady()` now carries a destination ID into the floor-transition stub.
+- `ATunicGameState` now replicates `CurrentFloorDestinationId`, and `UTunicRunStatusWidget` displays `Floor: N [Destination]` for validation.
+- The stage intentionally does not add map loading, room/floor DataAssets, branch-choice UI, LocalTravel same-layer teleport, or multi-CombatEvent selected-portal ownership.
+- `ARCHITECTURE.md`, `README.md`, and `plan.md` were synced for the completed stage.
+
+Validation and review:
+
+- User confirmed compile / PIE validation passed.
+- User confirmed CombatEvent compatibility, DirectFloorExit behavior, destination HUD display, and invalid `PortalDestinationId=None` rejection.
+- Strict review found no blocking issue. DirectFloorExit remains server-authoritative, does not enter `PortalEventActive`, and does not run Boss / charging / pressure tick.
+- Accepted follow-up: multiple CombatEvent branch portals are not safe yet because they can all observe the same global `PortalEventActive`. Add `Portal Branch Choice Lock v1` before authoring two Boss/charge branch portals in the same floor.
+- Accepted follow-up: invisible placed Portal actors are hard to find in the editor. Add `Portal Editor Visual Marker v1` as a presentation-only marker without changing Portal gameplay logic.
+
 

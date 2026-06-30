@@ -14,6 +14,7 @@ void ATunicGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 	DOREPLIFETIME(ATunicGameState, RunState);
 	DOREPLIFETIME(ATunicGameState, CurrentFloorIndex);
+	DOREPLIFETIME(ATunicGameState, CurrentFloorDestinationId);
 	DOREPLIFETIME(ATunicGameState, SharedRunExperience);
 	DOREPLIFETIME(ATunicGameState, SharedRunLevel);
 }
@@ -26,6 +27,11 @@ ETunicRunState ATunicGameState::GetRunState() const
 int32 ATunicGameState::GetCurrentFloorIndex() const
 {
 	return CurrentFloorIndex;
+}
+
+FName ATunicGameState::GetCurrentFloorDestinationId() const
+{
+	return CurrentFloorDestinationId;
 }
 
 int32 ATunicGameState::GetSharedRunExperience() const
@@ -88,6 +94,24 @@ void ATunicGameState::SetCurrentFloorIndex(int32 NewFloorIndex)
 	OnFloorIndexChanged(CurrentFloorIndex);
 }
 
+void ATunicGameState::SetCurrentFloorDestinationId(FName NewFloorDestinationId)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	const FName SanitizedFloorDestinationId = NewFloorDestinationId.IsNone() ? FName(TEXT("Next")) : NewFloorDestinationId;
+	if (CurrentFloorDestinationId == SanitizedFloorDestinationId)
+	{
+		return;
+	}
+
+	CurrentFloorDestinationId = SanitizedFloorDestinationId;
+	OnFloorDestinationChangedEvent.Broadcast(CurrentFloorDestinationId);
+	OnFloorDestinationChanged(CurrentFloorDestinationId);
+}
+
 void ATunicGameState::AddSharedRunExperience(int32 Amount, AActor* SourceActor)
 {
 	if (!HasAuthority() || Amount <= 0)
@@ -108,6 +132,10 @@ void ATunicGameState::OnRunStateChanged_Implementation(ETunicRunState)
 }
 
 void ATunicGameState::OnFloorIndexChanged_Implementation(int32)
+{
+}
+
+void ATunicGameState::OnFloorDestinationChanged_Implementation(FName)
 {
 }
 
@@ -148,6 +176,12 @@ void ATunicGameState::OnRep_CurrentFloorIndex()
 {
 	OnFloorIndexChangedEvent.Broadcast(CurrentFloorIndex);
 	OnFloorIndexChanged(CurrentFloorIndex);
+}
+
+void ATunicGameState::OnRep_CurrentFloorDestinationId()
+{
+	OnFloorDestinationChangedEvent.Broadcast(CurrentFloorDestinationId);
+	OnFloorDestinationChanged(CurrentFloorDestinationId);
 }
 
 void ATunicGameState::OnRep_SharedRunExperience(int32 OldSharedRunExperience)

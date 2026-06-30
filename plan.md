@@ -18,27 +18,28 @@ Current working state:
 - Dodge movement is client-predicted through GAS `LocalPredicted` activation and `UAbilityTask_ApplyRootMotionConstantForce`; invulnerability, damage immunity, cooldown/action-lock, Health, and final correction remain server-authoritative.
 - Ordinary floor waves now use placed `ATunicFloorWaveEnemySpawnSource` actors as the single authored source for enemy class, count, location, optional radius sampling, tracking, and cleanup.
 - Enemy death XP uses each enemy's own `ExperienceReward`; `ExperienceReward=0` is the no-XP configuration. Ordinary enemy death does not move RunState out of `CombatActive`.
-- Portal Event can be started through the unified `E` interact path. Portal can spawn one configured existing enemy Blueprint as a test Boss; charging is blocked until that Boss is dead or gone.
+- Portal interaction uses one `ATunicPortalActor` with completion mode plus destination ID. CombatEvent mode can spawn a configured existing enemy Blueprint as a test Boss and blocks charging until that Boss is dead or gone; DirectFloorExit mode requires all living players in the Portal radius and enters the floor transition stub without `PortalEventActive`.
 
 Most recent commits:
 
+- `096d973 [Refactor] 统一敌人死亡经验配置（Use Enemy Config XP Rewards）`
 - `119c88c [Feature] 统一楼层敌人生成源（Unify Floor Enemy Spawn Source）`
 - `f957a7b [Feature] 添加敌人死亡拾取掉落（Add Enemy Drop Pickup Source）`
 - `bf3b338 [Feature] 添加拾取装备交互闭环（Add Pickup Equipment Interaction）`
 - `ea5a693 [Refactor] 清理战斗命中兜底与命名（Clean Combat Hit Window Fallback and Naming）`
-- `7fed449 [Refactor] 清理敌人旧近战扫掠字段（Clean Enemy Legacy Sweep Fields）`
 
 Current stage:
 
-- No active implementation stage after `Enemy Reward Ownership Cleanup v1`.
-- `Enemy Reward Ownership Cleanup v1` is completed, user build / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
-- Recent implemented foundation: all enemies that reach `ATunicGameMode::HandleEnemyDeath()` now use their own `ExperienceReward`; `ExperienceReward=0` is the no-XP configuration. `ATunicEncounterSpawner` and Portal pressure XP budget were removed.
+- No active implementation stage after `Portal Destination Foundation v1`.
+- `Portal Destination Foundation v1` is completed, user build / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
 - Next stage should be chosen deliberately from the near-term TODOs below rather than inferred from this completed stage.
 
 Near-term TODOs:
 
+- `Portal Editor Visual Marker v1`: add a simple visible editor/world marker for invisible placed gameplay actors such as Portal, preferably a native billboard/icon or small mesh/preview component on the actor Blueprint/C++ class. Keep it presentation-only and do not change interaction, charging, Boss, pressure, or destination logic.
+- `Portal Branch Choice Lock v1`: before using multiple CombatEvent portals as branch choices in one floor, lock the Portal Event to the interacted Portal and disable the other candidate portals for that event. This prevents every CombatEvent Portal from reacting to the global `PortalEventActive`. If two branch portals should share the same encounter, configure the same Boss enemy class on both; true shared pre-placed Boss instance ownership can wait until a real design needs it.
 - `Enemy Variant Profile Cleanup v2` after current Portal work: when Guard / Wild / Spawn / Elite only differ by tuning, fold them toward one enemy class plus profile DataAssets instead of keeping separate Blueprints for each variant.
-- `Safe Travel Portal v1`: later, when safe zones / shop areas / hub return need pure interaction travel, add a separate lightweight interactable travel portal instead of subclassing the combat Portal Event actor or disabling most of its Boss/charging/pressure behavior.
+- `Portal Destination / Floor Route DataAsset v2`: when destination IDs, branch weights, floor types, safe/combat rules, map assets, room pools, or shop/hub rules start repeating, replace the current `FName PortalDestinationId` bridge with authored route/floor data.
 - `Equipment DataAsset / Inventory Slots v2`: add only when multiple weapons, item stats, icons, descriptions, ability grants, or switching between several carried items become real scope.
 - `Enemy Drop Profile / Equipment DataAsset v2`: add only when several enemies repeat drop setup, random drop pools, rarity, weights, ownership policy, or equipment stats become real scope.
 
@@ -48,6 +49,7 @@ Current accepted risks:
 - Pressure spawn points are simple fixed Actor references on the Portal. Add richer spawn selection only when map layout, navigation safety, or enemy archetype rules need it.
 - Boss v1 remains an existing enemy Blueprint spawned by Portal. Add Boss-specific class/component only when phase logic, Boss UI, arena mechanics, or dedicated Boss-only state appears.
 - Portal Event state is still global. Add per-portal event ownership only when multiple active portals can coexist.
+- Multiple CombatEvent branch portals are not safe yet because all CombatEvent portals can observe the same global `PortalEventActive`. Add selected-portal ownership before authoring two Boss/charge branch portals in the same floor.
 - Player death v1 is still one-way. Revive, respawn, spectator/free-camera, party wipe resolution, and floor fail UI remain deferred.
 - `FloorTransitionStub` remains intentionally active as the current placeholder floor loop. Rename or replace it only when real floor travel/loading exists.
 

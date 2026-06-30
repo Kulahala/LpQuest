@@ -49,7 +49,7 @@ protected:
 	TObjectPtr<UTextBlock> SelectUpgradeButtonText;
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "Run Status HUD 刷新后的表现 hook。只用于 UI/动画/音效，不要在这里修改 XP、Level、RunState 或 pending。"))
-	void OnRunStatusRefreshed(int32 FloorIndex, ETunicRunState RunState, int32 SharedRunExperience, int32 SharedRunLevel, int32 PendingUpgradeChoices);
+	void OnRunStatusRefreshed(int32 FloorIndex, FName NewFloorDestinationId, ETunicRunState RunState, int32 SharedRunExperience, int32 SharedRunLevel, int32 PendingUpgradeChoices);
 
 private:
 	UFUNCTION()
@@ -57,6 +57,9 @@ private:
 
 	UFUNCTION()
 	void HandleFloorIndexChanged(int32 NewFloorIndex);
+
+	UFUNCTION()
+	void HandleFloorDestinationChanged(FName NewFloorDestinationId);
 
 	UFUNCTION()
 	void HandleSharedRunExperienceChanged(int32 NewValue, int32 Delta, AActor* SourceActor);
