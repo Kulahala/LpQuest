@@ -30,12 +30,14 @@ Most recent commits:
 
 Current stage:
 
-- No active implementation stage after `Debug Draw Settings Foundation v1`.
-- `Debug Draw Settings Foundation v1` is completed, user build / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
+- No active implementation stage after `LPQ Naming Surface Cleanup v1`.
+- `LPQ Naming Surface Cleanup v1` is completed, user build / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
 - Next stage should be chosen deliberately from the near-term TODOs below rather than inferred from this completed stage.
 
 Near-term TODOs:
 
+- `LPQ Reflected Type Rename v2`: rename C++ reflected types from `ATunic` / `UTunic` / `FTunic` / `ETunic` / `ITunic` to `ALPQ` / `ULPQ` / `FLPQ` / `ELPQ` / `ILPQ`, rename matching source files and `.generated.h` includes, and add required Core Redirects so existing Blueprint / StateTree / AnimNotify references survive.
+- `LPQ Blueprint Asset Rename v3`: rename Blueprint / Content assets such as `BP_TunicGameMode`, `BP_TunicPlayerController`, `BP_TunicEnemyAIController_*`, and `BP_TunicEnemyPatrolRoute` through the Unreal Editor, update config paths such as `GlobalDefaultGameMode`, fix redirectors, and resave affected assets.
 - `Enemy Variant Profile Cleanup v2` after current Portal work: when Guard / Wild / Spawn / Elite only differ by tuning, fold them toward one enemy class plus profile DataAssets instead of keeping separate Blueprints for each variant.
 - `Portal Destination / Floor Route DataAsset v2`: when destination IDs, branch weights, floor types, safe/combat rules, map assets, room pools, or shop/hub rules start repeating, replace the current `FName PortalDestinationId` bridge with authored route/floor data.
 - `Equipment DataAsset / Inventory Slots v2`: add only when multiple weapons, item stats, icons, descriptions, ability grants, or switching between several carried items become real scope.

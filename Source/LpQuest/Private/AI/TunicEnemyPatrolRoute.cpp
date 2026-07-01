@@ -54,7 +54,7 @@ void ATunicEnemyPatrolRoute::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (FTunicDebugSettings::ShouldDrawPatrolRoutes())
+	if (FLPQDebugSettings::ShouldDrawPatrolRoutes())
 	{
 		DrawRuntimeDebugRoute();
 	}

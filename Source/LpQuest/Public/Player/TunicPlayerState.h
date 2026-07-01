@@ -27,25 +27,25 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Ability", meta = (ToolTip = "返回玩家 PlayerState-owned ASC。玩家角色作为 AvatarActor，能力和属性归 PlayerState 持有。"))
+	UFUNCTION(BlueprintPure, Category = "LPQ|Ability", meta = (ToolTip = "返回玩家 PlayerState-owned ASC。玩家角色作为 AvatarActor，能力和属性归 PlayerState 持有。"))
 	UTunicAbilitySystemComponent* GetTunicAbilitySystemComponent() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Attributes", meta = (ToolTip = "返回玩家 AttributeSet。属性复制和 GameplayEffect 结算通过 PlayerState-owned ASC 管理。"))
+	UFUNCTION(BlueprintPure, Category = "LPQ|Attributes", meta = (ToolTip = "返回玩家 AttributeSet。属性复制和 GameplayEffect 结算通过 PlayerState-owned ASC 管理。"))
 	UTunicAttributeSet* GetAttributeSet() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "返回该玩家待选择的 run upgrade 次数。每个玩家独立拥有 pending，不是共享池。"))
+	UFUNCTION(BlueprintPure, Category = "LPQ|Run", meta = (ToolTip = "返回该玩家待选择的 run upgrade 次数。每个玩家独立拥有 pending，不是共享池。"))
 	int32 GetPendingRunUpgradeChoices() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Equipment", meta = (ToolTip = "返回当前拾取/装备标记。v1 只保存一个 FName，不代表完整库存系统。"))
+	UFUNCTION(BlueprintPure, Category = "LPQ|Equipment", meta = (ToolTip = "返回当前拾取/装备标记。v1 只保存一个 FName，不代表完整库存系统。"))
 	FName GetCurrentEquipmentId() const;
 
-	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
+	UPROPERTY(BlueprintAssignable, Category = "LPQ|Run")
 	FTunicPendingRunUpgradeChoicesChangedSignature OnPendingRunUpgradeChoicesChangedEvent;
 
-	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
+	UPROPERTY(BlueprintAssignable, Category = "LPQ|Run")
 	FTunicRunUpgradeChoiceConsumedSignature OnRunUpgradeChoiceConsumedEvent;
 
-	UPROPERTY(BlueprintAssignable, Category = "Tunic|Equipment")
+	UPROPERTY(BlueprintAssignable, Category = "LPQ|Equipment")
 	FTunicCurrentEquipmentChangedSignature OnCurrentEquipmentChangedEvent;
 
 	void AddPendingRunUpgradeChoices(int32 Amount);
@@ -53,19 +53,19 @@ public:
 	bool SetCurrentEquipmentId(FName NewEquipmentId);
 
 protected:
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "Pending upgrade choice 数量变化时的表现 hook。不要在这里直接应用属性或技能奖励。"))
+	UFUNCTION(BlueprintNativeEvent, Category = "LPQ|Run", meta = (ToolTip = "Pending upgrade choice 数量变化时的表现 hook。不要在这里直接应用属性或技能奖励。"))
 	void OnPendingRunUpgradeChoicesChanged(int32 PendingChoices);
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "服务器成功消耗一次 pending upgrade choice 后触发的表现 hook。真实升级效果由 GameMode 授予到 PlayerState-owned ASC。"))
+	UFUNCTION(BlueprintNativeEvent, Category = "LPQ|Run", meta = (ToolTip = "服务器成功消耗一次 pending upgrade choice 后触发的表现 hook。真实升级效果由 GameMode 授予到 PlayerState-owned ASC。"))
 	void OnRunUpgradeChoiceConsumed();
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Equipment", meta = (ToolTip = "当前装备标记变化时的表现 hook。v1 只表示拾取到的 CurrentEquipmentId，不要在这里授予 Ability 或改属性。"))
+	UFUNCTION(BlueprintNativeEvent, Category = "LPQ|Equipment", meta = (ToolTip = "当前装备标记变化时的表现 hook。v1 只表示拾取到的 CurrentEquipmentId，不要在这里授予 Ability 或改属性。"))
 	void OnCurrentEquipmentChanged(FName NewCurrentEquipmentId);
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Ability")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "LPQ|Ability")
 	TObjectPtr<UTunicAbilitySystemComponent> AbilitySystemComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tunic|Attributes")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "LPQ|Attributes")
 	TObjectPtr<UTunicAttributeSet> AttributeSet;
 
 private:

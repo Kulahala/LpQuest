@@ -47,8 +47,8 @@ void ATunicGameMode::Logout(AController* Exiting)
 
 void ATunicGameMode::EvaluatePartyWipe()
 {
-	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
-	if (!HasAuthority() || !TunicGameState || !TunicGameState->IsCombatActive())
+	ATunicGameState* LpQuestGameState = GetGameState<ATunicGameState>();
+	if (!HasAuthority() || !LpQuestGameState || !LpQuestGameState->IsCombatActive())
 	{
 		return;
 	}
@@ -91,15 +91,15 @@ void ATunicGameMode::EvaluatePartyWipe()
 
 	if (bAllParticipatingPlayersDead)
 	{
-		TunicGameState->SetRunState(ETunicRunState::PartyWiped);
+		LpQuestGameState->SetRunState(ETunicRunState::PartyWiped);
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Run state changed to PartyWiped"));
 	}
 }
 
 void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 {
-	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
-	if (!HasAuthority() || !TunicGameState || !TunicGameState->IsCombatActive() || !DeadEnemy)
+	ATunicGameState* LpQuestGameState = GetGameState<ATunicGameState>();
+	if (!HasAuthority() || !LpQuestGameState || !LpQuestGameState->IsCombatActive() || !DeadEnemy)
 	{
 		return;
 	}
@@ -108,9 +108,9 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 
 	if (ExperienceReward > 0)
 	{
-		const int32 OldSharedRunLevel = TunicGameState->GetSharedRunLevel();
-		TunicGameState->AddSharedRunExperience(ExperienceReward, DeadEnemy);
-		const int32 NewSharedRunLevel = TunicGameState->GetSharedRunLevel();
+		const int32 OldSharedRunLevel = LpQuestGameState->GetSharedRunLevel();
+		LpQuestGameState->AddSharedRunExperience(ExperienceReward, DeadEnemy);
+		const int32 NewSharedRunLevel = LpQuestGameState->GetSharedRunLevel();
 		if (NewSharedRunLevel > OldSharedRunLevel)
 		{
 			GrantPendingRunUpgradeChoices(NewSharedRunLevel - OldSharedRunLevel);
@@ -119,7 +119,7 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Shared XP awarded | Enemy=%s | Amount=%d | Source=enemy config | TotalSharedXP=%d"),
 			*GetNameSafe(DeadEnemy),
 			ExperienceReward,
-			TunicGameState->GetSharedRunExperience());
+			LpQuestGameState->GetSharedRunExperience());
 	}
 	else
 	{
@@ -130,74 +130,74 @@ void ATunicGameMode::HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy)
 	SpawnEnemyDropPickup(DeadEnemy);
 }
 
-bool ATunicGameMode::TrySelectRunUpgradeForPlayer(ATunicPlayerState* TunicPlayerState)
+bool ATunicGameMode::TrySelectRunUpgradeForPlayer(ATunicPlayerState* LpQuestPlayerState)
 {
 	if (!HasAuthority())
 	{
 		return false;
 	}
 
-	if (!TunicPlayerState)
+	if (!LpQuestPlayerState)
 	{
 		UE_LOG(LogLpQuestRunState, Warning, TEXT("Run upgrade selection rejected: missing player state"));
 		return false;
 	}
 
-	UAbilitySystemComponent* AbilitySystemComponent = TunicPlayerState->GetAbilitySystemComponent();
+	UAbilitySystemComponent* AbilitySystemComponent = LpQuestPlayerState->GetAbilitySystemComponent();
 	if (!AbilitySystemComponent)
 	{
 		UE_LOG(LogLpQuestRunState, Warning, TEXT("Run upgrade selection rejected: missing ASC | PlayerState=%s"),
-			*GetNameSafe(TunicPlayerState));
+			*GetNameSafe(LpQuestPlayerState));
 		return false;
 	}
 
 	if (!DefaultRunUpgradeGameplayEffectClass)
 	{
 		UE_LOG(LogLpQuestRunState, Warning, TEXT("Run upgrade selection rejected: missing default upgrade GE | PlayerState=%s"),
-			*GetNameSafe(TunicPlayerState));
+			*GetNameSafe(LpQuestPlayerState));
 		return false;
 	}
 
-	if (TunicPlayerState->GetPendingRunUpgradeChoices() <= 0)
+	if (LpQuestPlayerState->GetPendingRunUpgradeChoices() <= 0)
 	{
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Run upgrade selection rejected: no pending choices | PlayerState=%s"),
-			*GetNameSafe(TunicPlayerState));
+			*GetNameSafe(LpQuestPlayerState));
 		return false;
 	}
 
 	FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
-	EffectContext.AddSourceObject(TunicPlayerState);
+	EffectContext.AddSourceObject(LpQuestPlayerState);
 
 	FGameplayEffectSpecHandle UpgradeSpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultRunUpgradeGameplayEffectClass, 1.0f, EffectContext);
 	if (!UpgradeSpecHandle.IsValid())
 	{
 		UE_LOG(LogLpQuestRunState, Warning, TEXT("Run upgrade selection rejected: failed to create GE spec | PlayerState=%s | EffectClass=%s"),
-			*GetNameSafe(TunicPlayerState),
+			*GetNameSafe(LpQuestPlayerState),
 			*GetNameSafe(DefaultRunUpgradeGameplayEffectClass.Get()));
 		return false;
 	}
 
-	if (!TunicPlayerState->TryConsumePendingRunUpgradeChoice())
+	if (!LpQuestPlayerState->TryConsumePendingRunUpgradeChoice())
 	{
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Run upgrade selection rejected: pending choice consume failed | PlayerState=%s"),
-			*GetNameSafe(TunicPlayerState));
+			*GetNameSafe(LpQuestPlayerState));
 		return false;
 	}
 
 	AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*UpgradeSpecHandle.Data.Get());
 
 	UE_LOG(LogLpQuestRunState, Display, TEXT("Run upgrade selected | PlayerState=%s | EffectClass=%s | RemainingPending=%d"),
-		*GetNameSafe(TunicPlayerState),
+		*GetNameSafe(LpQuestPlayerState),
 		*GetNameSafe(DefaultRunUpgradeGameplayEffectClass.Get()),
-		TunicPlayerState->GetPendingRunUpgradeChoices());
+		LpQuestPlayerState->GetPendingRunUpgradeChoices());
 
 	return true;
 }
 
 bool ATunicGameMode::TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlayer, ATunicPortalActor* PortalActor)
 {
-	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
-	if (!HasAuthority() || !TunicGameState || !InteractingPlayer || !PortalActor)
+	ATunicGameState* LpQuestGameState = GetGameState<ATunicGameState>();
+	if (!HasAuthority() || !LpQuestGameState || !InteractingPlayer || !PortalActor)
 	{
 		UE_LOG(LogLpQuestRunState, Warning, TEXT("Portal event start rejected: missing authority, game state, player, or portal | Player=%s | Portal=%s"),
 			*GetNameSafe(InteractingPlayer),
@@ -230,12 +230,12 @@ bool ATunicGameMode::TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlaye
 		return false;
 	}
 
-	if (TunicGameState->IsPartyWiped() || TunicGameState->IsFloorTransitionReady())
+	if (LpQuestGameState->IsPartyWiped() || LpQuestGameState->IsFloorTransitionReady())
 	{
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Portal event start rejected: run state does not allow portal interaction | Player=%s | Portal=%s | RunState=%d"),
 			*GetNameSafe(InteractingPlayer),
 			*GetNameSafe(PortalActor),
-			static_cast<int32>(TunicGameState->GetRunState()));
+			static_cast<int32>(LpQuestGameState->GetRunState()));
 		return false;
 	}
 
@@ -243,7 +243,7 @@ bool ATunicGameMode::TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlaye
 	{
 		if (ExistingPortalEventOwner == PortalActor)
 		{
-			return TunicGameState->IsPortalEventActive();
+			return LpQuestGameState->IsPortalEventActive();
 		}
 
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Portal event start rejected: another portal already owns the active event | Player=%s | RequestedPortal=%s | ActivePortal=%s"),
@@ -253,7 +253,7 @@ bool ATunicGameMode::TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlaye
 		return false;
 	}
 
-	if (TunicGameState->IsPortalEventActive())
+	if (LpQuestGameState->IsPortalEventActive())
 	{
 		UE_LOG(LogLpQuestRunState, Warning, TEXT("Portal event start rejected: PortalEventActive has no selected portal owner | Player=%s | Portal=%s"),
 			*GetNameSafe(InteractingPlayer),
@@ -274,7 +274,7 @@ bool ATunicGameMode::TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlaye
 	}
 
 	ActivePortalEventOwner = PortalActor;
-	TunicGameState->SetRunState(ETunicRunState::PortalEventActive);
+	LpQuestGameState->SetRunState(ETunicRunState::PortalEventActive);
 	UE_LOG(LogLpQuestRunState, Display, TEXT("Run state changed to PortalEventActive | Player=%s | Portal=%s"),
 		*GetNameSafe(InteractingPlayer),
 		*GetNameSafe(PortalActor));
@@ -324,14 +324,14 @@ bool ATunicGameMode::IsActivePortalEventOwner(const ATunicPortalActor* PortalAct
 
 bool ATunicGameMode::MarkFloorTransitionReady(FName DestinationId)
 {
-	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
-	if (!HasAuthority() || !TunicGameState || !(TunicGameState->IsPortalEventActive() || TunicGameState->GetRunState() == ETunicRunState::CombatActive) || DestinationId.IsNone())
+	ATunicGameState* LpQuestGameState = GetGameState<ATunicGameState>();
+	if (!HasAuthority() || !LpQuestGameState || !(LpQuestGameState->IsPortalEventActive() || LpQuestGameState->GetRunState() == ETunicRunState::CombatActive) || DestinationId.IsNone())
 	{
 		return false;
 	}
 
 	PendingFloorDestinationId = DestinationId;
-	TunicGameState->SetRunState(ETunicRunState::FloorTransitionReady);
+	LpQuestGameState->SetRunState(ETunicRunState::FloorTransitionReady);
 	UE_LOG(LogLpQuestRunState, Display, TEXT("Run state changed to FloorTransitionReady | Destination=%s"),
 		*PendingFloorDestinationId.ToString());
 
@@ -348,13 +348,13 @@ bool ATunicGameMode::MarkFloorTransitionReady(FName DestinationId)
 
 void ATunicGameMode::CompleteFloorTransitionStub()
 {
-	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
-	if (!HasAuthority() || !TunicGameState || !TunicGameState->IsFloorTransitionReady())
+	ATunicGameState* LpQuestGameState = GetGameState<ATunicGameState>();
+	if (!HasAuthority() || !LpQuestGameState || !LpQuestGameState->IsFloorTransitionReady())
 	{
 		return;
 	}
 
-	const int32 PreviousFloorIndex = TunicGameState->GetCurrentFloorIndex();
+	const int32 PreviousFloorIndex = LpQuestGameState->GetCurrentFloorIndex();
 	const int32 NewFloorIndex = PreviousFloorIndex + 1;
 
 	int32 ResetPortalCount = 0;
@@ -383,9 +383,9 @@ void ATunicGameMode::CompleteFloorTransitionStub()
 		++ResetSpawnSourceCount;
 	}
 
-	TunicGameState->SetCurrentFloorIndex(NewFloorIndex);
-	TunicGameState->SetCurrentFloorDestinationId(PendingFloorDestinationId);
-	TunicGameState->SetRunState(ETunicRunState::CombatActive);
+	LpQuestGameState->SetCurrentFloorIndex(NewFloorIndex);
+	LpQuestGameState->SetCurrentFloorDestinationId(PendingFloorDestinationId);
+	LpQuestGameState->SetRunState(ETunicRunState::CombatActive);
 	ActivePortalEventOwner.Reset();
 	SpawnFloorWavesForCurrentFloor();
 
@@ -406,8 +406,8 @@ void ATunicGameMode::SpawnFloorWavesForCurrentFloor()
 		return;
 	}
 
-	ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
-	if (!TunicGameState || TunicGameState->GetRunState() != ETunicRunState::CombatActive)
+	ATunicGameState* LpQuestGameState = GetGameState<ATunicGameState>();
+	if (!LpQuestGameState || LpQuestGameState->GetRunState() != ETunicRunState::CombatActive)
 	{
 		return;
 	}
@@ -423,18 +423,18 @@ void ATunicGameMode::SpawnFloorWavesForCurrentFloor()
 		}
 
 		++SpawnSourceCount;
-		SpawnedEnemyCount += SpawnSource->SpawnForFloor(TunicGameState->GetCurrentFloorIndex());
+		SpawnedEnemyCount += SpawnSource->SpawnForFloor(LpQuestGameState->GetCurrentFloorIndex());
 	}
 
 	if (SpawnSourceCount <= 0)
 	{
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Floor wave spawn skipped: no floor wave enemy spawn sources | Floor=%d"),
-			TunicGameState->GetCurrentFloorIndex());
+			LpQuestGameState->GetCurrentFloorIndex());
 		return;
 	}
 
 	UE_LOG(LogLpQuestRunState, Display, TEXT("Floor wave spawn completed | Floor=%d | SpawnSources=%d | SpawnedEnemies=%d"),
-		TunicGameState->GetCurrentFloorIndex(),
+		LpQuestGameState->GetCurrentFloorIndex(),
 		SpawnSourceCount,
 		SpawnedEnemyCount);
 }
@@ -449,13 +449,13 @@ void ATunicGameMode::GrantPendingRunUpgradeChoices(int32 LevelDelta)
 	int32 GrantedPlayerCount = 0;
 	for (APlayerState* PlayerState : GameState->PlayerArray)
 	{
-		ATunicPlayerState* TunicPlayerState = Cast<ATunicPlayerState>(PlayerState);
-		if (!TunicPlayerState)
+		ATunicPlayerState* LpQuestPlayerState = Cast<ATunicPlayerState>(PlayerState);
+		if (!LpQuestPlayerState)
 		{
 			continue;
 		}
 
-		TunicPlayerState->AddPendingRunUpgradeChoices(LevelDelta);
+		LpQuestPlayerState->AddPendingRunUpgradeChoices(LevelDelta);
 		++GrantedPlayerCount;
 	}
 
@@ -505,8 +505,8 @@ void ATunicGameMode::SpawnEnemyDropPickup(ATunicEnemyCharacter* DeadEnemy)
 
 bool ATunicGameMode::CanUsePortalForFloorTransition(ATunicPlayerCharacter* InteractingPlayer, ATunicPortalActor* PortalActor, bool bRequireAllLivingPlayersInPortalRadius)
 {
-	const ATunicGameState* TunicGameState = GetGameState<ATunicGameState>();
-	if (!HasAuthority() || !TunicGameState || !InteractingPlayer || !PortalActor)
+	const ATunicGameState* LpQuestGameState = GetGameState<ATunicGameState>();
+	if (!HasAuthority() || !LpQuestGameState || !InteractingPlayer || !PortalActor)
 	{
 		UE_LOG(LogLpQuestRunState, Warning, TEXT("Portal floor transition rejected: missing authority, game state, player, or portal | Player=%s | Portal=%s"),
 			*GetNameSafe(InteractingPlayer),
@@ -530,12 +530,12 @@ bool ATunicGameMode::CanUsePortalForFloorTransition(ATunicPlayerCharacter* Inter
 		return false;
 	}
 
-	if (TunicGameState->IsPartyWiped() || TunicGameState->IsFloorTransitionReady() || TunicGameState->IsPortalEventActive())
+	if (LpQuestGameState->IsPartyWiped() || LpQuestGameState->IsFloorTransitionReady() || LpQuestGameState->IsPortalEventActive())
 	{
 		UE_LOG(LogLpQuestRunState, Display, TEXT("Portal floor transition rejected: run state does not allow direct exit | Player=%s | Portal=%s | RunState=%d"),
 			*GetNameSafe(InteractingPlayer),
 			*GetNameSafe(PortalActor),
-			static_cast<int32>(TunicGameState->GetRunState()));
+			static_cast<int32>(LpQuestGameState->GetRunState()));
 		return false;
 	}
 

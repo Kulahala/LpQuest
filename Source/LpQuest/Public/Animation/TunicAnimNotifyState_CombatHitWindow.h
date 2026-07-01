@@ -10,7 +10,7 @@ class UAnimSequenceBase;
 class USkeletalMeshComponent;
 struct FAnimNotifyEventReference;
 
-UCLASS(Const, CollapseCategories, meta = (DisplayName = "Tunic Combat Hit Window", ToolTip = "在 Montage 上标记战斗命中窗口。开始/结束窗口本身不直接造成伤害，命中由对应角色服务器逻辑确认。"))
+UCLASS(Const, CollapseCategories, meta = (DisplayName = "LPQ Combat Hit Window", ToolTip = "在 Montage 上标记战斗命中窗口。开始/结束窗口本身不直接造成伤害，命中由对应角色服务器逻辑确认。"))
 class LPQUEST_API UTunicAnimNotifyState_CombatHitWindow : public UAnimNotifyState
 {
 	GENERATED_BODY()
@@ -22,6 +22,6 @@ public:
 	virtual FString GetNotifyName_Implementation() const override;
 
 private:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tunic|Combat", meta = (AllowPrivateAccess = "true", ToolTip = "命中窗口名称。角色会按名称转发到对应的 Begin/Process/End CombatHitWindow 逻辑。"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LPQ|Combat", meta = (AllowPrivateAccess = "true", ToolTip = "命中窗口名称。角色会按名称转发到对应的 Begin/Process/End CombatHitWindow 逻辑。"))
 	FName HitWindowName = FName(TEXT("Default"));
 };

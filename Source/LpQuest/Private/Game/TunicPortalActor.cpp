@@ -159,7 +159,7 @@ void ATunicPortalActor::ResetPortalForNextFloorStub()
 	ResetPortalPressureState();
 
 	++PortalResetSerial;
-	if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
+	if (bLogPortalState && FLPQDebugSettings::ShouldLogPortal())
 	{
 		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal reset for next floor stub | Portal=%s | ResetSerial=%d"),
 			*GetNameSafe(this),
@@ -206,15 +206,15 @@ bool ATunicPortalActor::CanInteractWithTunicPlayer_Implementation(ATunicPlayerCh
 		return false;
 	}
 
-	const ATunicGameState* TunicGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
-	if (!TunicGameState || TunicGameState->IsPartyWiped() || TunicGameState->IsFloorTransitionReady())
+	const ATunicGameState* LpQuestGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
+	if (!LpQuestGameState || LpQuestGameState->IsPartyWiped() || LpQuestGameState->IsFloorTransitionReady())
 	{
 		return false;
 	}
 
-	if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
+	if (ATunicGameMode* LpQuestGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
 	{
-		if (TunicGameState->IsPortalEventActive() && !TunicGameMode->IsActivePortalEventOwner(this))
+		if (LpQuestGameState->IsPortalEventActive() && !LpQuestGameMode->IsActivePortalEventOwner(this))
 		{
 			return false;
 		}
@@ -226,15 +226,15 @@ bool ATunicPortalActor::CanInteractWithTunicPlayer_Implementation(ATunicPlayerCh
 
 void ATunicPortalActor::InteractWithTunicPlayer_Implementation(ATunicPlayerCharacter* InteractingPlayer)
 {
-	if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
+	if (ATunicGameMode* LpQuestGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
 	{
 		if (PortalCompletionMode == ETunicPortalCompletionMode::DirectFloorExit)
 		{
-			TunicGameMode->TryUseDirectFloorExitPortal(InteractingPlayer, this);
+			LpQuestGameMode->TryUseDirectFloorExitPortal(InteractingPlayer, this);
 			return;
 		}
 
-		TunicGameMode->TryStartPortalEvent(InteractingPlayer, this);
+		LpQuestGameMode->TryStartPortalEvent(InteractingPlayer, this);
 	}
 }
 
@@ -245,14 +245,14 @@ void ATunicPortalActor::TryActivatePortalFromRunState()
 		return;
 	}
 
-	const ATunicGameState* TunicGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
-	if (!TunicGameState || !TunicGameState->IsPortalEventActive())
+	const ATunicGameState* LpQuestGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
+	if (!LpQuestGameState || !LpQuestGameState->IsPortalEventActive())
 	{
 		return;
 	}
 
-	const ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr;
-	if (!TunicGameMode || !TunicGameMode->IsActivePortalEventOwner(this))
+	const ATunicGameMode* LpQuestGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr;
+	if (!LpQuestGameMode || !LpQuestGameMode->IsActivePortalEventOwner(this))
 	{
 		return;
 	}
@@ -264,8 +264,8 @@ void ATunicPortalActor::TryActivatePortalFromRunState()
 
 void ATunicPortalActor::EvaluatePortalCharge(float DeltaSeconds)
 {
-	const ATunicGameState* TunicGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
-	if (!TunicGameState || !TunicGameState->IsPortalEventActive())
+	const ATunicGameState* LpQuestGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
+	if (!LpQuestGameState || !LpQuestGameState->IsPortalEventActive())
 	{
 		SetPortalCharging(false);
 		return;
@@ -304,8 +304,8 @@ void ATunicPortalActor::CompletePortal()
 		return;
 	}
 
-	ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr;
-	if (!TunicGameMode || !TunicGameMode->IsActivePortalEventOwner(this))
+	ATunicGameMode* LpQuestGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr;
+	if (!LpQuestGameMode || !LpQuestGameMode->IsActivePortalEventOwner(this))
 	{
 		return;
 	}
@@ -315,7 +315,7 @@ void ATunicPortalActor::CompletePortal()
 	SetPortalReady(true);
 	CleanupPortalPressureEnemies();
 
-	const bool bTransitionStarted = TunicGameMode->MarkFloorTransitionReady(PortalDestinationId);
+	const bool bTransitionStarted = LpQuestGameMode->MarkFloorTransitionReady(PortalDestinationId);
 	if (!bTransitionStarted)
 	{
 		SetPortalReady(false);
@@ -356,7 +356,7 @@ void ATunicPortalActor::SpawnPortalBossIfNeeded()
 	SpawnedPortalBossEnemy = SpawnedBoss;
 	bPortalBossSpawnFailed = !SpawnedBoss;
 
-	if (SpawnedBoss && bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
+	if (SpawnedBoss && bLogPortalState && FLPQDebugSettings::ShouldLogPortal())
 	{
 		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal boss spawned | Portal=%s | Boss=%s | BossClass=%s"),
 			*GetNameSafe(this),
@@ -424,12 +424,12 @@ void ATunicPortalActor::TickPortalPressureSpawns(float DeltaSeconds)
 
 bool ATunicPortalActor::ShouldSpawnPortalPressure() const
 {
-	const ATunicGameState* TunicGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
+	const ATunicGameState* LpQuestGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
 	return HasAuthority()
 		&& bIsPortalActive
 		&& !bIsPortalReady
-		&& TunicGameState
-		&& TunicGameState->IsPortalEventActive()
+		&& LpQuestGameState
+		&& LpQuestGameState->IsPortalEventActive()
 		&& IsPortalBossDefeated()
 		&& PortalPressureEnemyClass
 		&& MaxAlivePortalPressureEnemies > 0
@@ -461,7 +461,7 @@ void ATunicPortalActor::SpawnPortalPressureEnemy()
 	}
 
 	SpawnedPortalPressureEnemies.Add(SpawnedEnemy);
-	if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
+	if (bLogPortalState && FLPQDebugSettings::ShouldLogPortal())
 	{
 		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal pressure enemy spawned | Portal=%s | Enemy=%s | Alive=%d/%d"),
 			*GetNameSafe(this),
@@ -487,7 +487,7 @@ FTransform ATunicPortalActor::GetNextPortalPressureSpawnTransform()
 		}
 	}
 
-	if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
+	if (bLogPortalState && FLPQDebugSettings::ShouldLogPortal())
 	{
 		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal pressure spawn using portal transform fallback | Portal=%s"),
 			*GetNameSafe(this));
@@ -577,7 +577,7 @@ void ATunicPortalActor::SetPortalActive(bool bNewIsPortalActive)
 	bIsPortalActive = bNewIsPortalActive;
 	if (bIsPortalActive)
 	{
-		if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
+		if (bLogPortalState && FLPQDebugSettings::ShouldLogPortal())
 		{
 			UE_LOG(LogLpQuestPortal, Display, TEXT("Portal activated | Portal=%s"), *GetNameSafe(this));
 		}
@@ -593,7 +593,7 @@ void ATunicPortalActor::SetPortalCharging(bool bNewIsCharging)
 	}
 
 	bIsPortalCharging = bNewIsCharging;
-	if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
+	if (bLogPortalState && FLPQDebugSettings::ShouldLogPortal())
 	{
 		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal charging %s | Portal=%s | PresentLivingPlayers=%d/%d | Progress=%.2f"),
 			bIsPortalCharging ? TEXT("started") : TEXT("paused"),
@@ -615,7 +615,7 @@ void ATunicPortalActor::SetPortalReady(bool bNewIsReady)
 	bIsPortalReady = bNewIsReady;
 	if (bIsPortalReady)
 	{
-		if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
+		if (bLogPortalState && FLPQDebugSettings::ShouldLogPortal())
 		{
 			UE_LOG(LogLpQuestPortal, Display, TEXT("Portal ready | Portal=%s"), *GetNameSafe(this));
 		}
@@ -645,7 +645,7 @@ void ATunicPortalActor::SetPortalPlayerCounts(int32 NewRequiredLivingPlayerCount
 	RequiredLivingPlayerCount = NewRequiredLivingPlayerCount;
 	PresentLivingPlayerCount = NewPresentLivingPlayerCount;
 
-	if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
+	if (bLogPortalState && FLPQDebugSettings::ShouldLogPortal())
 	{
 		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal player count updated | Portal=%s | PresentLivingPlayers=%d/%d"),
 			*GetNameSafe(this),

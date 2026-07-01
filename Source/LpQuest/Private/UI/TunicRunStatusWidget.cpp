@@ -107,29 +107,29 @@ void UTunicRunStatusWidget::RefreshRunStatus()
 	if (FloorText)
 	{
 		FloorText->SetText(FText::Format(
-			NSLOCTEXT("TunicRunStatus", "FloorDestinationFormat", "Floor: {0} [{1}]"),
+			NSLOCTEXT("LPQRunStatus", "FloorDestinationFormat", "Floor: {0} [{1}]"),
 			FloorIndex,
 			FText::FromName(FloorDestinationId)));
 	}
 
 	if (RunStateText)
 	{
-		RunStateText->SetText(FText::Format(NSLOCTEXT("TunicRunStatus", "RunStateFormat", "Run: {0}"), GetRunStateText(RunState)));
+		RunStateText->SetText(FText::Format(NSLOCTEXT("LPQRunStatus", "RunStateFormat", "Run: {0}"), GetRunStateText(RunState)));
 	}
 
 	if (SharedExperienceText)
 	{
-		SharedExperienceText->SetText(FText::Format(NSLOCTEXT("TunicRunStatus", "SharedExperienceFormat", "XP: {0}"), SharedRunExperience));
+		SharedExperienceText->SetText(FText::Format(NSLOCTEXT("LPQRunStatus", "SharedExperienceFormat", "XP: {0}"), SharedRunExperience));
 	}
 
 	if (SharedLevelText)
 	{
-		SharedLevelText->SetText(FText::Format(NSLOCTEXT("TunicRunStatus", "SharedLevelFormat", "Level: {0}"), SharedRunLevel));
+		SharedLevelText->SetText(FText::Format(NSLOCTEXT("LPQRunStatus", "SharedLevelFormat", "Level: {0}"), SharedRunLevel));
 	}
 
 	if (PendingUpgradeText)
 	{
-		PendingUpgradeText->SetText(FText::Format(NSLOCTEXT("TunicRunStatus", "PendingUpgradeFormat", "Upgrade Available: {0}"), PendingUpgradeChoices));
+		PendingUpgradeText->SetText(FText::Format(NSLOCTEXT("LPQRunStatus", "PendingUpgradeFormat", "Upgrade Available: {0}"), PendingUpgradeChoices));
 	}
 
 	if (SelectUpgradeButton)
@@ -176,26 +176,26 @@ void UTunicRunStatusWidget::HandlePendingRunUpgradeChoicesChanged(int32)
 
 void UTunicRunStatusWidget::HandleSelectUpgradeClicked()
 {
-	ATunicPlayerController* TunicPlayerController = Cast<ATunicPlayerController>(GetOwningPlayer());
-	if (!TunicPlayerController)
+	ATunicPlayerController* LpQuestPlayerController = Cast<ATunicPlayerController>(GetOwningPlayer());
+	if (!LpQuestPlayerController)
 	{
 		return;
 	}
 
-	TunicPlayerController->RequestSelectRunUpgrade();
+	LpQuestPlayerController->RequestSelectRunUpgrade();
 }
 
 void UTunicRunStatusWidget::BindGameState()
 {
-	ATunicGameState* TunicGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
-	if (!TunicGameState || BoundGameState == TunicGameState)
+	ATunicGameState* LpQuestGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
+	if (!LpQuestGameState || BoundGameState == LpQuestGameState)
 	{
 		return;
 	}
 
 	UnbindGameState();
 
-	BoundGameState = TunicGameState;
+	BoundGameState = LpQuestGameState;
 	BoundGameState->OnRunStateChangedEvent.AddUniqueDynamic(this, &UTunicRunStatusWidget::HandleRunStateChanged);
 	BoundGameState->OnFloorIndexChangedEvent.AddUniqueDynamic(this, &UTunicRunStatusWidget::HandleFloorIndexChanged);
 	BoundGameState->OnFloorDestinationChangedEvent.AddUniqueDynamic(this, &UTunicRunStatusWidget::HandleFloorDestinationChanged);
@@ -221,15 +221,15 @@ void UTunicRunStatusWidget::UnbindGameState()
 void UTunicRunStatusWidget::BindPlayerState()
 {
 	APlayerController* OwningPlayerController = GetOwningPlayer();
-	ATunicPlayerState* TunicPlayerState = OwningPlayerController ? OwningPlayerController->GetPlayerState<ATunicPlayerState>() : nullptr;
-	if (!TunicPlayerState || BoundPlayerState == TunicPlayerState)
+	ATunicPlayerState* LpQuestPlayerState = OwningPlayerController ? OwningPlayerController->GetPlayerState<ATunicPlayerState>() : nullptr;
+	if (!LpQuestPlayerState || BoundPlayerState == LpQuestPlayerState)
 	{
 		return;
 	}
 
 	UnbindPlayerState();
 
-	BoundPlayerState = TunicPlayerState;
+	BoundPlayerState = LpQuestPlayerState;
 	BoundPlayerState->OnPendingRunUpgradeChoicesChangedEvent.AddUniqueDynamic(this, &UTunicRunStatusWidget::HandlePendingRunUpgradeChoicesChanged);
 }
 
@@ -249,14 +249,14 @@ FText UTunicRunStatusWidget::GetRunStateText(ETunicRunState RunState)
 	switch (RunState)
 	{
 	case ETunicRunState::CombatActive:
-		return NSLOCTEXT("TunicRunStatus", "CombatActive", "CombatActive");
+		return NSLOCTEXT("LPQRunStatus", "CombatActive", "CombatActive");
 	case ETunicRunState::PartyWiped:
-		return NSLOCTEXT("TunicRunStatus", "PartyWiped", "PartyWiped");
+		return NSLOCTEXT("LPQRunStatus", "PartyWiped", "PartyWiped");
 	case ETunicRunState::PortalEventActive:
-		return NSLOCTEXT("TunicRunStatus", "PortalEventActive", "PortalEventActive");
+		return NSLOCTEXT("LPQRunStatus", "PortalEventActive", "PortalEventActive");
 	case ETunicRunState::FloorTransitionReady:
-		return NSLOCTEXT("TunicRunStatus", "FloorTransitionReady", "FloorTransitionReady");
+		return NSLOCTEXT("LPQRunStatus", "FloorTransitionReady", "FloorTransitionReady");
 	default:
-		return NSLOCTEXT("TunicRunStatus", "Unknown", "Unknown");
+		return NSLOCTEXT("LPQRunStatus", "Unknown", "Unknown");
 	}
 }

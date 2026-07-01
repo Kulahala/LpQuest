@@ -29,13 +29,13 @@ public:
 	bool IsActivePortalEventOwner(const ATunicPortalActor* PortalActor) const;
 	bool MarkFloorTransitionReady(FName DestinationId);
 	void HandleEnemyDeath(ATunicEnemyCharacter* DeadEnemy);
-	bool TrySelectRunUpgradeForPlayer(ATunicPlayerState* TunicPlayerState);
+	bool TrySelectRunUpgradeForPlayer(ATunicPlayerState* LpQuestPlayerState);
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tunic|Run", meta = (ClampMin = "0.0", Units = "s", ToolTip = "Portal ready 后 floor transition stub 等待多久完成，单位秒。完成后楼层 +1、重置 Portal 和 floor-wave spawn source，并回到 CombatActive。"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LPQ|Run", meta = (ClampMin = "0.0", Units = "s", ToolTip = "Portal ready 后 floor transition stub 等待多久完成，单位秒。完成后楼层 +1、重置 Portal 和 floor-wave spawn source，并回到 CombatActive。"))
 	float FloorTransitionStubDelay = 2.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tunic|Run|Rewards", meta = (ToolTip = "玩家消耗一次 pending run upgrade 时，服务器授予到 PlayerState-owned ASC 的默认升级 GameplayEffect。v1 默认 MaxHealth +20 并恢复 Health +20。"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "LPQ|Run|Rewards", meta = (ToolTip = "玩家消耗一次 pending run upgrade 时，服务器授予到 PlayerState-owned ASC 的默认升级 GameplayEffect。v1 默认 MaxHealth +20 并恢复 Health +20。"))
 	TSubclassOf<UGameplayEffect> DefaultRunUpgradeGameplayEffectClass;
 
 private:

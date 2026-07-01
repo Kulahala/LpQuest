@@ -69,7 +69,7 @@ void ATunicPickupActor::InteractWithTunicPlayer_Implementation(ATunicPlayerChara
 
 	if (!InteractingPlayer || InteractingPlayer->IsDead())
 	{
-		if (bLogPickupInteraction && FTunicDebugSettings::ShouldLogInteraction())
+		if (bLogPickupInteraction && FLPQDebugSettings::ShouldLogInteraction())
 		{
 			UE_LOG(LogLpQuestPickup, Display, TEXT("Pickup rejected: invalid or dead player | Pickup=%s | Player=%s | PickupId=%s"),
 				*GetNameSafe(this),
@@ -79,24 +79,24 @@ void ATunicPickupActor::InteractWithTunicPlayer_Implementation(ATunicPlayerChara
 		return;
 	}
 
-	ATunicPlayerState* TunicPlayerState = InteractingPlayer->GetPlayerState<ATunicPlayerState>();
-	if (!TunicPlayerState || !TunicPlayerState->SetCurrentEquipmentId(PickupId))
+	ATunicPlayerState* LpQuestPlayerState = InteractingPlayer->GetPlayerState<ATunicPlayerState>();
+	if (!LpQuestPlayerState || !LpQuestPlayerState->SetCurrentEquipmentId(PickupId))
 	{
 		UE_LOG(LogLpQuestPickup, Warning, TEXT("Pickup rejected: failed to set CurrentEquipmentId | Pickup=%s | Player=%s | PlayerState=%s | PickupId=%s"),
 			*GetNameSafe(this),
 			*GetNameSafe(InteractingPlayer),
-			*GetNameSafe(TunicPlayerState),
+			*GetNameSafe(LpQuestPlayerState),
 			*PickupId.ToString());
 		return;
 	}
 
 	bPickupConsumed = true;
-	if (bLogPickupInteraction && FTunicDebugSettings::ShouldLogInteraction())
+	if (bLogPickupInteraction && FLPQDebugSettings::ShouldLogInteraction())
 	{
 		UE_LOG(LogLpQuestPickup, Display, TEXT("Pickup consumed | Pickup=%s | Player=%s | PlayerState=%s | PickupId=%s"),
 			*GetNameSafe(this),
 			*GetNameSafe(InteractingPlayer),
-			*GetNameSafe(TunicPlayerState),
+			*GetNameSafe(LpQuestPlayerState),
 			*PickupId.ToString());
 	}
 

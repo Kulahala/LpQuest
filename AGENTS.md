@@ -190,7 +190,7 @@ When a new system replaces an old system and the project is still early, prefer 
 
 Unless a fallback is required to prevent data loss, preserve compatibility during a concrete migration window, or keep an intentionally supported minimal path working, do not add fallback behavior that makes missing configuration look successful. Prefer failing visibly with a targeted warning so missing Montage Notifies, assets, DataAssets, classes, tags, or authored references are fixed at the source instead of hidden by runtime substitute behavior.
 
-New runtime debug drawing or development log switches should use the central `FTunicDebugSettings` / `Tunic.Debug.*` Console Variable gate unless there is a concrete reason not to. Keep system-local `bDraw...` / `bLog...` booleans only as per-Actor or per-Blueprint opt-in/out controls, and do not hide missing-configuration or failure warnings behind debug CVars.
+New runtime debug drawing or development log switches should use the central `FLPQDebugSettings` / `LPQ.Debug.*` Console Variable gate unless there is a concrete reason not to. Keep system-local `bDraw...` / `bLog...` booleans only as per-Actor or per-Blueprint opt-in/out controls, and do not hide missing-configuration or failure warnings behind debug CVars.
 
 New placed, selectable, referenced, or configured gameplay/helper Actors must have a visible editor marker, icon, billboard, preview component, or default mesh. Actors that players need to see, find, or interact with at runtime, such as portals and world pickups, must also have a visible runtime fallback mesh unless a required authored mesh is deliberately enforced with a warning. Do not leave default Actor instances discoverable only through the World Outliner.
 

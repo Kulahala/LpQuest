@@ -457,8 +457,8 @@ bool ATunicEnemyAIController::CanRunEnemyAI() const
 bool ATunicEnemyAIController::IsRunCombatActive() const
 {
 	const UWorld* World = GetWorld();
-	const ATunicGameState* TunicGameState = World ? World->GetGameState<ATunicGameState>() : nullptr;
-	return TunicGameState && TunicGameState->IsCombatActive();
+	const ATunicGameState* LpQuestGameState = World ? World->GetGameState<ATunicGameState>() : nullptr;
+	return LpQuestGameState && LpQuestGameState->IsCombatActive();
 }
 
 ATunicEnemyCharacter* ATunicEnemyAIController::GetControlledEnemy() const
@@ -542,8 +542,8 @@ AActor* ATunicEnemyAIController::FindBestProximityCombatTarget(float SearchRadiu
 
 	const ATunicEnemyCharacter* EnemyCharacter = GetControlledEnemy();
 	const UWorld* World = GetWorld();
-	const ATunicGameState* TunicGameState = World ? World->GetGameState<ATunicGameState>() : nullptr;
-	if (!EnemyCharacter || !TunicGameState)
+	const ATunicGameState* LpQuestGameState = World ? World->GetGameState<ATunicGameState>() : nullptr;
+	if (!EnemyCharacter || !LpQuestGameState)
 	{
 		return nullptr;
 	}
@@ -552,7 +552,7 @@ AActor* ATunicEnemyAIController::FindBestProximityCombatTarget(float SearchRadiu
 	float BestDistanceSquared = FMath::Square(FMath::Max(0.0f, SearchRadius));
 	const FVector QueryLocation = EnemyCharacter->GetActorLocation();
 
-	for (APlayerState* CandidatePlayerState : TunicGameState->PlayerArray)
+	for (APlayerState* CandidatePlayerState : LpQuestGameState->PlayerArray)
 	{
 		ATunicPlayerCharacter* PlayerCharacter = CandidatePlayerState ? CandidatePlayerState->GetPawn<ATunicPlayerCharacter>() : nullptr;
 		AActor* CandidateTarget = PlayerCharacter;

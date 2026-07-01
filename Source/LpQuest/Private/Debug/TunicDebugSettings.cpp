@@ -6,80 +6,80 @@
 
 namespace
 {
-	TAutoConsoleVariable<int32> CVarTunicDebugDrawAttributes(
-		TEXT("Tunic.Debug.Draw.Attributes"),
+	TAutoConsoleVariable<int32> CVarLPQDebugDrawAttributes(
+		TEXT("LPQ.Debug.Draw.Attributes"),
 		1,
-		TEXT("Enables Tunic runtime attribute debug drawing. 0 = off, non-zero = on."),
+		TEXT("Enables LPQ runtime attribute debug drawing. 0 = off, non-zero = on."),
 		ECVF_Default);
 
-	TAutoConsoleVariable<int32> CVarTunicDebugDrawEnemyMelee(
-		TEXT("Tunic.Debug.Draw.EnemyMelee"),
+	TAutoConsoleVariable<int32> CVarLPQDebugDrawEnemyMelee(
+		TEXT("LPQ.Debug.Draw.EnemyMelee"),
 		1,
-		TEXT("Enables Tunic enemy melee telegraph and hit-shape debug drawing. 0 = off, non-zero = on."),
+		TEXT("Enables LPQ enemy melee telegraph and hit-shape debug drawing. 0 = off, non-zero = on."),
 		ECVF_Default);
 
-	TAutoConsoleVariable<int32> CVarTunicDebugDrawPatrolRoutes(
-		TEXT("Tunic.Debug.Draw.PatrolRoutes"),
+	TAutoConsoleVariable<int32> CVarLPQDebugDrawPatrolRoutes(
+		TEXT("LPQ.Debug.Draw.PatrolRoutes"),
 		1,
-		TEXT("Enables Tunic runtime patrol route debug drawing. 0 = off, non-zero = on."),
+		TEXT("Enables LPQ runtime patrol route debug drawing. 0 = off, non-zero = on."),
 		ECVF_Default);
 
-	TAutoConsoleVariable<int32> CVarTunicDebugLogCombat(
-		TEXT("Tunic.Debug.Log.Combat"),
+	TAutoConsoleVariable<int32> CVarLPQDebugLogCombat(
+		TEXT("LPQ.Debug.Log.Combat"),
 		1,
-		TEXT("Enables Tunic combat debug logs. 0 = off, non-zero = on."),
+		TEXT("Enables LPQ combat debug logs. 0 = off, non-zero = on."),
 		ECVF_Default);
 
-	TAutoConsoleVariable<int32> CVarTunicDebugLogPortal(
-		TEXT("Tunic.Debug.Log.Portal"),
+	TAutoConsoleVariable<int32> CVarLPQDebugLogPortal(
+		TEXT("LPQ.Debug.Log.Portal"),
 		1,
-		TEXT("Enables Tunic portal debug logs. 0 = off, non-zero = on."),
+		TEXT("Enables LPQ portal debug logs. 0 = off, non-zero = on."),
 		ECVF_Default);
 
-	TAutoConsoleVariable<int32> CVarTunicDebugLogInteraction(
-		TEXT("Tunic.Debug.Log.Interaction"),
+	TAutoConsoleVariable<int32> CVarLPQDebugLogInteraction(
+		TEXT("LPQ.Debug.Log.Interaction"),
 		1,
-		TEXT("Enables Tunic interaction and pickup debug logs. 0 = off, non-zero = on."),
+		TEXT("Enables LPQ interaction and pickup debug logs. 0 = off, non-zero = on."),
 		ECVF_Default);
 
-	TAutoConsoleVariable<int32> CVarTunicDebugLogSpawnSource(
-		TEXT("Tunic.Debug.Log.SpawnSource"),
+	TAutoConsoleVariable<int32> CVarLPQDebugLogSpawnSource(
+		TEXT("LPQ.Debug.Log.SpawnSource"),
 		1,
-		TEXT("Enables Tunic spawn source debug logs. 0 = off, non-zero = on."),
+		TEXT("Enables LPQ spawn source debug logs. 0 = off, non-zero = on."),
 		ECVF_Default);
 }
 
-bool FTunicDebugSettings::ShouldDrawAttributes()
+bool FLPQDebugSettings::ShouldDrawAttributes()
 {
-	return CVarTunicDebugDrawAttributes.GetValueOnAnyThread() != 0;
+	return CVarLPQDebugDrawAttributes.GetValueOnAnyThread() != 0;
 }
 
-bool FTunicDebugSettings::ShouldDrawEnemyMelee()
+bool FLPQDebugSettings::ShouldDrawEnemyMelee()
 {
-	return CVarTunicDebugDrawEnemyMelee.GetValueOnAnyThread() != 0;
+	return CVarLPQDebugDrawEnemyMelee.GetValueOnAnyThread() != 0;
 }
 
-bool FTunicDebugSettings::ShouldDrawPatrolRoutes()
+bool FLPQDebugSettings::ShouldDrawPatrolRoutes()
 {
-	return CVarTunicDebugDrawPatrolRoutes.GetValueOnAnyThread() != 0;
+	return CVarLPQDebugDrawPatrolRoutes.GetValueOnAnyThread() != 0;
 }
 
-bool FTunicDebugSettings::ShouldLogCombat()
+bool FLPQDebugSettings::ShouldLogCombat()
 {
-	return CVarTunicDebugLogCombat.GetValueOnAnyThread() != 0;
+	return CVarLPQDebugLogCombat.GetValueOnAnyThread() != 0;
 }
 
-bool FTunicDebugSettings::ShouldLogPortal()
+bool FLPQDebugSettings::ShouldLogPortal()
 {
-	return CVarTunicDebugLogPortal.GetValueOnAnyThread() != 0;
+	return CVarLPQDebugLogPortal.GetValueOnAnyThread() != 0;
 }
 
-bool FTunicDebugSettings::ShouldLogInteraction()
+bool FLPQDebugSettings::ShouldLogInteraction()
 {
-	return CVarTunicDebugLogInteraction.GetValueOnAnyThread() != 0;
+	return CVarLPQDebugLogInteraction.GetValueOnAnyThread() != 0;
 }
 
-bool FTunicDebugSettings::ShouldLogSpawnSource()
+bool FLPQDebugSettings::ShouldLogSpawnSource()
 {
-	return CVarTunicDebugLogSpawnSource.GetValueOnAnyThread() != 0;
+	return CVarLPQDebugLogSpawnSource.GetValueOnAnyThread() != 0;
 }

@@ -1617,4 +1617,26 @@ Validation and review:
 - Strict review found no blocking issue after confirming debug CVars only gate debug draw / Display-level development logs in the targeted systems.
 - Accepted follow-up: GameMode / Ability / AIController Display logs are not forced into this v1. Add dedicated `Tunic.Debug.Log.RunState` or `Tunic.Debug.Log.AI` only if those logs become noisy enough to need their own category.
 
+## LPQ Naming Surface Cleanup v1
+
+Summary:
+
+- Renamed low-risk editor and debug naming surfaces from `Tunic` to `LPQ` / `LpQuest`.
+- Blueprint / Details categories now use `LPQ|...` instead of the old surface category prefix.
+- Native StateTree node display names and the combat hit-window Notify display name now use `LPQ` editor-facing names while keeping their reflected C++ type names unchanged.
+- Renamed the runtime debug settings struct from `FTunicDebugSettings` to `FLPQDebugSettings`.
+- Renamed debug CVars from `Tunic.Debug.*` to `LPQ.Debug.*` without adding old-name aliases.
+- Updated `AGENTS.md`, `ARCHITECTURE.md`, `README.md`, and `plan.md` for the current naming surface.
+- `ARCHITECTURE.md` now records that reflected C++ types, source file names, generated header includes, Blueprint asset names, and Config Blueprint paths intentionally remain on the older `Tunic` prefix until a dedicated reflected-type / asset rename stage can add redirects and resave assets.
+- The stage intentionally does not rename `UCLASS` / `USTRUCT` / `UENUM` / `UINTERFACE` types, source files, `.generated.h` includes, Blueprint assets, Content assets, Config Blueprint paths, or add Core Redirects.
+
+Validation and review:
+
+- User confirmed `LpQuestEditor Win64 Development` build and focused PIE validation passed.
+- User confirmed the `LPQ.Debug.Draw.Attributes`, `LPQ.Debug.Draw.EnemyMelee`, `LPQ.Debug.Draw.PatrolRoutes`, and `LPQ.Debug.Log.Portal` debug surfaces behaved as expected.
+- Strict review found no blocking issue. Behavior paths are unchanged, warning logs remain visible, and debug gates only affect debug draw / development logs.
+- Adversarial review accepted the v1 boundary: `LPQ` is now the surface naming for categories, CVar names, and editor display names, while reflected C++ types, source filenames, generated includes, Blueprint asset names, and Config paths intentionally remain `Tunic` until v2 / v3.
+- Accepted follow-up: complete `LPQ Reflected Type Rename v2` only when ready to add Core Redirects and handle Blueprint / StateTree / AnimNotify references.
+- Accepted follow-up: complete `LPQ Blueprint Asset Rename v3` through the Unreal Editor when ready to rename assets, update Config paths, fix redirectors, and resave affected assets.
+
 

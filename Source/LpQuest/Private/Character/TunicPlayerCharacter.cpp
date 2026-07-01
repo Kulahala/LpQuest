@@ -45,7 +45,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogLpQuestGasDebug, Log, All);
 
 namespace
 {
-	const FName TunicPlayerDodgeEventTagName(TEXT("GameplayEvent.Movement.Dodge"));
+	const FName LPQPlayerDodgeEventTagName(TEXT("GameplayEvent.Movement.Dodge"));
 
 	bool IsPlayerLightAttackTargetInvulnerable(const ITunicCombatTargetInterface* CombatTarget)
 	{
@@ -479,20 +479,20 @@ void ATunicPlayerCharacter::UpdateFacingToMouse(float DeltaSeconds, bool bForceS
 
 void ATunicPlayerCharacter::InitializePlayerAbilitySystem()
 {
-	ATunicPlayerState* TunicPlayerState = GetPlayerState<ATunicPlayerState>();
-	if (!TunicPlayerState)
+	ATunicPlayerState* LpQuestPlayerState = GetPlayerState<ATunicPlayerState>();
+	if (!LpQuestPlayerState)
 	{
 		return;
 	}
 
-	UTunicAbilitySystemComponent* PlayerAbilitySystemComponent = TunicPlayerState->GetTunicAbilitySystemComponent();
-	UTunicAttributeSet* PlayerAttributeSet = TunicPlayerState->GetAttributeSet();
+	UTunicAbilitySystemComponent* PlayerAbilitySystemComponent = LpQuestPlayerState->GetTunicAbilitySystemComponent();
+	UTunicAttributeSet* PlayerAttributeSet = LpQuestPlayerState->GetAttributeSet();
 	if (!PlayerAbilitySystemComponent || !PlayerAttributeSet)
 	{
 		return;
 	}
 
-	PlayerAbilitySystemComponent->InitAbilityActorInfo(TunicPlayerState, this);
+	PlayerAbilitySystemComponent->InitAbilityActorInfo(LpQuestPlayerState, this);
 	SetAbilitySystemReferences(PlayerAbilitySystemComponent, PlayerAttributeSet);
 	BindHealthChangeDelegate(PlayerAbilitySystemComponent);
 	if (HasAuthority() && !bIsDead && PlayerAttributeSet->GetHealth() <= 0.0f)
@@ -501,7 +501,7 @@ void ATunicPlayerCharacter::InitializePlayerAbilitySystem()
 	}
 	GrantDefaultAbilities(PlayerAbilitySystemComponent);
 	ApplyDefaultEffects(PlayerAbilitySystemComponent);
-	LogPlayerAbilitySystemDebug(TunicPlayerState, PlayerAbilitySystemComponent, PlayerAttributeSet);
+	LogPlayerAbilitySystemDebug(LpQuestPlayerState, PlayerAbilitySystemComponent, PlayerAttributeSet);
 }
 
 void ATunicPlayerCharacter::BindHealthChangeDelegate(UTunicAbilitySystemComponent* PlayerAbilitySystemComponent)
@@ -563,9 +563,9 @@ void ATunicPlayerCharacter::ApplyDefaultEffects(UTunicAbilitySystemComponent* Pl
 	StaminaRegenEffectHandle = PlayerAbilitySystemComponent->ApplyGameplayEffectToSelf(StaminaRegenEffectClass->GetDefaultObject<UGameplayEffect>(), 1.0f, EffectContext);
 }
 
-void ATunicPlayerCharacter::LogPlayerAbilitySystemDebug(const ATunicPlayerState* TunicPlayerState, const UTunicAbilitySystemComponent* PlayerAbilitySystemComponent, const UTunicAttributeSet* PlayerAttributeSet) const
+void ATunicPlayerCharacter::LogPlayerAbilitySystemDebug(const ATunicPlayerState* LpQuestPlayerState, const UTunicAbilitySystemComponent* PlayerAbilitySystemComponent, const UTunicAttributeSet* PlayerAttributeSet) const
 {
-	if (!bLogAbilitySystemInitialization || !FTunicDebugSettings::ShouldLogCombat())
+	if (!bLogAbilitySystemInitialization || !FLPQDebugSettings::ShouldLogCombat())
 	{
 		return;
 	}
@@ -575,7 +575,7 @@ void ATunicPlayerCharacter::LogPlayerAbilitySystemDebug(const ATunicPlayerState*
 
 	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Player ASC initialized | Character=%s | PlayerState=%s | ASC=%s | OwnerActor=%s | AvatarActor=%s | AttributeSet=%s | Health=%.1f/%.1f | Stamina=%.1f/%.1f | Authority=%s | LocalRole=%d | RemoteRole=%d"),
 		*GetNameSafe(this),
-		*GetNameSafe(TunicPlayerState),
+		*GetNameSafe(LpQuestPlayerState),
 		*GetNameSafe(PlayerAbilitySystemComponent),
 		*GetNameSafe(AscOwnerActor),
 		*GetNameSafe(AscAvatarActor),
@@ -632,7 +632,7 @@ void ATunicPlayerCharacter::ServerRequestInteract_Implementation()
 	AActor* InteractableActor = FindBestInteractableActor();
 	if (!InteractableActor)
 	{
-		if (bLogInteractionRequests && FTunicDebugSettings::ShouldLogInteraction())
+		if (bLogInteractionRequests && FLPQDebugSettings::ShouldLogInteraction())
 		{
 			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Interact request found no target | Character=%s | Radius=%.1f"),
 				*GetNameSafe(this),
@@ -641,7 +641,7 @@ void ATunicPlayerCharacter::ServerRequestInteract_Implementation()
 		return;
 	}
 
-	if (bLogInteractionRequests && FTunicDebugSettings::ShouldLogInteraction())
+	if (bLogInteractionRequests && FLPQDebugSettings::ShouldLogInteraction())
 	{
 		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Interact request accepted | Character=%s | Target=%s"),
 			*GetNameSafe(this),
@@ -755,7 +755,7 @@ void ATunicPlayerCharacter::MulticastPlayHitReaction_Implementation(AActor* Inst
 		return;
 	}
 
-	if (bLogHitReaction && FTunicDebugSettings::ShouldLogCombat())
+	if (bLogHitReaction && FLPQDebugSettings::ShouldLogCombat())
 	{
 		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Player hit reaction | Character=%s | Instigator=%s | Authority=%s | LocalRole=%d | RemoteRole=%d"),
 			*GetNameSafe(this),
@@ -780,7 +780,7 @@ void ATunicPlayerCharacter::MulticastPlayHitReaction_Implementation(AActor* Inst
 
 void ATunicPlayerCharacter::ClientShowDodgeInvulnerabilitySuccess_Implementation(AActor* InstigatorActor)
 {
-	if (!bShowDodgeInvulnerabilityDebugMessage || !FTunicDebugSettings::ShouldLogCombat())
+	if (!bShowDodgeInvulnerabilityDebugMessage || !FLPQDebugSettings::ShouldLogCombat())
 	{
 		return;
 	}
@@ -818,7 +818,7 @@ void ATunicPlayerCharacter::LogLightAttackRequestDebug() const
 
 void ATunicPlayerCharacter::DrawAttributeDebug() const
 {
-	if (!bDrawAttributeDebug || !FTunicDebugSettings::ShouldDrawAttributes() || !AttributeSet)
+	if (!bDrawAttributeDebug || !FLPQDebugSettings::ShouldDrawAttributes() || !AttributeSet)
 	{
 		return;
 	}
@@ -910,7 +910,7 @@ FVector ATunicPlayerCharacter::GetLightAttackSweepPoint(const FVector& LocalOffs
 
 void ATunicPlayerCharacter::LogLightAttackHitSweepDebug(const TArray<FHitResult>& HitResults, int32 ProcessedHitCount) const
 {
-	if (!bLogLightAttackHitSweep || !FTunicDebugSettings::ShouldLogCombat())
+	if (!bLogLightAttackHitSweep || !FLPQDebugSettings::ShouldLogCombat())
 	{
 		return;
 	}
@@ -941,7 +941,7 @@ void ATunicPlayerCharacter::LogLightAttackHitSweepDebug(const TArray<FHitResult>
 		const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = CombatTarget->GetCombatTargetAbilitySystemComponent();
 		const UTunicAttributeSet* TargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
 
-		if (FTunicDebugSettings::ShouldLogCombat())
+		if (FLPQDebugSettings::ShouldLogCombat())
 		{
 			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack hit sweep target | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | TargetHealth=%.1f/%.1f | TargetStamina=%.1f/%.1f | ImpactPoint=%s | TargetLocalRole=%d | TargetRemoteRole=%d"),
 				*GetNameSafe(this),
@@ -968,7 +968,7 @@ void ATunicPlayerCharacter::ApplyLightAttackDamage(AActor* TargetActor, ITunicCo
 
 	if (!TargetActor || !CombatTarget)
 	{
-		if (FTunicDebugSettings::ShouldLogCombat())
+		if (FLPQDebugSettings::ShouldLogCombat())
 		{
 			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage skipped: no target | Character=%s"),
 				*GetNameSafe(this));
@@ -978,7 +978,7 @@ void ATunicPlayerCharacter::ApplyLightAttackDamage(AActor* TargetActor, ITunicCo
 
 	if (!CombatTarget->IsCombatTargetAvailable())
 	{
-		if (FTunicDebugSettings::ShouldLogCombat())
+		if (FLPQDebugSettings::ShouldLogCombat())
 		{
 			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage skipped: target unavailable | Character=%s | Target=%s"),
 				*GetNameSafe(this),
@@ -1008,7 +1008,7 @@ void ATunicPlayerCharacter::ApplyLightAttackDamage(AActor* TargetActor, ITunicCo
 			TargetPlayerCharacter->NotifyDodgeInvulnerabilitySuccess(this);
 		}
 
-		if (FTunicDebugSettings::ShouldLogCombat())
+		if (FLPQDebugSettings::ShouldLogCombat())
 		{
 			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage skipped: target invulnerable | Character=%s | Target=%s | EffectClass=%s"),
 				*GetNameSafe(this),
@@ -1025,7 +1025,7 @@ void ATunicPlayerCharacter::ApplyLightAttackDamage(AActor* TargetActor, ITunicCo
 	TargetAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(LightAttackDamageEffectClass, 1.0f, EffectContext);
 	const float HealthAfter = TargetAttributeSet->GetHealth();
 
-	if (FTunicDebugSettings::ShouldLogCombat())
+	if (FLPQDebugSettings::ShouldLogCombat())
 	{
 		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage applied | Character=%s | Target=%s | EffectClass=%s | TargetHealth=%.1f->%.1f"),
 			*GetNameSafe(this),
@@ -1053,7 +1053,7 @@ void ATunicPlayerCharacter::HandleLightAttackTargetHit(AActor* TargetActor, ITun
 	{
 		ApplyLightAttackDamage(TargetActor, CombatTarget);
 	}
-	else if (FTunicDebugSettings::ShouldLogCombat())
+	else if (FLPQDebugSettings::ShouldLogCombat())
 	{
 		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack hit target without damage | Character=%s | Target=%s | SourceTeam=%d | TargetTeam=%d"),
 			*GetNameSafe(this),
@@ -1154,7 +1154,7 @@ bool ATunicPlayerCharacter::TryActivateDodgeAbility(const FVector& DodgeDirectio
 		return false;
 	}
 
-	const FGameplayTag DodgeEventTag = FGameplayTag::RequestGameplayTag(TunicPlayerDodgeEventTagName, false);
+	const FGameplayTag DodgeEventTag = FGameplayTag::RequestGameplayTag(LPQPlayerDodgeEventTagName, false);
 	const FVector NormalizedDodgeDirection = DodgeDirection.GetSafeNormal2D();
 	if (DodgeEventTag.IsValid() && !NormalizedDodgeDirection.IsNearlyZero())
 	{
@@ -1172,7 +1172,7 @@ bool ATunicPlayerCharacter::TryActivateDodgeAbility(const FVector& DodgeDirectio
 		DodgeEventData.TargetData.Add(DodgeDirectionTargetData);
 
 		const int32 TriggeredAbilityCount = PlayerAbilitySystemComponent->HandleGameplayEvent(DodgeEventTag, &DodgeEventData);
-		if (bLogDodgeRequests && FTunicDebugSettings::ShouldLogCombat())
+		if (bLogDodgeRequests && FLPQDebugSettings::ShouldLogCombat())
 		{
 			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Dodge gameplay event sent | Character=%s | Direction=%s | TriggeredAbilityCount=%d"),
 				*GetNameSafe(this),
@@ -1205,7 +1205,7 @@ void ATunicPlayerCharacter::MulticastPlayDodgeMontage_Implementation(UAnimMontag
 
 	if (IsLocallyControlled() && !HasAuthority() && bLocalDodgePresentationActive)
 	{
-		if (bLogDodgeRequests && FTunicDebugSettings::ShouldLogCombat())
+		if (bLogDodgeRequests && FLPQDebugSettings::ShouldLogCombat())
 		{
 			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Dodge multicast presentation skipped on owning client: local presentation already active | Character=%s"),
 				*GetNameSafe(this));
@@ -1267,7 +1267,7 @@ void ATunicPlayerCharacter::LogDodgeRequestDebug() const
 
 void ATunicPlayerCharacter::LogServerInputRequestDebug(const TCHAR* RequestName, bool bShouldLog) const
 {
-	if (!bShouldLog || !FTunicDebugSettings::ShouldLogCombat())
+	if (!bShouldLog || !FLPQDebugSettings::ShouldLogCombat())
 	{
 		return;
 	}
@@ -1357,9 +1357,9 @@ void ATunicPlayerCharacter::SetDead(bool bNewIsDead)
 
 	if (bIsDead)
 	{
-		if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
+		if (ATunicGameMode* LpQuestGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
 		{
-			TunicGameMode->EvaluatePartyWipe();
+			LpQuestGameMode->EvaluatePartyWipe();
 		}
 	}
 }
@@ -1396,7 +1396,7 @@ void ATunicPlayerCharacter::ApplyDeathState()
 		}
 	}
 
-	if (bLogDeathState && FTunicDebugSettings::ShouldLogCombat())
+	if (bLogDeathState && FLPQDebugSettings::ShouldLogCombat())
 	{
 		const UTunicAttributeSet* PlayerAttributeSet = GetAttributeSet();
 		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Player entered death state | Character=%s | PlayerState=%s | ASC=%s | AttributeSet=%s | Health=%.1f/%.1f | Authority=%s | LocalRole=%d | RemoteRole=%d"),

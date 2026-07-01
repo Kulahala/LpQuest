@@ -17,7 +17,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogLpQuestDodgeAbility, Log, All);
 
 namespace
 {
-	const FName TunicDodgeAbilityEventTagName(TEXT("GameplayEvent.Movement.Dodge"));
+	const FName LPQDodgeAbilityEventTagName(TEXT("GameplayEvent.Movement.Dodge"));
 }
 
 UTunicGameplayAbility_Dodge::UTunicGameplayAbility_Dodge()
@@ -47,7 +47,7 @@ UTunicGameplayAbility_Dodge::UTunicGameplayAbility_Dodge()
 		ActivationBlockedTags.AddTag(ActionLockedTag);
 	}
 
-	if (const FGameplayTag DodgeEventTag = FGameplayTag::RequestGameplayTag(TunicDodgeAbilityEventTagName, false); DodgeEventTag.IsValid())
+	if (const FGameplayTag DodgeEventTag = FGameplayTag::RequestGameplayTag(LPQDodgeAbilityEventTagName, false); DodgeEventTag.IsValid())
 	{
 		FAbilityTriggerData DodgeEventTrigger;
 		DodgeEventTrigger.TriggerSource = EGameplayAbilityTriggerSource::GameplayEvent;

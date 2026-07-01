@@ -37,46 +37,46 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "返回服务器复制的当前 RunState。UI 只读显示，不应从客户端修改。"))
+	UFUNCTION(BlueprintPure, Category = "LPQ|Run", meta = (ToolTip = "返回服务器复制的当前 RunState。UI 只读显示，不应从客户端修改。"))
 	ETunicRunState GetRunState() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "返回当前 run 内楼层编号。floor stub 完成后递增，不代表永久存档进度。"))
+	UFUNCTION(BlueprintPure, Category = "LPQ|Run", meta = (ToolTip = "返回当前 run 内楼层编号。floor stub 完成后递增，不代表永久存档进度。"))
 	int32 GetCurrentFloorIndex() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "返回当前 floor transition 写入的目标 ID。v1 只用于调试显示，不代表真实地图加载。"))
+	UFUNCTION(BlueprintPure, Category = "LPQ|Run", meta = (ToolTip = "返回当前 floor transition 写入的目标 ID。v1 只用于调试显示，不代表真实地图加载。"))
 	FName GetCurrentFloorDestinationId() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "返回全队共享的 run-local XP。由 GameMode 在 spawned encounter 敌人死亡时增加。"))
+	UFUNCTION(BlueprintPure, Category = "LPQ|Run", meta = (ToolTip = "返回全队共享的 run-local XP。由 GameMode 在 spawned encounter 敌人死亡时增加。"))
 	int32 GetSharedRunExperience() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "返回全队共享的 run-local Level。服务器根据 SharedRunExperience 和 SharedExperiencePerLevel 推导。"))
+	UFUNCTION(BlueprintPure, Category = "LPQ|Run", meta = (ToolTip = "返回全队共享的 run-local Level。服务器根据 SharedRunExperience 和 SharedExperiencePerLevel 推导。"))
 	int32 GetSharedRunLevel() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否允许普通战斗、AI、Spawner 和击杀奖励推进。CombatActive 和 PortalEventActive 都返回 true。"))
+	UFUNCTION(BlueprintPure, Category = "LPQ|Run", meta = (ToolTip = "当前 RunState 是否允许普通战斗、AI、Spawner 和击杀奖励推进。CombatActive 和 PortalEventActive 都返回 true。"))
 	bool IsCombatActive() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否为 PartyWiped。全灭状态不会被 Portal 或 floor stub 自动覆盖。"))
+	UFUNCTION(BlueprintPure, Category = "LPQ|Run", meta = (ToolTip = "当前 RunState 是否为 PartyWiped。全灭状态不会被 Portal 或 floor stub 自动覆盖。"))
 	bool IsPartyWiped() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否为 PortalEventActive。表示玩家已通过 Portal 交互启动本层事件。"))
+	UFUNCTION(BlueprintPure, Category = "LPQ|Run", meta = (ToolTip = "当前 RunState 是否为 PortalEventActive。表示玩家已通过 Portal 交互启动本层事件。"))
 	bool IsPortalEventActive() const;
 
-	UFUNCTION(BlueprintPure, Category = "Tunic|Run", meta = (ToolTip = "当前 RunState 是否为 FloorTransitionReady。表示 Portal 已充满并等待 GameMode stub。"))
+	UFUNCTION(BlueprintPure, Category = "LPQ|Run", meta = (ToolTip = "当前 RunState 是否为 FloorTransitionReady。表示 Portal 已充满并等待 GameMode stub。"))
 	bool IsFloorTransitionReady() const;
 
-	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
+	UPROPERTY(BlueprintAssignable, Category = "LPQ|Run")
 	FTunicRunStateChangedSignature OnRunStateChangedEvent;
 
-	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
+	UPROPERTY(BlueprintAssignable, Category = "LPQ|Run")
 	FTunicFloorIndexChangedSignature OnFloorIndexChangedEvent;
 
-	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
+	UPROPERTY(BlueprintAssignable, Category = "LPQ|Run")
 	FTunicFloorDestinationChangedSignature OnFloorDestinationChangedEvent;
 
-	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
+	UPROPERTY(BlueprintAssignable, Category = "LPQ|Run")
 	FTunicSharedRunExperienceChangedSignature OnSharedRunExperienceChangedEvent;
 
-	UPROPERTY(BlueprintAssignable, Category = "Tunic|Run")
+	UPROPERTY(BlueprintAssignable, Category = "LPQ|Run")
 	FTunicSharedRunLevelChangedSignature OnSharedRunLevelChangedEvent;
 
 	void SetRunState(ETunicRunState NewRunState);
@@ -85,19 +85,19 @@ public:
 	void AddSharedRunExperience(int32 Amount, AActor* SourceActor);
 
 protected:
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "RunState 变化时的表现 hook。不要在这里反向修改 RunState。"))
+	UFUNCTION(BlueprintNativeEvent, Category = "LPQ|Run", meta = (ToolTip = "RunState 变化时的表现 hook。不要在这里反向修改 RunState。"))
 	void OnRunStateChanged(ETunicRunState NewRunState);
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "楼层编号变化时的表现 hook。只用于 UI/音效/表现。"))
+	UFUNCTION(BlueprintNativeEvent, Category = "LPQ|Run", meta = (ToolTip = "楼层编号变化时的表现 hook。只用于 UI/音效/表现。"))
 	void OnFloorIndexChanged(int32 NewFloorIndex);
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "楼层目标 ID 变化时的表现 hook。v1 只用于 UI/音效/表现，不加载地图。"))
+	UFUNCTION(BlueprintNativeEvent, Category = "LPQ|Run", meta = (ToolTip = "楼层目标 ID 变化时的表现 hook。v1 只用于 UI/音效/表现，不加载地图。"))
 	void OnFloorDestinationChanged(FName NewFloorDestinationId);
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "共享 XP 变化时的表现 hook。SourceActor 是奖励来源，可能为空。"))
+	UFUNCTION(BlueprintNativeEvent, Category = "LPQ|Run", meta = (ToolTip = "共享 XP 变化时的表现 hook。SourceActor 是奖励来源，可能为空。"))
 	void OnSharedRunExperienceChanged(int32 NewValue, int32 Delta, AActor* SourceActor);
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Tunic|Run", meta = (ToolTip = "共享 run level 变化时的表现 hook。本阶段 level 不直接改变属性或技能。"))
+	UFUNCTION(BlueprintNativeEvent, Category = "LPQ|Run", meta = (ToolTip = "共享 run level 变化时的表现 hook。本阶段 level 不直接改变属性或技能。"))
 	void OnSharedRunLevelChanged(int32 NewLevel);
 
 private:
@@ -133,7 +133,7 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_SharedRunLevel)
 	int32 SharedRunLevel = 1;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Tunic|Run", meta = (ClampMin = "1", ToolTip = "每级需要的共享 XP。Level 公式为 1 + SharedRunExperience / SharedExperiencePerLevel。"))
+	UPROPERTY(EditDefaultsOnly, Category = "LPQ|Run", meta = (ClampMin = "1", ToolTip = "每级需要的共享 XP。Level 公式为 1 + SharedRunExperience / SharedExperiencePerLevel。"))
 	int32 SharedExperiencePerLevel = 5;
 };
 

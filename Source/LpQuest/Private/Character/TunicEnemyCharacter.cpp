@@ -224,7 +224,7 @@ void ATunicEnemyCharacter::ProcessEnemyMeleeHitWindow()
 		++ProcessedHitCount;
 	}
 
-	if (bDrawEnemyMeleeAttackShapeDebug && FTunicDebugSettings::ShouldDrawEnemyMelee())
+	if (bDrawEnemyMeleeAttackShapeDebug && FLPQDebugSettings::ShouldDrawEnemyMelee())
 	{
 		MulticastDrawEnemyMeleeAttackShape(0.1f, GetEnemyMeleeAttackShapeOrigin(), GetEnemyMeleeAttackShapeForward(), EnemyMeleeAttackRange, EnemyMeleeAttackHalfHeight, EnemyMeleeAttackAngleDegrees);
 	}
@@ -251,7 +251,7 @@ void ATunicEnemyCharacter::ExecuteEnemyMeleeAttackAbility()
 
 	if (bEnemyMeleeTelegraphActive)
 	{
-		if (bLogEnemyMeleeAttack && FTunicDebugSettings::ShouldLogCombat())
+		if (bLogEnemyMeleeAttack && FLPQDebugSettings::ShouldLogCombat())
 		{
 			UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee attack request ignored: telegraph already active | Character=%s"),
 				*GetNameSafe(this));
@@ -259,7 +259,7 @@ void ATunicEnemyCharacter::ExecuteEnemyMeleeAttackAbility()
 		return;
 	}
 
-	if (bLogEnemyMeleeAttack && FTunicDebugSettings::ShouldLogCombat())
+	if (bLogEnemyMeleeAttack && FLPQDebugSettings::ShouldLogCombat())
 	{
 		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee attack request accepted on server | Character=%s | ASC=%s | AttributeSet=%s | Health=%.1f/%.1f | LocalRole=%d | RemoteRole=%d"),
 			*GetNameSafe(this),
@@ -393,9 +393,9 @@ void ATunicEnemyCharacter::SetDead(bool bNewIsDead)
 			EnemyAIController->StopEnemyAILogic();
 		}
 
-		if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
+		if (ATunicGameMode* LpQuestGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
 		{
-			TunicGameMode->HandleEnemyDeath(this);
+			LpQuestGameMode->HandleEnemyDeath(this);
 		}
 	}
 }
@@ -431,7 +431,7 @@ void ATunicEnemyCharacter::ApplyDeathState()
 		}
 	}
 
-	if (bLogDeathState && FTunicDebugSettings::ShouldLogCombat())
+	if (bLogDeathState && FLPQDebugSettings::ShouldLogCombat())
 	{
 		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy entered death state | Character=%s | ASC=%s | AttributeSet=%s | Health=%.1f/%.1f | Authority=%s | LocalRole=%d | RemoteRole=%d"),
 			*GetNameSafe(this),
@@ -454,7 +454,7 @@ void ATunicEnemyCharacter::ApplyDeathState()
 
 void ATunicEnemyCharacter::LogEnemyAbilitySystemDebug() const
 {
-	if (!bLogAbilitySystemInitialization || !FTunicDebugSettings::ShouldLogCombat())
+	if (!bLogAbilitySystemInitialization || !FLPQDebugSettings::ShouldLogCombat())
 	{
 		return;
 	}
@@ -479,7 +479,7 @@ void ATunicEnemyCharacter::LogEnemyAbilitySystemDebug() const
 
 void ATunicEnemyCharacter::DrawAttributeDebug() const
 {
-	if (!bDrawAttributeDebug || !FTunicDebugSettings::ShouldDrawAttributes() || !AttributeSet)
+	if (!bDrawAttributeDebug || !FLPQDebugSettings::ShouldDrawAttributes() || !AttributeSet)
 	{
 		return;
 	}
@@ -514,7 +514,7 @@ void ATunicEnemyCharacter::StartEnemyMeleeTelegraph()
 	bEnemyMeleeTelegraphActive = true;
 	MulticastStartEnemyMeleeTelegraph(TelegraphDuration, ShapeOrigin, ShapeForward, EnemyMeleeAttackRange, EnemyMeleeAttackHalfHeight);
 
-	if (bLogEnemyMeleeAttack && FTunicDebugSettings::ShouldLogCombat())
+	if (bLogEnemyMeleeAttack && FLPQDebugSettings::ShouldLogCombat())
 	{
 		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee telegraph started | Character=%s | Duration=%.3f | ShapeOrigin=%s | ShapeForward=%s | Range=%.1f | Angle=%.1f | HalfHeight=%.1f"),
 			*GetNameSafe(this),
@@ -681,7 +681,7 @@ void ATunicEnemyCharacter::DrawEnemyMeleeAttackShapeDebug(float LifeTime, FColor
 
 void ATunicEnemyCharacter::DrawEnemyMeleeTelegraphDebug(FVector ShapeOrigin, FVector ShapeForward, float ShapeRange, float ShapeHalfHeight) const
 {
-	if (!bDrawEnemyMeleeTelegraphDebug || !FTunicDebugSettings::ShouldDrawEnemyMelee())
+	if (!bDrawEnemyMeleeTelegraphDebug || !FLPQDebugSettings::ShouldDrawEnemyMelee())
 	{
 		return;
 	}
@@ -750,7 +750,7 @@ void ATunicEnemyCharacter::HandleEnemyMeleeTargetHit(AActor* TargetActor, ITunic
 	{
 		ApplyEnemyMeleeDamage(TargetActor, CombatTarget);
 	}
-	else if (bLogEnemyMeleeAttack && FTunicDebugSettings::ShouldLogCombat())
+	else if (bLogEnemyMeleeAttack && FLPQDebugSettings::ShouldLogCombat())
 	{
 		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee hit target without damage | Character=%s | Target=%s | SourceTeam=%d | TargetTeam=%d"),
 			*GetNameSafe(this),
@@ -800,7 +800,7 @@ void ATunicEnemyCharacter::ApplyEnemyMeleeDamage(AActor* TargetActor, ITunicComb
 			TargetPlayerCharacter->NotifyDodgeInvulnerabilitySuccess(this);
 		}
 
-		if (FTunicDebugSettings::ShouldLogCombat())
+		if (FLPQDebugSettings::ShouldLogCombat())
 		{
 			UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee damage skipped: target invulnerable | Character=%s | Target=%s | EffectClass=%s"),
 				*GetNameSafe(this),
@@ -817,7 +817,7 @@ void ATunicEnemyCharacter::ApplyEnemyMeleeDamage(AActor* TargetActor, ITunicComb
 	TargetAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(MeleeAttackDamageEffectClass, 1.0f, EffectContext);
 	const float HealthAfter = TargetAttributeSet->GetHealth();
 
-	if (FTunicDebugSettings::ShouldLogCombat())
+	if (FLPQDebugSettings::ShouldLogCombat())
 	{
 		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy melee damage applied | Character=%s | Target=%s | EffectClass=%s | TargetHealth=%.1f->%.1f"),
 			*GetNameSafe(this),
@@ -830,7 +830,7 @@ void ATunicEnemyCharacter::ApplyEnemyMeleeDamage(AActor* TargetActor, ITunicComb
 
 void ATunicEnemyCharacter::LogEnemyMeleeAttackShapeDebug(const TArray<FOverlapResult>& OverlapResults, int32 ProcessedHitCount) const
 {
-	if (!bLogEnemyMeleeAttack || !FTunicDebugSettings::ShouldLogCombat())
+	if (!bLogEnemyMeleeAttack || !FLPQDebugSettings::ShouldLogCombat())
 	{
 		return;
 	}
@@ -959,7 +959,7 @@ void ATunicEnemyCharacter::MulticastStartEnemyMeleeTelegraph_Implementation(floa
 
 void ATunicEnemyCharacter::MulticastDrawEnemyMeleeAttackShape_Implementation(float LifeTime, FVector ShapeOrigin, FVector ShapeForward, float ShapeRange, float ShapeHalfHeight, float ShapeAngleDegrees)
 {
-	if (!FTunicDebugSettings::ShouldDrawEnemyMelee())
+	if (!FLPQDebugSettings::ShouldDrawEnemyMelee())
 	{
 		return;
 	}
@@ -974,7 +974,7 @@ void ATunicEnemyCharacter::MulticastPlayHitReaction_Implementation(AActor* Insti
 		return;
 	}
 
-	if (bLogHitReaction && FTunicDebugSettings::ShouldLogCombat())
+	if (bLogHitReaction && FLPQDebugSettings::ShouldLogCombat())
 	{
 		UE_LOG(LogLpQuestEnemyGasDebug, Display, TEXT("Enemy hit reaction | Character=%s | Instigator=%s | Authority=%s | LocalRole=%d | RemoteRole=%d"),
 			*GetNameSafe(this),

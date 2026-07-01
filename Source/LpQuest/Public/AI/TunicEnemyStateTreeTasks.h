@@ -22,7 +22,7 @@ struct LPQUEST_API FTunicStateTreeGetCurrentEnemyTargetTaskInstanceData
 	TObjectPtr<AActor> TargetActor = nullptr;
 };
 
-USTRUCT(meta = (DisplayName = "Get Current Tunic Enemy Target", Category = "Tunic|AI", ToolTip = "读取 AIController 当前目标并输出 TargetActor。只读节点，不会选择新目标或修改 combat 状态。"))
+USTRUCT(meta = (DisplayName = "Get Current LPQ Enemy Target", Category = "LPQ|AI", ToolTip = "读取 AIController 当前目标并输出 TargetActor。只读节点，不会选择新目标或修改 combat 状态。"))
 struct LPQUEST_API FTunicStateTreeGetCurrentEnemyTargetTask : public FStateTreeAITaskBase
 {
 	GENERATED_BODY()
@@ -46,7 +46,7 @@ struct LPQUEST_API FTunicStateTreeGetCurrentPatrolLocationTaskInstanceData
 	FVector PatrolLocation = FVector::ZeroVector;
 };
 
-USTRUCT(meta = (DisplayName = "Get Current Tunic Patrol Location", Category = "Tunic|AI", ToolTip = "读取 AIController 当前巡逻采样点位置。只读节点，不会推进路线索引。"))
+USTRUCT(meta = (DisplayName = "Get Current LPQ Patrol Location", Category = "LPQ|AI", ToolTip = "读取 AIController 当前巡逻采样点位置。只读节点，不会推进路线索引。"))
 struct LPQUEST_API FTunicStateTreeGetCurrentPatrolLocationTask : public FStateTreeAITaskBase
 {
 	GENERATED_BODY()
@@ -70,7 +70,7 @@ struct LPQUEST_API FTunicStateTreeGetEnemyHomeLocationTaskInstanceData
 	FVector HomeLocation = FVector::ZeroVector;
 };
 
-USTRUCT(meta = (DisplayName = "Get Tunic Enemy Home Location", Category = "Tunic|AI", ToolTip = "读取敌人被 AIController Possess 时记录的 HomeLocation。只读节点，不修改巡逻或目标状态。"))
+USTRUCT(meta = (DisplayName = "Get LPQ Enemy Home Location", Category = "LPQ|AI", ToolTip = "读取敌人被 AIController Possess 时记录的 HomeLocation。只读节点，不修改巡逻或目标状态。"))
 struct LPQUEST_API FTunicStateTreeGetEnemyHomeLocationTask : public FStateTreeAITaskBase
 {
 	GENERATED_BODY()
@@ -97,7 +97,7 @@ struct LPQUEST_API FTunicStateTreeGetLastKnownTargetLocationTaskInstanceData
 	float AcceptanceRadius = 0.0f;
 };
 
-USTRUCT(meta = (DisplayName = "Get Tunic Enemy Last Known Target Location", Category = "Tunic|AI", ToolTip = "读取最后已知目标位置和调查 MoveTo 接受半径。只读节点，不会选择目标、移动敌人或修改 combat 状态。"))
+USTRUCT(meta = (DisplayName = "Get LPQ Enemy Last Known Target Location", Category = "LPQ|AI", ToolTip = "读取最后已知目标位置和调查 MoveTo 接受半径。只读节点，不会选择目标、移动敌人或修改 combat 状态。"))
 struct LPQUEST_API FTunicStateTreeGetLastKnownTargetLocationTask : public FStateTreeAITaskBase
 {
 	GENERATED_BODY()
@@ -121,7 +121,7 @@ struct LPQUEST_API FTunicStateTreeGetInvestigationDurationTaskInstanceData
 	float InvestigationDuration = 0.0f;
 };
 
-USTRUCT(meta = (DisplayName = "Get Tunic Enemy Investigation Duration", Category = "Tunic|AI", ToolTip = "读取 AIController 的调查搜索等待时长。只读节点，不会推进 StateTree 或清理状态。"))
+USTRUCT(meta = (DisplayName = "Get LPQ Enemy Investigation Duration", Category = "LPQ|AI", ToolTip = "读取 AIController 的调查搜索等待时长。只读节点，不会推进 StateTree 或清理状态。"))
 struct LPQUEST_API FTunicStateTreeGetInvestigationDurationTask : public FStateTreeAITaskBase
 {
 	GENERATED_BODY()
@@ -145,7 +145,7 @@ struct LPQUEST_API FTunicStateTreeGetCurrentPatrolStopTaskInstanceData
 	float HoldDuration = 0.0f;
 };
 
-USTRUCT(meta = (DisplayName = "Get Current Tunic Patrol Stop", Category = "Tunic|AI", ToolTip = "读取当前巡逻点的 stop 数据。当前点不是 stop 时失败；不会推进路线索引。"))
+USTRUCT(meta = (DisplayName = "Get Current LPQ Patrol Stop", Category = "LPQ|AI", ToolTip = "读取当前巡逻点的 stop 数据。当前点不是 stop 时失败；不会推进路线索引。"))
 struct LPQUEST_API FTunicStateTreeGetCurrentPatrolStopTask : public FStateTreeAITaskBase
 {
 	GENERATED_BODY()
@@ -166,7 +166,7 @@ struct LPQUEST_API FTunicStateTreeClearLastKnownTargetLocationTaskInstanceData
 	GENERATED_BODY()
 };
 
-USTRUCT(meta = (DisplayName = "Clear Tunic Enemy Last Known Target Location", Category = "Tunic|AI", ToolTip = "清理 AIController 的最后已知目标位置。只清理 investigation 意图状态，不修改 Health、RunState、XP 或 GameplayTags。"))
+USTRUCT(meta = (DisplayName = "Clear LPQ Enemy Last Known Target Location", Category = "LPQ|AI", ToolTip = "清理 AIController 的最后已知目标位置。只清理 investigation 意图状态，不修改 Health、RunState、XP 或 GameplayTags。"))
 struct LPQUEST_API FTunicStateTreeClearLastKnownTargetLocationTask : public FStateTreeAITaskBase
 {
 	GENERATED_BODY()
@@ -187,7 +187,7 @@ struct LPQUEST_API FTunicStateTreeAdvancePatrolTargetTaskInstanceData
 	GENERATED_BODY()
 };
 
-USTRUCT(meta = (DisplayName = "Advance Tunic Patrol Target", Category = "Tunic|AI", ToolTip = "推进 AIController 当前巡逻 route index 到下一个采样点。只改变 AI 巡逻意图，不修改 combat、Health、RunState 或 XP。"))
+USTRUCT(meta = (DisplayName = "Advance LPQ Patrol Target", Category = "LPQ|AI", ToolTip = "推进 AIController 当前巡逻 route index 到下一个采样点。只改变 AI 巡逻意图，不修改 combat、Health、RunState 或 XP。"))
 struct LPQUEST_API FTunicStateTreeAdvancePatrolTargetTask : public FStateTreeAITaskBase
 {
 	GENERATED_BODY()
@@ -208,7 +208,7 @@ struct LPQUEST_API FTunicStateTreeTryEnemyMeleeAttackTaskInstanceData
 	GENERATED_BODY()
 };
 
-USTRUCT(meta = (DisplayName = "Try Tunic Enemy Melee Attack", Category = "Tunic|AI", ToolTip = "请求敌人对当前目标激活 melee Ability。节点本身不直接造成伤害，命中仍走 hit window 和 GameplayEffect。"))
+USTRUCT(meta = (DisplayName = "Try LPQ Enemy Melee Attack", Category = "LPQ|AI", ToolTip = "请求敌人对当前目标激活 melee Ability。节点本身不直接造成伤害，命中仍走 hit window 和 GameplayEffect。"))
 struct LPQUEST_API FTunicStateTreeTryEnemyMeleeAttackTask : public FStateTreeAIActionTaskBase
 {
 	GENERATED_BODY()
@@ -232,7 +232,7 @@ struct LPQUEST_API FTunicStateTreeEnemyConditionInstanceData
 	bool bInvert = false;
 };
 
-USTRUCT(meta = (DisplayName = "Tunic Enemy Has Current Target", Category = "Tunic|AI", ToolTip = "检查 AIController 是否有有效 current target。可用 bInvert 表示没有目标。"))
+USTRUCT(meta = (DisplayName = "LPQ Enemy Has Current Target", Category = "LPQ|AI", ToolTip = "检查 AIController 是否有有效 current target。可用 bInvert 表示没有目标。"))
 struct LPQUEST_API FTunicStateTreeEnemyHasCurrentTargetCondition : public FStateTreeConditionCommonBase
 {
 	GENERATED_BODY()
@@ -247,7 +247,7 @@ private:
 	TStateTreeExternalDataHandle<AAIController> AIControllerHandle;
 };
 
-USTRUCT(meta = (DisplayName = "Tunic Enemy Target In Attack Range", Category = "Tunic|AI", ToolTip = "检查 current target 是否在 AIController 的 AttackActivationRange 内。用于 Chase/Attack 切换，避免手写重复距离。"))
+USTRUCT(meta = (DisplayName = "LPQ Enemy Target In Attack Range", Category = "LPQ|AI", ToolTip = "检查 current target 是否在 AIController 的 AttackActivationRange 内。用于 Chase/Attack 切换，避免手写重复距离。"))
 struct LPQUEST_API FTunicStateTreeEnemyTargetInAttackRangeCondition : public FStateTreeConditionCommonBase
 {
 	GENERATED_BODY()
@@ -262,7 +262,7 @@ private:
 	TStateTreeExternalDataHandle<AAIController> AIControllerHandle;
 };
 
-USTRUCT(meta = (DisplayName = "Tunic Enemy Has Patrol Route", Category = "Tunic|AI", ToolTip = "检查 AIController 是否绑定到有效巡逻路线。可用 bInvert 表示无路线并进入 IdleAtHome。"))
+USTRUCT(meta = (DisplayName = "LPQ Enemy Has Patrol Route", Category = "LPQ|AI", ToolTip = "检查 AIController 是否绑定到有效巡逻路线。可用 bInvert 表示无路线并进入 IdleAtHome。"))
 struct LPQUEST_API FTunicStateTreeEnemyHasPatrolRouteCondition : public FStateTreeConditionCommonBase
 {
 	GENERATED_BODY()
@@ -277,7 +277,7 @@ private:
 	TStateTreeExternalDataHandle<AAIController> AIControllerHandle;
 };
 
-USTRUCT(meta = (DisplayName = "Tunic Enemy Has Last Known Target Location", Category = "Tunic|AI", ToolTip = "检查 AIController 是否有最后已知目标位置。可用 bInvert 表示没有 investigation 目标。"))
+USTRUCT(meta = (DisplayName = "LPQ Enemy Has Last Known Target Location", Category = "LPQ|AI", ToolTip = "检查 AIController 是否有最后已知目标位置。可用 bInvert 表示没有 investigation 目标。"))
 struct LPQUEST_API FTunicStateTreeEnemyHasLastKnownTargetLocationCondition : public FStateTreeConditionCommonBase
 {
 	GENERATED_BODY()
@@ -292,7 +292,7 @@ private:
 	TStateTreeExternalDataHandle<AAIController> AIControllerHandle;
 };
 
-USTRUCT(meta = (DisplayName = "Tunic Enemy Current Patrol Target Is Stop", Category = "Tunic|AI", ToolTip = "检查当前巡逻采样点是否是 stop sample。PatrolMove 成功后用它决定进入 PatrolStop 还是 PatrolAdvance。"))
+USTRUCT(meta = (DisplayName = "LPQ Enemy Current Patrol Target Is Stop", Category = "LPQ|AI", ToolTip = "检查当前巡逻采样点是否是 stop sample。PatrolMove 成功后用它决定进入 PatrolStop 还是 PatrolAdvance。"))
 struct LPQUEST_API FTunicStateTreeEnemyCurrentPatrolTargetIsStopCondition : public FStateTreeConditionCommonBase
 {
 	GENERATED_BODY()

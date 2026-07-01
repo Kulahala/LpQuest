@@ -61,27 +61,27 @@ void ATunicPlayerController::BeginPlay()
 
 void ATunicPlayerController::ServerRequestSelectRunUpgrade_Implementation()
 {
-	ATunicPlayerState* TunicPlayerState = GetPlayerState<ATunicPlayerState>();
-	if (!TunicPlayerState)
+	ATunicPlayerState* LpQuestPlayerState = GetPlayerState<ATunicPlayerState>();
+	if (!LpQuestPlayerState)
 	{
 		UE_LOG(LogLpQuestRunUpgrade, Warning, TEXT("Run upgrade selection rejected: missing player state | Controller=%s"),
 			*GetNameSafe(this));
 		return;
 	}
 
-	ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr;
-	if (!TunicGameMode)
+	ATunicGameMode* LpQuestGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr;
+	if (!LpQuestGameMode)
 	{
 		UE_LOG(LogLpQuestRunUpgrade, Warning, TEXT("Run upgrade selection rejected: missing game mode | Controller=%s | PlayerState=%s"),
 			*GetNameSafe(this),
-			*GetNameSafe(TunicPlayerState));
+			*GetNameSafe(LpQuestPlayerState));
 		return;
 	}
 
-	const bool bSelectedUpgrade = TunicGameMode->TrySelectRunUpgradeForPlayer(TunicPlayerState);
+	const bool bSelectedUpgrade = LpQuestGameMode->TrySelectRunUpgradeForPlayer(LpQuestPlayerState);
 	UE_LOG(LogLpQuestRunUpgrade, Display, TEXT("Run upgrade selection requested | Controller=%s | PlayerState=%s | Success=%s | RemainingPending=%d"),
 		*GetNameSafe(this),
-		*GetNameSafe(TunicPlayerState),
+		*GetNameSafe(LpQuestPlayerState),
 		bSelectedUpgrade ? TEXT("true") : TEXT("false"),
-		TunicPlayerState->GetPendingRunUpgradeChoices());
+		LpQuestPlayerState->GetPendingRunUpgradeChoices());
 }

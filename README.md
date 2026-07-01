@@ -1,6 +1,6 @@
 # LpQuest
 
-LpQuest is a UE 5.8 C++ lowpoly multiplayer PvE action-combat prototype inspired by Tunic-like fixed isometric exploration and compact combat.
+LpQuest is a UE 5.8 C++ lowpoly multiplayer PvE action-combat prototype inspired by fixed isometric exploration and compact combat.
 
 ## Direction
 

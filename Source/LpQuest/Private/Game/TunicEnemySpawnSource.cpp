@@ -131,7 +131,7 @@ int32 ATunicEnemySpawnSource::SpawnEnemies()
 		++SpawnedEnemyCount;
 	}
 
-	if (bLogSpawnSourceState && FTunicDebugSettings::ShouldLogSpawnSource())
+	if (bLogSpawnSourceState && FLPQDebugSettings::ShouldLogSpawnSource())
 	{
 		UE_LOG(LogLpQuestSpawnSource, Display, TEXT("Enemy spawn source completed | Source=%s | EnemyClass=%s | Requested=%d | Spawned=%d | Radius=%.1f"),
 			*GetNameSafe(this),

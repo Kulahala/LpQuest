@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 
-struct LPQUEST_API FTunicDebugSettings
+struct LPQUEST_API FLPQDebugSettings
 {
 	static bool ShouldDrawAttributes();
 	static bool ShouldDrawEnemyMelee();
