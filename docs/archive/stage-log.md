@@ -1746,4 +1746,22 @@ Validation and review:
 - Current old dependency scan for `/Script/LpQuest.Tunic...`, old interaction/ASC API names, `BP_Tunic`, `Tunic.Debug`, and `Tunic|` only reports expected migration redirects in `Config/DefaultEngine.ini` plus older World Partition external actor metadata outside this narrow `Content/_Game` asset-resave scope.
 - Strict review found no blocking issue. The stage has no C++ or Config behavior change; remaining old strings are accepted because removing them would require wider asset surgery or raw binary edits.
 
+## LPQ CoreRedirect Retirement v5
+
+Summary:
+
+- Removed the old `Tunic... -> LPQ...` `[CoreRedirects]` compatibility layer from `Config/DefaultEngine.ini`.
+- Retired class, struct, enum, and Blueprint-facing function redirects after the current project content had been migrated through the earlier LPQ naming stages.
+- Updated `ARCHITECTURE.md` and `README.md` to state that the old `Tunic` CoreRedirect compatibility layer is retired.
+- Updated `AGENTS.md` naming guidance: C++ reflected types and source/header filenames should keep the `LPQ` project prefix, while editor assets, local labels, StateTree node names, Notify names, local variables, and helper functions may use shorter domain names when clearer.
+- The stage intentionally does not raw-edit `.uasset` files, add a replacement migration shim, or restore broad redirects for isolated old metadata.
+
+Validation and review:
+
+- User confirmed `LpQuestEditor Win64 Development` build and focused Editor / PIE validation passed after the redirects were removed.
+- Static scan confirmed `Config/DefaultEngine.ini` no longer contains `[CoreRedirects]`, `ClassRedirects`, `StructRedirects`, `EnumRedirects`, or `FunctionRedirects`.
+- Current scans no longer find old native path or old Blueprint-facing API references in `Content`, `Config`, `Source`, or current docs.
+- Remaining old strings are accepted asset metadata/cache residuals: `BP_EnemyCharacterBase`, `ST_EnemyMeleeBasic`, and one `DefaultMap` external actor package still contain old display or `BP_Tunic...` metadata, but validation did not expose broken assets.
+- Strict review found no blocker. If a future old asset breaks because the redirects are retired, the accepted repair path is opening, rebuilding, or resaving the specific affected asset rather than restoring the whole redirect layer.
+
 

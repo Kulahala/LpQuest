@@ -22,7 +22,8 @@ Current working state:
 
 Most recent commits:
 
-- Most recent completed stage: `LPQ Asset Display String Resave v4.1`
+- Most recent completed stage: `LPQ CoreRedirect Retirement v5`
+- Previous completed stage: `LPQ Asset Display String Resave v4.1`
 - `eeb6632 [Refactor] 重保存LPQ重定向资产（Resave LPQ Redirected Assets）`
 - `f7e85e2 [Refactor] 重命名LPQ蓝图资产（Rename LPQ Blueprint Assets）`
 - `28fcda2 [Refactor] 重命名LPQ反射类型（Rename LPQ Reflected Types）`
@@ -30,10 +31,10 @@ Most recent commits:
 
 Current stage:
 
-- No active implementation stage after `LPQ Asset Display String Resave v4.1`.
-- `LPQ Asset Display String Resave v4.1` is completed, user-build-validated, reviewed, and archived.
-- Current `Content/_Game` old display/cache scan still has accepted residual hits in `BP_EnemyCharacterBase` and `ST_EnemyMeleeBasic`; they are not old native path or old Blueprint API dependencies, and v4.1 intentionally does not raw-edit binary assets to force removal.
-- Old class / struct / enum / function names remain in `Config/DefaultEngine.ini` `[CoreRedirects]` / `FunctionRedirects` as migration compatibility.
+- No active implementation stage after `LPQ CoreRedirect Retirement v5`.
+- `LPQ CoreRedirect Retirement v5` is completed, user-build-validated, strict-reviewed, and archived.
+- `Config/DefaultEngine.ini` no longer contains the old `Tunic... -> LPQ...` class / struct / enum redirects or old Blueprint-facing function redirects.
+- Remaining old strings in `BP_EnemyCharacterBase`, `ST_EnemyMeleeBasic`, and one `DefaultMap` external actor package are accepted display/cache metadata residuals. If a future old asset breaks because redirects are retired, repair that specific asset in Editor rather than restoring the whole redirect layer.
 - Next stage should be chosen deliberately from the near-term TODOs below.
 
 Near-term TODOs:

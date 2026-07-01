@@ -15,7 +15,7 @@ This file stores stable architecture facts for LpQuest. Update it when implement
 
 Start with one runtime module, `LpQuest`. Do not split modules until a concrete boundary exists.
 
-Current naming surface uses `LPQ` for Blueprint categories, runtime debug CVars, editor-facing node/display names, C++ reflected type names, source file names, generated header includes, Blueprint-facing API names, Blueprint asset names, and Config Blueprint paths. Old `Tunic` native names remain only as CoreRedirect compatibility for migrated content and historical notes.
+Current naming surface uses `LPQ` for Blueprint categories, runtime debug CVars, C++ reflected type names, source file names, generated header includes, Blueprint-facing API names, and project-level Config Blueprint paths. C++ source/header filenames should keep the `LPQ` prefix for consistency. Editor asset names, local labels, StateTree node names, Montage Notify names, local variables, and helper functions may use shorter domain names when that is clearer. The old `Tunic` native CoreRedirect compatibility layer has been retired; any remaining old serialized asset references should be fixed by opening, rebuilding, or resaving the specific affected asset rather than restoring broad redirects.
 
 Current runtime dependencies:
 
