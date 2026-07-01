@@ -1701,4 +1701,29 @@ Validation and review:
 - Strict review found no blocking issue. The extra asset diffs are accepted as redirected-reference resaves, not behavior changes.
 - No UBT build, PIE, or Listen Server validation was run in-session for this asset-resave stage.
 
+## LPQ Blueprint/API Member Rename v4
+
+Summary:
+
+- Renamed the remaining current Blueprint-facing `Tunic` API/member names to `LPQ` names.
+- `GetTunicAbilitySystemComponent()` is now `GetLPQAbilitySystemComponent()` on `ALPQCharacterBase` and `ALPQPlayerState`, with all C++ callers updated.
+- `CanInteractWithTunicPlayer()` and `InteractWithTunicPlayer()` are now `CanInteractWithLPQPlayer()` and `InteractWithLPQPlayer()` on `ILPQInteractableInterface`.
+- Portal and Pickup interface implementations were renamed to the matching `_Implementation` functions.
+- Player interaction dispatch now calls `ILPQInteractableInterface::Execute_CanInteractWithLPQPlayer()` and `Execute_InteractWithLPQPlayer()`.
+- Added targeted `FunctionRedirects` for the renamed Blueprint-facing API surface while keeping the existing class / struct / enum `[CoreRedirects]` intact.
+- Updated `ARCHITECTURE.md`, `README.md`, and `plan.md` for the completed naming surface.
+- The stage intentionally does not rename C++ reflected types, source files, Blueprint assets, Content paths, module names, or retire existing CoreRedirect compatibility.
+- The stage intentionally does not batch-resave assets because scans did not find the old function names in `Content/_Game`.
+
+Validation and review:
+
+- User confirmed `LpQuestEditor Win64 Development` build / validation passed.
+- Static scans found no `Tunic` string in `Source/LpQuest`.
+- Current source and non-archive tracked docs no longer contain `GetTunicAbilitySystemComponent`, `CanInteractWithTunicPlayer`, or `InteractWithTunicPlayer`.
+- The old API names remain only in `Config/DefaultEngine.ini` `FunctionRedirects`, as intended for migration compatibility.
+- `Content/_Game` did not contain old native script paths or old API names after this stage.
+- `git diff --check` reported no whitespace errors.
+- Strict review found no blocking issue. The rename did not change interaction authority, ASC ownership, Portal/Pickup behavior, or gameplay paths.
+- Accepted follow-up: `LPQ CoreRedirect Retirement v5` remains optional and should only happen after old branches, backups, and external assets no longer need migration compatibility.
+
 

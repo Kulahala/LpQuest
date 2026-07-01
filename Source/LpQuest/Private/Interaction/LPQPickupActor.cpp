@@ -35,7 +35,7 @@ ALPQPickupActor::ALPQPickupActor()
 	PickupMesh->SetStaticMesh(GetDefaultPickupSphereMesh());
 }
 
-bool ALPQPickupActor::CanInteractWithTunicPlayer_Implementation(ALPQPlayerCharacter* InteractingPlayer)
+bool ALPQPickupActor::CanInteractWithLPQPlayer_Implementation(ALPQPlayerCharacter* InteractingPlayer)
 {
 	if (HasAuthority() && !bPickupConsumed && PickupId.IsNone())
 	{
@@ -52,7 +52,7 @@ bool ALPQPickupActor::CanInteractWithTunicPlayer_Implementation(ALPQPlayerCharac
 		&& InteractingPlayer->GetPlayerState<ALPQPlayerState>();
 }
 
-void ALPQPickupActor::InteractWithTunicPlayer_Implementation(ALPQPlayerCharacter* InteractingPlayer)
+void ALPQPickupActor::InteractWithLPQPlayer_Implementation(ALPQPlayerCharacter* InteractingPlayer)
 {
 	if (!HasAuthority() || bPickupConsumed)
 	{

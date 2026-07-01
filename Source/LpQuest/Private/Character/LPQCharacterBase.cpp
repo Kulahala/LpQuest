@@ -15,7 +15,7 @@ UAbilitySystemComponent* ALPQCharacterBase::GetAbilitySystemComponent() const
 	return AbilitySystemComponent;
 }
 
-ULPQAbilitySystemComponent* ALPQCharacterBase::GetTunicAbilitySystemComponent() const
+ULPQAbilitySystemComponent* ALPQCharacterBase::GetLPQAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
 }
@@ -30,4 +30,3 @@ void ALPQCharacterBase::SetAbilitySystemReferences(ULPQAbilitySystemComponent* I
 	AbilitySystemComponent = InAbilitySystemComponent;
 	AttributeSet = InAttributeSet;
 }
-

@@ -286,7 +286,7 @@ ELPQCombatTeam ALPQEnemyCharacter::GetCombatTargetTeam() const
 
 ULPQAbilitySystemComponent* ALPQEnemyCharacter::GetCombatTargetAbilitySystemComponent() const
 {
-	return GetTunicAbilitySystemComponent();
+	return GetLPQAbilitySystemComponent();
 }
 
 ULPQAttributeSet* ALPQEnemyCharacter::GetCombatTargetAttributeSet() const
@@ -811,7 +811,7 @@ void ALPQEnemyCharacter::ApplyEnemyMeleeDamage(AActor* TargetActor, ILPQCombatTa
 	}
 
 	const float HealthBefore = TargetAttributeSet->GetHealth();
-	const ULPQAbilitySystemComponent* SourceAbilitySystemComponent = GetTunicAbilitySystemComponent();
+	const ULPQAbilitySystemComponent* SourceAbilitySystemComponent = GetLPQAbilitySystemComponent();
 	FGameplayEffectContextHandle EffectContext = SourceAbilitySystemComponent ? SourceAbilitySystemComponent->MakeEffectContext() : TargetAbilitySystemComponent->MakeEffectContext();
 	EffectContext.AddSourceObject(this);
 	TargetAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(MeleeAttackDamageEffectClass, 1.0f, EffectContext);
@@ -987,4 +987,3 @@ void ALPQEnemyCharacter::MulticastPlayHitReaction_Implementation(AActor* Instiga
 	PlayPresentationMontage(DefaultHitReactionMontage, false);
 	OnHitReaction(InstigatorActor);
 }
-

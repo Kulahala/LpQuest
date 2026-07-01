@@ -22,7 +22,7 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	UFUNCTION(BlueprintPure, Category = "LPQ|Ability", meta = (ToolTip = "返回该角色当前缓存的 LPQ ASC。玩家实际 ASC 归 PlayerState 持有，敌人 ASC 归敌人角色持有。"))
-	ULPQAbilitySystemComponent* GetTunicAbilitySystemComponent() const;
+	ULPQAbilitySystemComponent* GetLPQAbilitySystemComponent() const;
 
 	UFUNCTION(BlueprintPure, Category = "LPQ|Attributes", meta = (ToolTip = "返回该角色当前缓存的 AttributeSet。不要从蓝图直接改属性，属性变化应走 GAS / GameplayEffect。"))
 	ULPQAttributeSet* GetAttributeSet() const;
@@ -36,4 +36,3 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "LPQ|Attributes")
 	TObjectPtr<ULPQAttributeSet> AttributeSet;
 };
-

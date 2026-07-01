@@ -28,7 +28,7 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	UFUNCTION(BlueprintPure, Category = "LPQ|Ability", meta = (ToolTip = "返回玩家 PlayerState-owned ASC。玩家角色作为 AvatarActor，能力和属性归 PlayerState 持有。"))
-	ULPQAbilitySystemComponent* GetTunicAbilitySystemComponent() const;
+	ULPQAbilitySystemComponent* GetLPQAbilitySystemComponent() const;
 
 	UFUNCTION(BlueprintPure, Category = "LPQ|Attributes", meta = (ToolTip = "返回玩家 AttributeSet。属性复制和 GameplayEffect 结算通过 PlayerState-owned ASC 管理。"))
 	ULPQAttributeSet* GetAttributeSet() const;
@@ -81,4 +81,3 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentEquipmentId)
 	FName CurrentEquipmentId = NAME_None;
 };
-

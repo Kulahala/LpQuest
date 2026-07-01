@@ -166,7 +166,7 @@ void ALPQPlayerCharacter::Tick(float DeltaSeconds)
 
 bool ALPQPlayerCharacter::IsCombatTargetAvailable() const
 {
-	return !bIsDead && GetTunicAbilitySystemComponent() && GetAttributeSet();
+	return !bIsDead && GetLPQAbilitySystemComponent() && GetAttributeSet();
 }
 
 ELPQCombatTeam ALPQPlayerCharacter::GetCombatTargetTeam() const
@@ -176,7 +176,7 @@ ELPQCombatTeam ALPQPlayerCharacter::GetCombatTargetTeam() const
 
 ULPQAbilitySystemComponent* ALPQPlayerCharacter::GetCombatTargetAbilitySystemComponent() const
 {
-	return GetTunicAbilitySystemComponent();
+	return GetLPQAbilitySystemComponent();
 }
 
 ULPQAttributeSet* ALPQPlayerCharacter::GetCombatTargetAttributeSet() const
@@ -485,7 +485,7 @@ void ALPQPlayerCharacter::InitializePlayerAbilitySystem()
 		return;
 	}
 
-	ULPQAbilitySystemComponent* PlayerAbilitySystemComponent = LpQuestPlayerState->GetTunicAbilitySystemComponent();
+	ULPQAbilitySystemComponent* PlayerAbilitySystemComponent = LpQuestPlayerState->GetLPQAbilitySystemComponent();
 	ULPQAttributeSet* PlayerAttributeSet = LpQuestPlayerState->GetAttributeSet();
 	if (!PlayerAbilitySystemComponent || !PlayerAttributeSet)
 	{
@@ -596,7 +596,7 @@ void ALPQPlayerCharacter::RequestLightAttack()
 		return;
 	}
 
-	const bool bShouldUseAbility = GetTunicAbilitySystemComponent() && LightAttackAbilityClass;
+	const bool bShouldUseAbility = GetLPQAbilitySystemComponent() && LightAttackAbilityClass;
 	if (bShouldUseAbility)
 	{
 		TryActivateLightAttackAbility();
@@ -648,7 +648,7 @@ void ALPQPlayerCharacter::ServerRequestInteract_Implementation()
 			*GetNameSafe(InteractableActor));
 	}
 
-	ILPQInteractableInterface::Execute_InteractWithTunicPlayer(InteractableActor, this);
+	ILPQInteractableInterface::Execute_InteractWithLPQPlayer(InteractableActor, this);
 }
 
 void ALPQPlayerCharacter::HandleLightAttackRequest()
@@ -686,7 +686,7 @@ bool ALPQPlayerCharacter::TryActivateLightAttackAbility()
 		return false;
 	}
 
-	ULPQAbilitySystemComponent* PlayerAbilitySystemComponent = GetTunicAbilitySystemComponent();
+	ULPQAbilitySystemComponent* PlayerAbilitySystemComponent = GetLPQAbilitySystemComponent();
 	if (!PlayerAbilitySystemComponent)
 	{
 		return false;
@@ -1019,7 +1019,7 @@ void ALPQPlayerCharacter::ApplyLightAttackDamage(AActor* TargetActor, ILPQCombat
 	}
 
 	const float HealthBefore = TargetAttributeSet->GetHealth();
-	const ULPQAbilitySystemComponent* SourceAbilitySystemComponent = GetTunicAbilitySystemComponent();
+	const ULPQAbilitySystemComponent* SourceAbilitySystemComponent = GetLPQAbilitySystemComponent();
 	FGameplayEffectContextHandle EffectContext = SourceAbilitySystemComponent ? SourceAbilitySystemComponent->MakeEffectContext() : TargetAbilitySystemComponent->MakeEffectContext();
 	EffectContext.AddSourceObject(this);
 	TargetAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(LightAttackDamageEffectClass, 1.0f, EffectContext);
@@ -1077,7 +1077,7 @@ void ALPQPlayerCharacter::RequestDodge()
 		return;
 	}
 
-	const bool bShouldUseAbility = GetTunicAbilitySystemComponent() && DodgeAbilityClass;
+	const bool bShouldUseAbility = GetLPQAbilitySystemComponent() && DodgeAbilityClass;
 	if (bShouldUseAbility)
 	{
 		if (!TryActivateDodgeAbility(GetDodgeDirection()) && bLogDodgeRequests)
@@ -1092,7 +1092,7 @@ void ALPQPlayerCharacter::RequestDodge()
 	{
 		UE_LOG(LogLpQuestGasDebug, Warning, TEXT("Dodge request skipped: missing ASC or DodgeAbilityClass | Character=%s | HasASC=%s | DodgeAbilityClass=%s"),
 			*GetNameSafe(this),
-			GetTunicAbilitySystemComponent() ? TEXT("true") : TEXT("false"),
+			GetLPQAbilitySystemComponent() ? TEXT("true") : TEXT("false"),
 			*GetNameSafe(DodgeAbilityClass.Get()));
 	}
 }
@@ -1148,7 +1148,7 @@ bool ALPQPlayerCharacter::TryActivateDodgeAbility(const FVector& DodgeDirection)
 		return false;
 	}
 
-	ULPQAbilitySystemComponent* PlayerAbilitySystemComponent = GetTunicAbilitySystemComponent();
+	ULPQAbilitySystemComponent* PlayerAbilitySystemComponent = GetLPQAbilitySystemComponent();
 	if (!PlayerAbilitySystemComponent)
 	{
 		return false;
@@ -1276,7 +1276,7 @@ void ALPQPlayerCharacter::LogServerInputRequestDebug(const TCHAR* RequestName, b
 		RequestName,
 		*GetNameSafe(this),
 		*GetNameSafe(GetPlayerState()),
-		*GetNameSafe(GetTunicAbilitySystemComponent()),
+		*GetNameSafe(GetLPQAbilitySystemComponent()),
 		*GetNameSafe(GetAttributeSet()),
 		GetAttributeSet() ? GetAttributeSet()->GetHealth() : 0.0f,
 		GetAttributeSet() ? GetAttributeSet()->GetMaxHealth() : 0.0f,
@@ -1313,7 +1313,7 @@ AActor* ALPQPlayerCharacter::FindBestInteractableActor()
 			continue;
 		}
 
-		if (!ILPQInteractableInterface::Execute_CanInteractWithTunicPlayer(CandidateActor, this))
+		if (!ILPQInteractableInterface::Execute_CanInteractWithLPQPlayer(CandidateActor, this))
 		{
 			continue;
 		}
@@ -1386,7 +1386,7 @@ void ALPQPlayerCharacter::ApplyDeathState()
 		MovementComponent->DisableMovement();
 	}
 
-	ULPQAbilitySystemComponent* PlayerAbilitySystemComponent = GetTunicAbilitySystemComponent();
+	ULPQAbilitySystemComponent* PlayerAbilitySystemComponent = GetLPQAbilitySystemComponent();
 	if (HasAuthority() && PlayerAbilitySystemComponent)
 	{
 		const FGameplayTag DeadTag = FGameplayTag::RequestGameplayTag(TEXT("State.Dead"), false);
@@ -1435,4 +1435,3 @@ void ALPQPlayerCharacter::PlayPresentationMontage(UAnimMontage* MontageToPlay, b
 
 	AnimInstance->Montage_Play(MontageToPlay, 1.0f, bStopAllMontages ? EMontagePlayReturnType::MontageLength : EMontagePlayReturnType::Duration, 0.0f, bStopAllMontages);
 }
-

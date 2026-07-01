@@ -22,22 +22,22 @@ Current working state:
 
 Most recent commits:
 
+- `eeb6632 [Refactor] 重保存LPQ重定向资产（Resave LPQ Redirected Assets）`
 - `f7e85e2 [Refactor] 重命名LPQ蓝图资产（Rename LPQ Blueprint Assets）`
 - `28fcda2 [Refactor] 重命名LPQ反射类型（Rename LPQ Reflected Types）`
 - `7ceb483 [Refactor] 清理LPQ表层命名（Clean LPQ Naming Surface）`
-- `176f9d8 [Chore] 启用AIAssistant插件（Enable AIAssistant Plugin）`
 
 Current stage:
 
-- No active implementation stage after `LPQ Redirected Asset Resave v3.1`.
-- `LPQ Redirected Asset Resave v3.1` is completed and ready to archive / commit.
-- Current `Content/_Game` assets no longer serialize old Tunic-prefixed native class paths; old native names remain only in `[CoreRedirects]` and known Blueprint-facing API names.
+- No active implementation stage after `LPQ Blueprint/API Member Rename v4`.
+- `LPQ Blueprint/API Member Rename v4` is completed, validated, strict-reviewed, and archived.
+- Current source uses `LPQ` Blueprint-facing API names: `GetLPQAbilitySystemComponent()`, `CanInteractWithLPQPlayer()`, and `InteractWithLPQPlayer()`.
+- Old API names remain only in targeted `FunctionRedirects`; old native type names remain only in existing class / struct / enum `[CoreRedirects]` migration compatibility.
 - Next stage should be chosen deliberately from the near-term TODOs below.
 
 Near-term TODOs:
 
 - `Enemy Variant Profile Cleanup v2` after current Portal work: when Guard / Wild / Spawn / Elite only differ by tuning, fold them toward one enemy class plus profile DataAssets instead of keeping separate Blueprints for each variant.
-- `LPQ Blueprint/API Member Rename v4`: only if remaining Blueprint-facing names such as `CanInteractWithTunicPlayer()` become confusing enough to justify Blueprint function redirect / override validation.
 - `Portal Destination / Floor Route DataAsset v2`: when destination IDs, branch weights, floor types, safe/combat rules, map assets, room pools, or shop/hub rules start repeating, replace the current `FName PortalDestinationId` bridge with authored route/floor data.
 - `Equipment DataAsset / Inventory Slots v2`: add only when multiple weapons, item stats, icons, descriptions, ability grants, or switching between several carried items become real scope.
 - `Enemy Drop Profile / Equipment DataAsset v2`: add only when several enemies repeat drop setup, random drop pools, rarity, weights, ownership policy, or equipment stats become real scope.

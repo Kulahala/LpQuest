@@ -29,7 +29,7 @@ UAbilitySystemComponent* ALPQPlayerState::GetAbilitySystemComponent() const
 	return AbilitySystemComponent;
 }
 
-ULPQAbilitySystemComponent* ALPQPlayerState::GetTunicAbilitySystemComponent() const
+ULPQAbilitySystemComponent* ALPQPlayerState::GetLPQAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
 }
@@ -118,5 +118,4 @@ void ALPQPlayerState::OnRep_CurrentEquipmentId()
 	OnCurrentEquipmentChangedEvent.Broadcast(CurrentEquipmentId);
 	OnCurrentEquipmentChanged(CurrentEquipmentId);
 }
-
 

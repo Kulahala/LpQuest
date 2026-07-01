@@ -188,7 +188,7 @@ void ALPQPortalActor::OnPortalReset_Implementation()
 {
 }
 
-bool ALPQPortalActor::CanInteractWithTunicPlayer_Implementation(ALPQPlayerCharacter* InteractingPlayer)
+bool ALPQPortalActor::CanInteractWithLPQPlayer_Implementation(ALPQPlayerCharacter* InteractingPlayer)
 {
 	if (!HasAuthority() || !InteractingPlayer || InteractingPlayer->IsDead() || bIsPortalReady)
 	{
@@ -224,7 +224,7 @@ bool ALPQPortalActor::CanInteractWithTunicPlayer_Implementation(ALPQPlayerCharac
 	return FVector::DistSquared2D(InteractingPlayer->GetActorLocation(), GetActorLocation()) <= InteractionRadiusSquared;
 }
 
-void ALPQPortalActor::InteractWithTunicPlayer_Implementation(ALPQPlayerCharacter* InteractingPlayer)
+void ALPQPortalActor::InteractWithLPQPlayer_Implementation(ALPQPlayerCharacter* InteractingPlayer)
 {
 	if (ALPQGameMode* LpQuestGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ALPQGameMode>() : nullptr)
 	{

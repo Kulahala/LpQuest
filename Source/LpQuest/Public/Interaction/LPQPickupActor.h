@@ -19,8 +19,8 @@ class LPQUEST_API ALPQPickupActor : public AActor, public ILPQInteractableInterf
 public:
 	ALPQPickupActor();
 
-	virtual bool CanInteractWithTunicPlayer_Implementation(ALPQPlayerCharacter* InteractingPlayer) override;
-	virtual void InteractWithTunicPlayer_Implementation(ALPQPlayerCharacter* InteractingPlayer) override;
+	virtual bool CanInteractWithLPQPlayer_Implementation(ALPQPlayerCharacter* InteractingPlayer) override;
+	virtual void InteractWithLPQPlayer_Implementation(ALPQPlayerCharacter* InteractingPlayer) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "LPQ|Pickup")
