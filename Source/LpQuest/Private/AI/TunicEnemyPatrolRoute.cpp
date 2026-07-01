@@ -4,12 +4,14 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/SplineComponent.h"
+#include "Debug/TunicDebugSettings.h"
 #include "DrawDebugHelpers.h"
 #include "NavigationSystem.h"
 
 ATunicEnemyPatrolRoute::ATunicEnemyPatrolRoute()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 	bReplicates = false;
 
 	SceneRootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
@@ -45,8 +47,14 @@ void ATunicEnemyPatrolRoute::BeginPlay()
 	Super::BeginPlay();
 
 	RebuildSampledPatrolLocations();
+	SetActorTickEnabled(bDrawRuntimeDebugRoute);
+}
 
-	if (bDrawRuntimeDebugRoute)
+void ATunicEnemyPatrolRoute::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (FTunicDebugSettings::ShouldDrawPatrolRoutes())
 	{
 		DrawRuntimeDebugRoute();
 	}
@@ -250,8 +258,7 @@ void ATunicEnemyPatrolRoute::DrawRuntimeDebugRoute() const
 	const FColor DrawColor = DebugColor.ToFColor(true);
 	const FColor MovementSampleColor = FLinearColor::Yellow.ToFColor(true);
 	const FColor StopSampleColor = FLinearColor::Red.ToFColor(true);
-	const bool bPersistent = RuntimeDebugDrawDuration <= 0.0f;
-	const float LifeTime = bPersistent ? -1.0f : RuntimeDebugDrawDuration;
+	const float LifeTime = FMath::Max(0.0f, RuntimeDebugDrawDuration);
 	const float SplineLineThickness = 2.0f;
 	const float SampleLineThickness = 4.0f;
 	const float MovementSampleSphereRadius = 22.0f;
@@ -264,7 +271,7 @@ void ATunicEnemyPatrolRoute::DrawRuntimeDebugRoute() const
 		const float Alpha = static_cast<float>(StepIndex) / static_cast<float>(SplineDrawSteps);
 		const float Distance = PatrolSplineComponent->GetSplineLength() * Alpha;
 		const FVector SplineLocation = PatrolSplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
-		DrawDebugLine(World, PreviousSplineLocation, SplineLocation, DrawColor, bPersistent, LifeTime, 0, SplineLineThickness);
+		DrawDebugLine(World, PreviousSplineLocation, SplineLocation, DrawColor, false, LifeTime, 0, SplineLineThickness);
 		PreviousSplineLocation = SplineLocation;
 	}
 
@@ -274,7 +281,7 @@ void ATunicEnemyPatrolRoute::DrawRuntimeDebugRoute() const
 		const bool bIsStop = IsPatrolPointStop(PointIndex);
 		const FColor SampleColor = bIsStop ? StopSampleColor : MovementSampleColor;
 		const float SampleSphereRadius = bIsStop ? StopSampleSphereRadius : MovementSampleSphereRadius;
-		DrawDebugSphere(World, PointLocation, SampleSphereRadius, 12, SampleColor, bPersistent, LifeTime, 0, SampleLineThickness);
+		DrawDebugSphere(World, PointLocation, SampleSphereRadius, 12, SampleColor, false, LifeTime, 0, SampleLineThickness);
 		DrawDebugString(World, PointLocation + FVector(0.0f, 0.0f, 48.0f), FString::Printf(TEXT("%s:%s%d"), *RouteId.ToString(), bIsStop ? TEXT("Stop") : TEXT("Move"), PointIndex), nullptr, SampleColor, LifeTime, true);
 
 		const bool bHasNextPoint = PointIndex + 1 < SampleCount;
@@ -282,7 +289,7 @@ void ATunicEnemyPatrolRoute::DrawRuntimeDebugRoute() const
 		{
 			const int32 NextPointIndex = bHasNextPoint ? PointIndex + 1 : 0;
 			const FVector NextPointLocation = GetPatrolPointLocation(NextPointIndex);
-			DrawDebugLine(World, PointLocation, NextPointLocation, MovementSampleColor, bPersistent, LifeTime, 0, SampleLineThickness);
+			DrawDebugLine(World, PointLocation, NextPointLocation, MovementSampleColor, false, LifeTime, 0, SampleLineThickness);
 		}
 	}
 }

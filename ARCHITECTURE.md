@@ -99,7 +99,7 @@ GAS owns abilities, cooldowns, damage effects, elemental states, action locks, i
 
 `UTunicRunUpgradeMaxHealthGameplayEffect` is the first fixed run-upgrade GameplayEffect. It is applied by `ATunicGameMode` to the selected player's PlayerState-owned ASC after consuming one pending run-upgrade choice. The effect is instant and adds to `MaxHealth` before adding to `Health`, so the v1 upgrade both increases the cap and immediately fills the same amount. Future run-upgrade choices can replace the configured GameMode effect class or move to DataAssets without moving reward authority to clients.
 
-Temporary debug draw on player and enemy characters renders replicated Health/Stamina values above actors for PIE validation. This is a world debug aid, not the final HUD or settings UI path.
+Temporary debug draw on player and enemy characters renders replicated Health/Stamina values above actors for PIE validation. Runtime debug drawing and development logs are gated by lightweight `Tunic.Debug.*` Console Variables plus each system's local debug bool; each gameplay system still owns its own debug implementation. This is a world debug aid, not the final HUD or settings UI path.
 
 Movement, camera, simple interaction, and editor-only setup should not be forced into GameplayAbilities. Player input should activate abilities or validated server requests; input handlers must not directly apply damage, death, or elemental states.
 

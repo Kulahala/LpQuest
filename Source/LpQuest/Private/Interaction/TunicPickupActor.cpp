@@ -5,6 +5,7 @@
 #include "Character/TunicPlayerCharacter.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Debug/TunicDebugSettings.h"
 #include "Engine/EngineTypes.h"
 #include "Player/TunicPlayerState.h"
 #include "UObject/ConstructorHelpers.h"
@@ -68,7 +69,7 @@ void ATunicPickupActor::InteractWithTunicPlayer_Implementation(ATunicPlayerChara
 
 	if (!InteractingPlayer || InteractingPlayer->IsDead())
 	{
-		if (bLogPickupInteraction)
+		if (bLogPickupInteraction && FTunicDebugSettings::ShouldLogInteraction())
 		{
 			UE_LOG(LogLpQuestPickup, Display, TEXT("Pickup rejected: invalid or dead player | Pickup=%s | Player=%s | PickupId=%s"),
 				*GetNameSafe(this),
@@ -90,7 +91,7 @@ void ATunicPickupActor::InteractWithTunicPlayer_Implementation(ATunicPlayerChara
 	}
 
 	bPickupConsumed = true;
-	if (bLogPickupInteraction)
+	if (bLogPickupInteraction && FTunicDebugSettings::ShouldLogInteraction())
 	{
 		UE_LOG(LogLpQuestPickup, Display, TEXT("Pickup consumed | Pickup=%s | Player=%s | PlayerState=%s | PickupId=%s"),
 			*GetNameSafe(this),

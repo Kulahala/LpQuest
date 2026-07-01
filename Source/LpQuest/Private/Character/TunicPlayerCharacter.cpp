@@ -19,6 +19,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Combat/TunicCombatRules.h"
 #include "Combat/TunicCombatTargetInterface.h"
+#include "Debug/TunicDebugSettings.h"
 #include "DrawDebugHelpers.h"
 #include "EnhancedInputComponent.h"
 #include "Engine/Engine.h"
@@ -564,7 +565,7 @@ void ATunicPlayerCharacter::ApplyDefaultEffects(UTunicAbilitySystemComponent* Pl
 
 void ATunicPlayerCharacter::LogPlayerAbilitySystemDebug(const ATunicPlayerState* TunicPlayerState, const UTunicAbilitySystemComponent* PlayerAbilitySystemComponent, const UTunicAttributeSet* PlayerAttributeSet) const
 {
-	if (!bLogAbilitySystemInitialization)
+	if (!bLogAbilitySystemInitialization || !FTunicDebugSettings::ShouldLogCombat())
 	{
 		return;
 	}
@@ -631,7 +632,7 @@ void ATunicPlayerCharacter::ServerRequestInteract_Implementation()
 	AActor* InteractableActor = FindBestInteractableActor();
 	if (!InteractableActor)
 	{
-		if (bLogInteractionRequests)
+		if (bLogInteractionRequests && FTunicDebugSettings::ShouldLogInteraction())
 		{
 			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Interact request found no target | Character=%s | Radius=%.1f"),
 				*GetNameSafe(this),
@@ -640,7 +641,7 @@ void ATunicPlayerCharacter::ServerRequestInteract_Implementation()
 		return;
 	}
 
-	if (bLogInteractionRequests)
+	if (bLogInteractionRequests && FTunicDebugSettings::ShouldLogInteraction())
 	{
 		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Interact request accepted | Character=%s | Target=%s"),
 			*GetNameSafe(this),
@@ -754,7 +755,7 @@ void ATunicPlayerCharacter::MulticastPlayHitReaction_Implementation(AActor* Inst
 		return;
 	}
 
-	if (bLogHitReaction)
+	if (bLogHitReaction && FTunicDebugSettings::ShouldLogCombat())
 	{
 		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Player hit reaction | Character=%s | Instigator=%s | Authority=%s | LocalRole=%d | RemoteRole=%d"),
 			*GetNameSafe(this),
@@ -779,7 +780,7 @@ void ATunicPlayerCharacter::MulticastPlayHitReaction_Implementation(AActor* Inst
 
 void ATunicPlayerCharacter::ClientShowDodgeInvulnerabilitySuccess_Implementation(AActor* InstigatorActor)
 {
-	if (!bShowDodgeInvulnerabilityDebugMessage)
+	if (!bShowDodgeInvulnerabilityDebugMessage || !FTunicDebugSettings::ShouldLogCombat())
 	{
 		return;
 	}
@@ -817,7 +818,7 @@ void ATunicPlayerCharacter::LogLightAttackRequestDebug() const
 
 void ATunicPlayerCharacter::DrawAttributeDebug() const
 {
-	if (!bDrawAttributeDebug || !AttributeSet)
+	if (!bDrawAttributeDebug || !FTunicDebugSettings::ShouldDrawAttributes() || !AttributeSet)
 	{
 		return;
 	}
@@ -909,7 +910,7 @@ FVector ATunicPlayerCharacter::GetLightAttackSweepPoint(const FVector& LocalOffs
 
 void ATunicPlayerCharacter::LogLightAttackHitSweepDebug(const TArray<FHitResult>& HitResults, int32 ProcessedHitCount) const
 {
-	if (!bLogLightAttackHitSweep)
+	if (!bLogLightAttackHitSweep || !FTunicDebugSettings::ShouldLogCombat())
 	{
 		return;
 	}
@@ -940,18 +941,21 @@ void ATunicPlayerCharacter::LogLightAttackHitSweepDebug(const TArray<FHitResult>
 		const UTunicAbilitySystemComponent* TargetAbilitySystemComponent = CombatTarget->GetCombatTargetAbilitySystemComponent();
 		const UTunicAttributeSet* TargetAttributeSet = CombatTarget->GetCombatTargetAttributeSet();
 
-		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack hit sweep target | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | TargetHealth=%.1f/%.1f | TargetStamina=%.1f/%.1f | ImpactPoint=%s | TargetLocalRole=%d | TargetRemoteRole=%d"),
-			*GetNameSafe(this),
-			*GetNameSafe(TargetActor),
-			*GetNameSafe(TargetAbilitySystemComponent),
-			*GetNameSafe(TargetAttributeSet),
-			TargetAttributeSet ? TargetAttributeSet->GetHealth() : 0.0f,
-			TargetAttributeSet ? TargetAttributeSet->GetMaxHealth() : 0.0f,
-			TargetAttributeSet ? TargetAttributeSet->GetStamina() : 0.0f,
-			TargetAttributeSet ? TargetAttributeSet->GetMaxStamina() : 0.0f,
-			*HitResult.ImpactPoint.ToCompactString(),
-			static_cast<int32>(TargetActor->GetLocalRole()),
-			static_cast<int32>(TargetActor->GetRemoteRole()));
+		if (FTunicDebugSettings::ShouldLogCombat())
+		{
+			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack hit sweep target | Character=%s | Target=%s | TargetASC=%s | TargetAttributeSet=%s | TargetHealth=%.1f/%.1f | TargetStamina=%.1f/%.1f | ImpactPoint=%s | TargetLocalRole=%d | TargetRemoteRole=%d"),
+				*GetNameSafe(this),
+				*GetNameSafe(TargetActor),
+				*GetNameSafe(TargetAbilitySystemComponent),
+				*GetNameSafe(TargetAttributeSet),
+				TargetAttributeSet ? TargetAttributeSet->GetHealth() : 0.0f,
+				TargetAttributeSet ? TargetAttributeSet->GetMaxHealth() : 0.0f,
+				TargetAttributeSet ? TargetAttributeSet->GetStamina() : 0.0f,
+				TargetAttributeSet ? TargetAttributeSet->GetMaxStamina() : 0.0f,
+				*HitResult.ImpactPoint.ToCompactString(),
+				static_cast<int32>(TargetActor->GetLocalRole()),
+				static_cast<int32>(TargetActor->GetRemoteRole()));
+		}
 	}
 }
 
@@ -964,16 +968,22 @@ void ATunicPlayerCharacter::ApplyLightAttackDamage(AActor* TargetActor, ITunicCo
 
 	if (!TargetActor || !CombatTarget)
 	{
-		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage skipped: no target | Character=%s"),
-			*GetNameSafe(this));
+		if (FTunicDebugSettings::ShouldLogCombat())
+		{
+			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage skipped: no target | Character=%s"),
+				*GetNameSafe(this));
+		}
 		return;
 	}
 
 	if (!CombatTarget->IsCombatTargetAvailable())
 	{
-		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage skipped: target unavailable | Character=%s | Target=%s"),
-			*GetNameSafe(this),
-			*GetNameSafe(TargetActor));
+		if (FTunicDebugSettings::ShouldLogCombat())
+		{
+			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage skipped: target unavailable | Character=%s | Target=%s"),
+				*GetNameSafe(this),
+				*GetNameSafe(TargetActor));
+		}
 		return;
 	}
 
@@ -998,10 +1008,13 @@ void ATunicPlayerCharacter::ApplyLightAttackDamage(AActor* TargetActor, ITunicCo
 			TargetPlayerCharacter->NotifyDodgeInvulnerabilitySuccess(this);
 		}
 
-		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage skipped: target invulnerable | Character=%s | Target=%s | EffectClass=%s"),
-			*GetNameSafe(this),
-			*GetNameSafe(TargetActor),
-			*GetNameSafe(LightAttackDamageEffectClass.Get()));
+		if (FTunicDebugSettings::ShouldLogCombat())
+		{
+			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage skipped: target invulnerable | Character=%s | Target=%s | EffectClass=%s"),
+				*GetNameSafe(this),
+				*GetNameSafe(TargetActor),
+				*GetNameSafe(LightAttackDamageEffectClass.Get()));
+		}
 		return;
 	}
 
@@ -1012,12 +1025,15 @@ void ATunicPlayerCharacter::ApplyLightAttackDamage(AActor* TargetActor, ITunicCo
 	TargetAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(LightAttackDamageEffectClass, 1.0f, EffectContext);
 	const float HealthAfter = TargetAttributeSet->GetHealth();
 
-	UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage applied | Character=%s | Target=%s | EffectClass=%s | TargetHealth=%.1f->%.1f"),
-		*GetNameSafe(this),
-		*GetNameSafe(TargetActor),
-		*GetNameSafe(LightAttackDamageEffectClass.Get()),
-		HealthBefore,
-		HealthAfter);
+	if (FTunicDebugSettings::ShouldLogCombat())
+	{
+		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack damage applied | Character=%s | Target=%s | EffectClass=%s | TargetHealth=%.1f->%.1f"),
+			*GetNameSafe(this),
+			*GetNameSafe(TargetActor),
+			*GetNameSafe(LightAttackDamageEffectClass.Get()),
+			HealthBefore,
+			HealthAfter);
+	}
 }
 
 void ATunicPlayerCharacter::HandleLightAttackTargetHit(AActor* TargetActor, ITunicCombatTargetInterface* CombatTarget)
@@ -1037,7 +1053,7 @@ void ATunicPlayerCharacter::HandleLightAttackTargetHit(AActor* TargetActor, ITun
 	{
 		ApplyLightAttackDamage(TargetActor, CombatTarget);
 	}
-	else
+	else if (FTunicDebugSettings::ShouldLogCombat())
 	{
 		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Light attack hit target without damage | Character=%s | Target=%s | SourceTeam=%d | TargetTeam=%d"),
 			*GetNameSafe(this),
@@ -1156,7 +1172,7 @@ bool ATunicPlayerCharacter::TryActivateDodgeAbility(const FVector& DodgeDirectio
 		DodgeEventData.TargetData.Add(DodgeDirectionTargetData);
 
 		const int32 TriggeredAbilityCount = PlayerAbilitySystemComponent->HandleGameplayEvent(DodgeEventTag, &DodgeEventData);
-		if (bLogDodgeRequests)
+		if (bLogDodgeRequests && FTunicDebugSettings::ShouldLogCombat())
 		{
 			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Dodge gameplay event sent | Character=%s | Direction=%s | TriggeredAbilityCount=%d"),
 				*GetNameSafe(this),
@@ -1189,7 +1205,7 @@ void ATunicPlayerCharacter::MulticastPlayDodgeMontage_Implementation(UAnimMontag
 
 	if (IsLocallyControlled() && !HasAuthority() && bLocalDodgePresentationActive)
 	{
-		if (bLogDodgeRequests)
+		if (bLogDodgeRequests && FTunicDebugSettings::ShouldLogCombat())
 		{
 			UE_LOG(LogLpQuestGasDebug, Display, TEXT("Dodge multicast presentation skipped on owning client: local presentation already active | Character=%s"),
 				*GetNameSafe(this));
@@ -1251,7 +1267,7 @@ void ATunicPlayerCharacter::LogDodgeRequestDebug() const
 
 void ATunicPlayerCharacter::LogServerInputRequestDebug(const TCHAR* RequestName, bool bShouldLog) const
 {
-	if (!bShouldLog)
+	if (!bShouldLog || !FTunicDebugSettings::ShouldLogCombat())
 	{
 		return;
 	}
@@ -1380,7 +1396,7 @@ void ATunicPlayerCharacter::ApplyDeathState()
 		}
 	}
 
-	if (bLogDeathState)
+	if (bLogDeathState && FTunicDebugSettings::ShouldLogCombat())
 	{
 		const UTunicAttributeSet* PlayerAttributeSet = GetAttributeSet();
 		UE_LOG(LogLpQuestGasDebug, Display, TEXT("Player entered death state | Character=%s | PlayerState=%s | ASC=%s | AttributeSet=%s | Health=%.1f/%.1f | Authority=%s | LocalRole=%d | RemoteRole=%d"),

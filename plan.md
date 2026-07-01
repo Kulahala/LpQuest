@@ -30,8 +30,8 @@ Most recent commits:
 
 Current stage:
 
-- No active implementation stage after `Portal Branch Choice Lock v1`.
-- `Portal Branch Choice Lock v1` is completed, user build / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
+- No active implementation stage after `Debug Draw Settings Foundation v1`.
+- `Debug Draw Settings Foundation v1` is completed, user build / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
 - Next stage should be chosen deliberately from the near-term TODOs below rather than inferred from this completed stage.
 
 Near-term TODOs:

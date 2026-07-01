@@ -19,6 +19,7 @@ public:
 
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 
 	UFUNCTION(BlueprintPure, Category = "Tunic|AI|Patrol", meta = (ToolTip = "返回这条巡逻路线的 RouteId。AIController 通过同名 PatrolRouteId 绑定到这条路线。"))
 	FName GetRouteId() const;
@@ -72,7 +73,7 @@ protected:
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Tunic|AI|Patrol", meta = (ToolTip = "PIE 运行时绘制路线、movement samples 和 stop samples。只用于验证路线，不参与 gameplay。"))
 	bool bDrawRuntimeDebugRoute = false;
 
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Tunic|AI|Patrol", meta = (ClampMin = "0.0", Units = "s", ToolTip = "运行时 debug draw 持续时间，单位秒。0 表示只画一帧，适合配合持续 BeginPlay 验证。"))
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Tunic|AI|Patrol", meta = (ClampMin = "0.0", Units = "s", ToolTip = "运行时 debug draw 持续时间，单位秒。0 表示只画一帧，适合配合每帧重画验证。"))
 	float RuntimeDebugDrawDuration = 0.0f;
 
 private:

@@ -1596,4 +1596,25 @@ Validation and review:
 - User confirmed the strict-review fix passed validation.
 - Accepted follow-up: add replicated lockout presentation only when non-selected portals need visible disabled/closed feedback.
 
+## Debug Draw Settings Foundation v1
+
+Summary:
+
+- Added `FTunicDebugSettings` as a lightweight native runtime debug settings entry.
+- Registered `Tunic.Debug.Draw.Attributes`, `Tunic.Debug.Draw.EnemyMelee`, `Tunic.Debug.Draw.PatrolRoutes`, `Tunic.Debug.Log.Combat`, `Tunic.Debug.Log.Portal`, `Tunic.Debug.Log.Interaction`, and `Tunic.Debug.Log.SpawnSource`.
+- Player / enemy attribute text, enemy melee telegraph and hit-shape debug, and runtime patrol route drawing now require both the local Actor debug bool and the matching global CVar.
+- Combat, Portal, interaction / pickup, and SpawnSource Display-level development logs now use the matching global CVar while preserving local `bLog...` opt-in / opt-out controls.
+- Missing-configuration and failure warnings remain visible; they are not hidden behind debug CVars.
+- Patrol route runtime debug drawing now redraws through Tick only when its local runtime debug bool is enabled, and the global CVar controls whether the draw actually happens.
+- Added an `AGENTS.md` collaboration rule that future runtime debug draw and development log switches should use `FTunicDebugSettings` / `Tunic.Debug.*` unless there is a concrete reason not to.
+- `ARCHITECTURE.md` and `plan.md` were synced for the completed stage.
+- The stage intentionally does not add an ESC menu, UMG Debug Panel, DebugManager Actor, replicated debug state, or gameplay authority changes.
+
+Validation and review:
+
+- User confirmed `LpQuestEditor Win64 Development` build / PIE validation passed.
+- User confirmed the CVar toggles behaved as expected and did not regress melee damage, Dodge, Portal, SpawnSource, XP, drop, pickup, or AI.
+- Strict review found no blocking issue after confirming debug CVars only gate debug draw / Display-level development logs in the targeted systems.
+- Accepted follow-up: GameMode / Ability / AIController Display logs are not forced into this v1. Add dedicated `Tunic.Debug.Log.RunState` or `Tunic.Debug.Log.AI` only if those logs become noisy enough to need their own category.
+
 

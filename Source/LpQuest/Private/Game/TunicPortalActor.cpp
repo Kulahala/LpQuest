@@ -7,6 +7,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Debug/TunicDebugSettings.h"
 #include "Engine/World.h"
 #include "Game/TunicGameMode.h"
 #include "Game/TunicGameState.h"
@@ -19,7 +20,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogLpQuestPortal, Log, All);
 
 namespace
 {
-	UStaticMesh* GetDefaultMarkerSphereMesh()
+	UStaticMesh* GetDefaultPortalMarkerSphereMesh()
 	{
 		static ConstructorHelpers::FObjectFinder<UStaticMesh> MarkerMeshFinder(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 		return MarkerMeshFinder.Object;
@@ -44,7 +45,7 @@ ATunicPortalActor::ATunicPortalActor()
 	PortalVisualMarker->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	PortalVisualMarker->SetHiddenInGame(false);
 	PortalVisualMarker->SetRelativeScale3D(FVector(0.5f));
-	PortalVisualMarker->SetStaticMesh(GetDefaultMarkerSphereMesh());
+	PortalVisualMarker->SetStaticMesh(GetDefaultPortalMarkerSphereMesh());
 }
 
 void ATunicPortalActor::OnConstruction(const FTransform& Transform)
@@ -158,7 +159,7 @@ void ATunicPortalActor::ResetPortalForNextFloorStub()
 	ResetPortalPressureState();
 
 	++PortalResetSerial;
-	if (bLogPortalState)
+	if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
 	{
 		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal reset for next floor stub | Portal=%s | ResetSerial=%d"),
 			*GetNameSafe(this),
@@ -355,21 +356,18 @@ void ATunicPortalActor::SpawnPortalBossIfNeeded()
 	SpawnedPortalBossEnemy = SpawnedBoss;
 	bPortalBossSpawnFailed = !SpawnedBoss;
 
-	if (bLogPortalState)
+	if (SpawnedBoss && bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
 	{
-		if (SpawnedBoss)
-		{
-			UE_LOG(LogLpQuestPortal, Display, TEXT("Portal boss spawned | Portal=%s | Boss=%s | BossClass=%s"),
-				*GetNameSafe(this),
-				*GetNameSafe(SpawnedBoss),
-				*GetNameSafe(PortalBossEnemyClass.Get()));
-		}
-		else
-		{
-			UE_LOG(LogLpQuestPortal, Warning, TEXT("Portal boss spawn failed | Portal=%s | BossClass=%s"),
-				*GetNameSafe(this),
-				*GetNameSafe(PortalBossEnemyClass.Get()));
-		}
+		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal boss spawned | Portal=%s | Boss=%s | BossClass=%s"),
+			*GetNameSafe(this),
+			*GetNameSafe(SpawnedBoss),
+			*GetNameSafe(PortalBossEnemyClass.Get()));
+	}
+	else if (!SpawnedBoss && bLogPortalState)
+	{
+		UE_LOG(LogLpQuestPortal, Warning, TEXT("Portal boss spawn failed | Portal=%s | BossClass=%s"),
+			*GetNameSafe(this),
+			*GetNameSafe(PortalBossEnemyClass.Get()));
 	}
 }
 
@@ -463,7 +461,7 @@ void ATunicPortalActor::SpawnPortalPressureEnemy()
 	}
 
 	SpawnedPortalPressureEnemies.Add(SpawnedEnemy);
-	if (bLogPortalState)
+	if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
 	{
 		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal pressure enemy spawned | Portal=%s | Enemy=%s | Alive=%d/%d"),
 			*GetNameSafe(this),
@@ -489,7 +487,7 @@ FTransform ATunicPortalActor::GetNextPortalPressureSpawnTransform()
 		}
 	}
 
-	if (bLogPortalState)
+	if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
 	{
 		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal pressure spawn using portal transform fallback | Portal=%s"),
 			*GetNameSafe(this));
@@ -579,7 +577,7 @@ void ATunicPortalActor::SetPortalActive(bool bNewIsPortalActive)
 	bIsPortalActive = bNewIsPortalActive;
 	if (bIsPortalActive)
 	{
-		if (bLogPortalState)
+		if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
 		{
 			UE_LOG(LogLpQuestPortal, Display, TEXT("Portal activated | Portal=%s"), *GetNameSafe(this));
 		}
@@ -595,7 +593,7 @@ void ATunicPortalActor::SetPortalCharging(bool bNewIsCharging)
 	}
 
 	bIsPortalCharging = bNewIsCharging;
-	if (bLogPortalState)
+	if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
 	{
 		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal charging %s | Portal=%s | PresentLivingPlayers=%d/%d | Progress=%.2f"),
 			bIsPortalCharging ? TEXT("started") : TEXT("paused"),
@@ -617,7 +615,7 @@ void ATunicPortalActor::SetPortalReady(bool bNewIsReady)
 	bIsPortalReady = bNewIsReady;
 	if (bIsPortalReady)
 	{
-		if (bLogPortalState)
+		if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
 		{
 			UE_LOG(LogLpQuestPortal, Display, TEXT("Portal ready | Portal=%s"), *GetNameSafe(this));
 		}
@@ -647,7 +645,7 @@ void ATunicPortalActor::SetPortalPlayerCounts(int32 NewRequiredLivingPlayerCount
 	RequiredLivingPlayerCount = NewRequiredLivingPlayerCount;
 	PresentLivingPlayerCount = NewPresentLivingPlayerCount;
 
-	if (bLogPortalState)
+	if (bLogPortalState && FTunicDebugSettings::ShouldLogPortal())
 	{
 		UE_LOG(LogLpQuestPortal, Display, TEXT("Portal player count updated | Portal=%s | PresentLivingPlayers=%d/%d"),
 			*GetNameSafe(this),

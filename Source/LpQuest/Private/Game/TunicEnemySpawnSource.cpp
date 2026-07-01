@@ -6,6 +6,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Debug/TunicDebugSettings.h"
 #include "Engine/World.h"
 #include "NavigationSystem.h"
 #include "UObject/ConstructorHelpers.h"
@@ -14,7 +15,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogLpQuestSpawnSource, Log, All);
 
 namespace
 {
-	UStaticMesh* GetDefaultMarkerSphereMesh()
+	UStaticMesh* GetDefaultSpawnSourceMarkerSphereMesh()
 	{
 		static ConstructorHelpers::FObjectFinder<UStaticMesh> MarkerMeshFinder(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 		return MarkerMeshFinder.Object;
@@ -39,7 +40,7 @@ ATunicEnemySpawnSource::ATunicEnemySpawnSource()
 	SpawnSourceEditorMarker->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SpawnSourceEditorMarker->SetHiddenInGame(true);
 	SpawnSourceEditorMarker->SetRelativeScale3D(FVector(0.35f));
-	SpawnSourceEditorMarker->SetStaticMesh(GetDefaultMarkerSphereMesh());
+	SpawnSourceEditorMarker->SetStaticMesh(GetDefaultSpawnSourceMarkerSphereMesh());
 }
 
 void ATunicEnemySpawnSource::OnConstruction(const FTransform& Transform)
@@ -130,7 +131,7 @@ int32 ATunicEnemySpawnSource::SpawnEnemies()
 		++SpawnedEnemyCount;
 	}
 
-	if (bLogSpawnSourceState)
+	if (bLogSpawnSourceState && FTunicDebugSettings::ShouldLogSpawnSource())
 	{
 		UE_LOG(LogLpQuestSpawnSource, Display, TEXT("Enemy spawn source completed | Source=%s | EnemyClass=%s | Requested=%d | Spawned=%d | Radius=%.1f"),
 			*GetNameSafe(this),
