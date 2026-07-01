@@ -22,6 +22,7 @@ Current working state:
 
 Most recent commits:
 
+- Most recent completed stage: `LPQ Asset Display String Resave v4.1`
 - `eeb6632 [Refactor] 重保存LPQ重定向资产（Resave LPQ Redirected Assets）`
 - `f7e85e2 [Refactor] 重命名LPQ蓝图资产（Rename LPQ Blueprint Assets）`
 - `28fcda2 [Refactor] 重命名LPQ反射类型（Rename LPQ Reflected Types）`
@@ -29,10 +30,10 @@ Most recent commits:
 
 Current stage:
 
-- No active implementation stage after `LPQ Blueprint/API Member Rename v4`.
-- `LPQ Blueprint/API Member Rename v4` is completed, validated, strict-reviewed, and archived.
-- Current source uses `LPQ` Blueprint-facing API names: `GetLPQAbilitySystemComponent()`, `CanInteractWithLPQPlayer()`, and `InteractWithLPQPlayer()`.
-- Old API names remain only in targeted `FunctionRedirects`; old native type names remain only in existing class / struct / enum `[CoreRedirects]` migration compatibility.
+- No active implementation stage after `LPQ Asset Display String Resave v4.1`.
+- `LPQ Asset Display String Resave v4.1` is completed, user-build-validated, reviewed, and archived.
+- Current `Content/_Game` old display/cache scan still has accepted residual hits in `BP_EnemyCharacterBase` and `ST_EnemyMeleeBasic`; they are not old native path or old Blueprint API dependencies, and v4.1 intentionally does not raw-edit binary assets to force removal.
+- Old class / struct / enum / function names remain in `Config/DefaultEngine.ini` `[CoreRedirects]` / `FunctionRedirects` as migration compatibility.
 - Next stage should be chosen deliberately from the near-term TODOs below.
 
 Near-term TODOs:

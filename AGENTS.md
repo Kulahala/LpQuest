@@ -60,6 +60,8 @@ When C++ changes are made, state the expected build target and ask the user to c
 
 Follow Unreal Engine C++ conventions: tabs for indentation, PascalCase for classes/functions, `b` prefixes for booleans, and Unreal prefixes such as `U`, `A`, `F`, `E`, and `I`. Use `LPQUEST_API` for exported runtime module types.
 
+Use the `LPQ` project prefix where it prevents ambiguity or is required by UE naming surfaces, such as native reflected types, CVars, Blueprint categories, Config redirects, and project-level APIs. Do not add `LPQ` mechanically to local display strings, Actor labels, StateTree node names, Montage Notify names, or editor-only labels when a short domain name is clearer, for example prefer `CombatHitWindow` over `LPQCombatHitWindow` unless the prefix is needed to disambiguate.
+
 Keep public headers narrow. Prefer forward declarations in headers and concrete includes in `.cpp` files. Add module dependencies in `LpQuest.Build.cs` only when code actually uses them.
 
 Use reflection macros only for data or behavior that must be visible to Blueprints, serialization, networking, GAS, or the editor.

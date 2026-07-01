@@ -1726,4 +1726,24 @@ Validation and review:
 - Strict review found no blocking issue. The rename did not change interaction authority, ASC ownership, Portal/Pickup behavior, or gameplay paths.
 - Accepted follow-up: `LPQ CoreRedirect Retirement v5` remains optional and should only happen after old branches, backups, and external assets no longer need migration compatibility.
 
+## LPQ Asset Display String Resave v4.1
+
+Summary:
+
+- Opened / refreshed / saved the remaining current assets that still serialized old `Tunic` display or cache strings after the LPQ API rename work.
+- Targeted `AM_LightAttack`, `ST_EnemyMeleeBasic`, and `BP_EnemyCharacterBase`; the stage intentionally did not raw-edit `.uasset` files, remove CoreRedirects, rename assets, or batch-resave all Content.
+- `BP_EnemyCharacterBase` was compiled and saved through Editor tooling.
+- `ST_EnemyMeleeBasic` was compiled and saved through `StateTreeService`, but one old condition display/cache string remains because it did not clear through normal Editor save and the matching node was not easy to locate in the editor.
+- `AM_LightAttack` was manually adjusted / saved by the user and no longer appears in the `Content/_Game` `Tunic` scan.
+- `BP_Portal` was manually renamed to the clearer `Portal_Combat_Next` asset as part of the editor-side cleanup.
+- The patrol route Blueprint asset was manually renamed from `BP_LPQEnemyPatrolRoute` to the shorter `BP_EnemyPatrolRoute`; the old redirector had no referencers and was removed.
+- `AGENTS.md` now records that project prefixes should not be applied mechanically to local display names; short domain names such as `CombatHitWindow` are preferred when there is no ambiguity.
+
+Validation and review:
+
+- User confirmed `LpQuestEditor Win64 Development` compiled successfully after the asset edits.
+- Static scan still finds `Tunic` in `BP_EnemyCharacterBase` and `ST_EnemyMeleeBasic`; these are accepted display/cache residuals, not old native path or old Blueprint API dependencies.
+- Current old dependency scan for `/Script/LpQuest.Tunic...`, old interaction/ASC API names, `BP_Tunic`, `Tunic.Debug`, and `Tunic|` only reports expected migration redirects in `Config/DefaultEngine.ini` plus older World Partition external actor metadata outside this narrow `Content/_Game` asset-resave scope.
+- Strict review found no blocking issue. The stage has no C++ or Config behavior change; remaining old strings are accepted because removing them would require wider asset surgery or raw binary edits.
+
 
