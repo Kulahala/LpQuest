@@ -105,6 +105,10 @@
 		{
 			"Name": "VibeUE",
 			"Enabled": true
+		},
+		{
+			"Name": "AIAssistant",
+			"Enabled": true
 		}
 	]
 }
