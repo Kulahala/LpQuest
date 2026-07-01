@@ -211,6 +211,14 @@ bool ATunicPortalActor::CanInteractWithTunicPlayer_Implementation(ATunicPlayerCh
 		return false;
 	}
 
+	if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
+	{
+		if (TunicGameState->IsPortalEventActive() && !TunicGameMode->IsActivePortalEventOwner(this))
+		{
+			return false;
+		}
+	}
+
 	const float InteractionRadiusSquared = FMath::Square(FMath::Max(1.0f, InteractionRadius));
 	return FVector::DistSquared2D(InteractingPlayer->GetActorLocation(), GetActorLocation()) <= InteractionRadiusSquared;
 }
@@ -238,6 +246,12 @@ void ATunicPortalActor::TryActivatePortalFromRunState()
 
 	const ATunicGameState* TunicGameState = GetWorld() ? GetWorld()->GetGameState<ATunicGameState>() : nullptr;
 	if (!TunicGameState || !TunicGameState->IsPortalEventActive())
+	{
+		return;
+	}
+
+	const ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr;
+	if (!TunicGameMode || !TunicGameMode->IsActivePortalEventOwner(this))
 	{
 		return;
 	}
@@ -289,14 +303,21 @@ void ATunicPortalActor::CompletePortal()
 		return;
 	}
 
+	ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr;
+	if (!TunicGameMode || !TunicGameMode->IsActivePortalEventOwner(this))
+	{
+		return;
+	}
+
 	SetActivationProgress(1.0f);
 	SetPortalCharging(false);
 	SetPortalReady(true);
 	CleanupPortalPressureEnemies();
 
-	if (ATunicGameMode* TunicGameMode = GetWorld() ? GetWorld()->GetAuthGameMode<ATunicGameMode>() : nullptr)
+	const bool bTransitionStarted = TunicGameMode->MarkFloorTransitionReady(PortalDestinationId);
+	if (!bTransitionStarted)
 	{
-		TunicGameMode->MarkFloorTransitionReady(PortalDestinationId);
+		SetPortalReady(false);
 	}
 }
 

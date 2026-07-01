@@ -18,7 +18,7 @@ Current working state:
 - Dodge movement is client-predicted through GAS `LocalPredicted` activation and `UAbilityTask_ApplyRootMotionConstantForce`; invulnerability, damage immunity, cooldown/action-lock, Health, and final correction remain server-authoritative.
 - Ordinary floor waves now use placed `ATunicFloorWaveEnemySpawnSource` actors as the single authored source for enemy class, count, location, optional radius sampling, tracking, and cleanup.
 - Enemy death XP uses each enemy's own `ExperienceReward`; `ExperienceReward=0` is the no-XP configuration. Ordinary enemy death does not move RunState out of `CombatActive`.
-- Portal interaction uses one `ATunicPortalActor` with completion mode plus destination ID. CombatEvent mode can spawn a configured existing enemy Blueprint as a test Boss and blocks charging until that Boss is dead or gone; DirectFloorExit mode requires all living players in the Portal radius and enters the floor transition stub without `PortalEventActive`.
+- Portal interaction uses one `ATunicPortalActor` with completion mode plus destination ID. CombatEvent mode locks the event to the interacted Portal, can spawn a configured existing enemy Blueprint as a test Boss, and blocks charging until that Boss is dead or gone; DirectFloorExit mode requires all living players in the Portal radius and enters the floor transition stub without `PortalEventActive`.
 
 Most recent commits:
 
@@ -30,13 +30,12 @@ Most recent commits:
 
 Current stage:
 
-- No active implementation stage after `Gameplay Actor Visual Marker v1`.
-- `Gameplay Actor Visual Marker v1` is completed, user build / editor / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
+- No active implementation stage after `Portal Branch Choice Lock v1`.
+- `Portal Branch Choice Lock v1` is completed, user build / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
 - Next stage should be chosen deliberately from the near-term TODOs below rather than inferred from this completed stage.
 
 Near-term TODOs:
 
-- `Portal Branch Choice Lock v1`: before using multiple CombatEvent portals as branch choices in one floor, lock the Portal Event to the interacted Portal and disable the other candidate portals for that event. This prevents every CombatEvent Portal from reacting to the global `PortalEventActive`. If two branch portals should share the same encounter, configure the same Boss enemy class on both; true shared pre-placed Boss instance ownership can wait until a real design needs it.
 - `Enemy Variant Profile Cleanup v2` after current Portal work: when Guard / Wild / Spawn / Elite only differ by tuning, fold them toward one enemy class plus profile DataAssets instead of keeping separate Blueprints for each variant.
 - `Portal Destination / Floor Route DataAsset v2`: when destination IDs, branch weights, floor types, safe/combat rules, map assets, room pools, or shop/hub rules start repeating, replace the current `FName PortalDestinationId` bridge with authored route/floor data.
 - `Equipment DataAsset / Inventory Slots v2`: add only when multiple weapons, item stats, icons, descriptions, ability grants, or switching between several carried items become real scope.
@@ -47,8 +46,7 @@ Current accepted risks:
 - Pressure spawn uses Portal-local logic rather than the floor-wave spawn source. Add `Portal Spawn Source Integration v2` or `Spawn Director / Spawn Profile v2` only when exploration spawns, portal pressure, Boss minions, or floor scaling repeat the same spawn ownership logic.
 - Pressure spawn points are simple fixed Actor references on the Portal. Add richer spawn selection only when map layout, navigation safety, or enemy archetype rules need it.
 - Boss v1 remains an existing enemy Blueprint spawned by Portal. Add Boss-specific class/component only when phase logic, Boss UI, arena mechanics, or dedicated Boss-only state appears.
-- Portal Event state is still global. Add per-portal event ownership only when multiple active portals can coexist.
-- Multiple CombatEvent branch portals are not safe yet because all CombatEvent portals can observe the same global `PortalEventActive`. Add selected-portal ownership before authoring two Boss/charge branch portals in the same floor.
+- Portal Event RunState is still global, but the selected CombatEvent Portal owner is now server-only on GameMode. Add a replicated selected-owner presentation surface only if UI/visual lockout needs it.
 - Player death v1 is still one-way. Revive, respawn, spectator/free-camera, party wipe resolution, and floor fail UI remain deferred.
 - `FloorTransitionStub` remains intentionally active as the current placeholder floor loop. Rename or replace it only when real floor travel/loading exists.
 

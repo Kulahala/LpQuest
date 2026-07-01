@@ -239,9 +239,26 @@ bool ATunicGameMode::TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlaye
 		return false;
 	}
 
+	if (ATunicPortalActor* ExistingPortalEventOwner = ActivePortalEventOwner.Get())
+	{
+		if (ExistingPortalEventOwner == PortalActor)
+		{
+			return TunicGameState->IsPortalEventActive();
+		}
+
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Portal event start rejected: another portal already owns the active event | Player=%s | RequestedPortal=%s | ActivePortal=%s"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor),
+			*GetNameSafe(ExistingPortalEventOwner));
+		return false;
+	}
+
 	if (TunicGameState->IsPortalEventActive())
 	{
-		return true;
+		UE_LOG(LogLpQuestRunState, Warning, TEXT("Portal event start rejected: PortalEventActive has no selected portal owner | Player=%s | Portal=%s"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor));
+		return false;
 	}
 
 	const float InteractionRadius = FMath::Max(1.0f, PortalActor->GetInteractionRadius());
@@ -256,6 +273,7 @@ bool ATunicGameMode::TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlaye
 		return false;
 	}
 
+	ActivePortalEventOwner = PortalActor;
 	TunicGameState->SetRunState(ETunicRunState::PortalEventActive);
 	UE_LOG(LogLpQuestRunState, Display, TEXT("Run state changed to PortalEventActive | Player=%s | Portal=%s"),
 		*GetNameSafe(InteractingPlayer),
@@ -265,6 +283,15 @@ bool ATunicGameMode::TryStartPortalEvent(ATunicPlayerCharacter* InteractingPlaye
 
 bool ATunicGameMode::TryUseDirectFloorExitPortal(ATunicPlayerCharacter* InteractingPlayer, ATunicPortalActor* PortalActor)
 {
+	if (ActivePortalEventOwner.IsValid())
+	{
+		UE_LOG(LogLpQuestRunState, Display, TEXT("Direct floor exit rejected: a combat portal event is already selected | Player=%s | Portal=%s | ActivePortal=%s"),
+			*GetNameSafe(InteractingPlayer),
+			*GetNameSafe(PortalActor),
+			*GetNameSafe(ActivePortalEventOwner.Get()));
+		return false;
+	}
+
 	if (!PortalActor || PortalActor->GetPortalCompletionMode() != ETunicPortalCompletionMode::DirectFloorExit)
 	{
 		UE_LOG(LogLpQuestRunState, Warning, TEXT("Direct floor exit rejected: invalid portal or wrong mode | Player=%s | Portal=%s"),
@@ -288,6 +315,11 @@ bool ATunicGameMode::TryUseDirectFloorExitPortal(ATunicPlayerCharacter* Interact
 		*GetNameSafe(PortalActor),
 		*PortalActor->GetPortalDestinationId().ToString());
 	return true;
+}
+
+bool ATunicGameMode::IsActivePortalEventOwner(const ATunicPortalActor* PortalActor) const
+{
+	return PortalActor && ActivePortalEventOwner.Get() == PortalActor;
 }
 
 bool ATunicGameMode::MarkFloorTransitionReady(FName DestinationId)
@@ -354,6 +386,7 @@ void ATunicGameMode::CompleteFloorTransitionStub()
 	TunicGameState->SetCurrentFloorIndex(NewFloorIndex);
 	TunicGameState->SetCurrentFloorDestinationId(PendingFloorDestinationId);
 	TunicGameState->SetRunState(ETunicRunState::CombatActive);
+	ActivePortalEventOwner.Reset();
 	SpawnFloorWavesForCurrentFloor();
 
 	UE_LOG(LogLpQuestRunState, Display, TEXT("Floor transition stub completed | PreviousFloor=%d | NewFloor=%d | Destination=%s | ResetPortals=%d | ResetSpawnSources=%d"),

@@ -1577,4 +1577,23 @@ Validation and review:
 - Strict review found no blocking issue. Markers and fallback meshes are no-collision and do not change Portal, spawn, pickup, XP, drop, or equipment authority paths.
 - Accepted follow-up: replace the temporary sphere visuals when explicit Portal models, weapon classes, or formal drop weapon meshes are implemented.
 
+## Portal Branch Choice Lock v1
+
+Summary:
+
+- Added a server-only selected Combat Event Portal owner on `ATunicGameMode`.
+- `TryStartPortalEvent()` now locks the active Portal Event to the interacted CombatEvent Portal and rejects other CombatEvent portals while that event is active.
+- Only the selected Portal can respond to the global `PortalEventActive` state, activate, spawn its Boss, spawn pressure enemies, charge, and pass its `PortalDestinationId` into floor transition.
+- DirectFloorExit portals still work from `CombatActive`, but cannot bypass an already selected CombatEvent.
+- Floor transition stub reset now clears the selected Portal owner so the next floor can choose again.
+- `ARCHITECTURE.md`, `README.md`, and `plan.md` were synced for the completed stage.
+- The stage intentionally does not add branch UI, replicated selected-owner presentation state, route DataAssets, shared pre-placed Boss instance ownership, multi-active Portal Events, or real map loading.
+
+Validation and review:
+
+- User confirmed compile / PIE validation passed after retesting the two-portal branch flow.
+- Strict review found and fixed a `FloorTransitionStubDelay <= 0` edge case where `CompletePortal()` could trigger a synchronous floor reset and then continue mutating the reset Portal back to ready.
+- User confirmed the strict-review fix passed validation.
+- Accepted follow-up: add replicated lockout presentation only when non-selected portals need visible disabled/closed feedback.
+
 
