@@ -22,17 +22,16 @@ Current working state:
 
 Most recent commits:
 
+- `f7e85e2 [Refactor] 重命名LPQ蓝图资产（Rename LPQ Blueprint Assets）`
 - `28fcda2 [Refactor] 重命名LPQ反射类型（Rename LPQ Reflected Types）`
 - `7ceb483 [Refactor] 清理LPQ表层命名（Clean LPQ Naming Surface）`
 - `176f9d8 [Chore] 启用AIAssistant插件（Enable AIAssistant Plugin）`
-- `771aaea [Feature] 统一调试绘制开关入口（Add Debug Draw Settings Gate）`
-- `be5ecda [Chore] 启用VibeUE协作配置（Enable VibeUE Collaboration Setup）`
 
 Current stage:
 
-- No active implementation stage after `LPQ Blueprint Asset Rename v3`.
-- `LPQ Blueprint Asset Rename v3` is completed and recorded in `docs/archive/stage-log.md`.
-- User chose to skip the formal strict-review pass for the editor-asset-focused rename stage and approved direct archive / commit.
+- No active implementation stage after `LPQ Redirected Asset Resave v3.1`.
+- `LPQ Redirected Asset Resave v3.1` is completed and ready to archive / commit.
+- Current `Content/_Game` assets no longer serialize old Tunic-prefixed native class paths; old native names remain only in `[CoreRedirects]` and known Blueprint-facing API names.
 - Next stage should be chosen deliberately from the near-term TODOs below.
 
 Near-term TODOs:

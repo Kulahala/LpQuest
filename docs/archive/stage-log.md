@@ -1681,4 +1681,24 @@ Validation and review:
 - User chose to skip the formal strict-review pass for this editor-asset-focused stage and approved direct archive / commit.
 - No UBT build, PIE, or Listen Server validation was run in-session for this stage.
 
+## LPQ Redirected Asset Resave v3.1
+
+Summary:
+
+- Resaved current Blueprint / authored assets that still serialized old native parent paths after the LPQ reflected type and Blueprint asset rename stages.
+- The targeted Blueprint assets were `BP_Portal`, `BP_EnemySpawnSource`, `BP_PickupActor_Test`, `BP_PlayerCharacterBase`, and `BP_Player_Knight`.
+- During the final Editor save pass, related authored assets were also resaved because they had resolved redirected LPQ references: `ST_EnemyMeleeBasic`, `AM_LightAttack`, player / enemy AnimBlueprints, and the enemy base Blueprint.
+- Kept `Config/DefaultEngine.ini` `[CoreRedirects]` intact as the migration compatibility bridge for old branches, backups, or external assets.
+- The stage intentionally does not rename Blueprint-facing member names such as `GetTunicAbilitySystemComponent()`, `CanInteractWithTunicPlayer()`, or `InteractWithTunicPlayer()`, does not rename the module, and does not change gameplay logic.
+
+Validation and review:
+
+- Unreal Editor / MCP confirmed the targeted Blueprint parent classes resolve to `ALPQ...` native classes or the intended `BP_PlayerCharacterBase_C` parent.
+- The targeted Blueprints compiled and saved through Editor APIs.
+- Disk scan confirmed `Content/_Game` no longer contains `/Script/LpQuest.Tunic...`.
+- Current surface-name scan found no `BP_Tunic`, `Tunic.Debug.*`, or `Tunic|` hits in `Content/_Game`, `Config`, current source, or current docs.
+- `git diff --check` reported no whitespace errors.
+- Strict review found no blocking issue. The extra asset diffs are accepted as redirected-reference resaves, not behavior changes.
+- No UBT build, PIE, or Listen Server validation was run in-session for this asset-resave stage.
+
 
