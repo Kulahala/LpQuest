@@ -206,6 +206,8 @@ Default code-navigation architecture:
 - Rider: IDE-side semantic checks, navigation, and human verification. Do not assume Rider MCP replaces source-level code intelligence unless the required Rider tools are actually exposed.
 - Unreal MCP: live Editor work for assets, Blueprints, levels, actors, gameplay tags, materials, widgets, and runtime/editor state.
 
+If the VibeUE plugin is enabled, treat its registered `VibeUE.*` toolsets and AgentSkills as an extension of the same Unreal native MCP endpoint. Prefer native or VibeUE toolsets through the existing `unreal-mcp` connection, and do not add a second Unreal MCP server just for VibeUE.
+
 If `.codegraph/` exists, try CodeGraph before text search for code navigation, call paths, and blast-radius checks. If CodeGraph service fails or appears stale, mention the failure and fall back to `rg` / direct file reads.
 
 For live Unreal Editor work such as inspecting or changing levels, actors, assets, Blueprints, Gameplay Tags, GAS assets, materials, or widgets, use the `unreal-mcp` skill when the MCP server is available. Discover tools through `list_toolsets` / `describe_toolset`, dispatch through `call_tool`, keep calls sequential, and confirm the user has a save/recovery point before bulk or hard-to-undo asset edits.
