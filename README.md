@@ -52,6 +52,7 @@ The first vertical slice should prove:
 - Reward / Progression v1 now has a C++ path: server-handled enemy death adds enemy-configured XP into a replicated GameState shared run XP pool, derives a shared run level, grants per-player pending upgrade choices, and lets each player spend a pending choice through the local HUD to receive a server-applied run upgrade GameplayEffect. The current fixed v1 upgrade increases `MaxHealth` by 20 and restores `Health` by 20 on that player's PlayerState-owned ASC.
 - Pickup / Equipment Interaction v1 has a minimal C++ path: world pickup actors reuse the unified `E` interact flow, server-confirmed pickup writes a replicated `CurrentEquipmentId` FName to the interacting player's PlayerState, and the pickup actor is consumed. Enemy Drop Source v1 lets enemies optionally configure a pickup Blueprint class that the server spawns on death through the existing GameMode enemy-death path.
 - Enemy AI v1 has the C++ StateTree chase/attack loop in place, and AI Perception / Patrol / Awareness / Investigation support has been added: enemies use a server AIController with a StateTree AI brain, sight perception, configurable awareness policies, proximity aggro, delayed combat-spawn aggro, idle scan, last-known target investigation, visual spline patrol routes with automatic distance-sampled movement points, sparse stop points, native StateTree nodes, and the existing enemy melee Ability request path.
+- LPQ naming cleanup has migrated the current C++ reflected type names and core Blueprint asset names / Config paths to `LPQ`; older Blueprint-facing member names such as `CanInteractWithTunicPlayer()` remain for a separate API/member rename stage.
 - Formal weapon/socket traces, final hit-reaction animation/content polish, perfect dodge/counter rewards, bow projectiles, final HUD/settings UI, revive/respawn, final death presentation polish, drop tables / full equipment systems, real floor loading, and fully authored enemy StateTree assets are not implemented yet.
 
 ## Documentation
@@ -63,4 +64,3 @@ The first vertical slice should prove:
 ## Development Notes
 
 Do not copy the old Soulslike project's giant player/enemy classes. Reuse only proven patterns: data-driven attacks, montage notify windows, weapon hit windows, target validation, distance hysteresis, and debugging habits. Keep the playable slice small and network-authoritative from the start.
-

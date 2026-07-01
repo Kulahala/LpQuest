@@ -1659,4 +1659,26 @@ Validation and review:
 - Accepted follow-up: open the Editor, ideally once with `-DebugCoreRedirects`, and load key Blueprint / StateTree / AnimNotify assets to confirm redirects resolve before or during the next asset-facing stage.
 - Accepted follow-up: complete `LPQ Blueprint Asset Rename v3` through Unreal Editor when ready to rename `BP_Tunic...` assets, update Config paths, fix redirectors, and resave affected assets.
 
+## LPQ Blueprint Asset Rename v3
+
+Summary:
+
+- Renamed the remaining core Blueprint assets from the old project prefix to `LPQ` names through Unreal Editor Python / AssetTools-style rename, not raw filesystem rename.
+- Current renamed assets are `BP_LPQGameMode`, `BP_LPQPlayerController`, `BP_LPQEnemyAIController`, `BP_LPQEnemyAIController_Guard`, `BP_LPQEnemyAIController_SpawnWave`, `BP_LPQEnemyAIController_Wild`, and `BP_LPQEnemyPatrolRoute`.
+- Updated `Config/DefaultEngine.ini` so `GlobalDefaultGameMode` now points to `BP_LPQGameMode`.
+- Removed old Blueprint asset redirector leftovers after confirming the old paths no longer had referencers.
+- Resaved affected enemy Blueprints that referenced renamed AIController assets.
+- Updated the placed patrol-route actor label in `DefaultMap` to use the LPQ asset name.
+- Updated `ARCHITECTURE.md`, `README.md`, `AGENTS.md`, and `plan.md` for the completed asset rename boundary.
+- Kept v2 `[CoreRedirects]` intact because those redirects cover native reflected C++ type compatibility, not Blueprint asset redirectors.
+- The stage intentionally does not rename Blueprint-facing member names such as `CanInteractWithTunicPlayer()`, does not rename the module, and does not change gameplay logic or asset art.
+
+Validation and review:
+
+- Editor-side checks confirmed old asset paths no longer exist, new assets exist, and Blueprint parent summaries resolve through `BlueprintService`.
+- Disk/content checks found no old-prefix `.uasset` files in the target folders and no old Blueprint asset prefix hits in `Content/_Game`, `Config`, or current docs.
+- `git diff --check` reported no whitespace errors.
+- User chose to skip the formal strict-review pass for this editor-asset-focused stage and approved direct archive / commit.
+- No UBT build, PIE, or Listen Server validation was run in-session for this stage.
+
 

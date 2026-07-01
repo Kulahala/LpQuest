@@ -175,7 +175,7 @@ Do not disable Git LFS filters for `git add` or `git commit`. If local Git comma
 Before committing large asset batches, verify at least one staged binary asset is an LFS pointer, for example:
 
 ```powershell
-git cat-file -p :Content/_Game/Characters/Player/Knight/BP_TunicPlayerCharacter.uasset
+git cat-file -p :Content/_Game/Characters/Player/Knight/BP_Player_Knight.uasset
 ```
 
 The output should begin with `version https://git-lfs.github.com/spec/v1`.

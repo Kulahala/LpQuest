@@ -22,22 +22,23 @@ Current working state:
 
 Most recent commits:
 
+- `28fcda2 [Refactor] 重命名LPQ反射类型（Rename LPQ Reflected Types）`
 - `7ceb483 [Refactor] 清理LPQ表层命名（Clean LPQ Naming Surface）`
 - `176f9d8 [Chore] 启用AIAssistant插件（Enable AIAssistant Plugin）`
 - `771aaea [Feature] 统一调试绘制开关入口（Add Debug Draw Settings Gate）`
 - `be5ecda [Chore] 启用VibeUE协作配置（Enable VibeUE Collaboration Setup）`
-- `1938570 [Feature] 锁定传送门分支选择（Lock Portal Branch Choice）`
 
 Current stage:
 
-- No active implementation stage after `LPQ Reflected Type Rename v2`.
-- `LPQ Reflected Type Rename v2` is completed, user command build passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
-- Next stage should be chosen deliberately from the near-term TODOs below rather than inferred from this completed stage.
+- No active implementation stage after `LPQ Blueprint Asset Rename v3`.
+- `LPQ Blueprint Asset Rename v3` is completed and recorded in `docs/archive/stage-log.md`.
+- User chose to skip the formal strict-review pass for the editor-asset-focused rename stage and approved direct archive / commit.
+- Next stage should be chosen deliberately from the near-term TODOs below.
 
 Near-term TODOs:
 
-- `LPQ Blueprint Asset Rename v3`: rename Blueprint / Content assets such as `BP_TunicGameMode`, `BP_TunicPlayerController`, `BP_TunicEnemyAIController_*`, and `BP_TunicEnemyPatrolRoute` through the Unreal Editor, update config paths such as `GlobalDefaultGameMode`, fix redirectors, and resave affected assets.
 - `Enemy Variant Profile Cleanup v2` after current Portal work: when Guard / Wild / Spawn / Elite only differ by tuning, fold them toward one enemy class plus profile DataAssets instead of keeping separate Blueprints for each variant.
+- `LPQ Blueprint/API Member Rename v4`: only if remaining Blueprint-facing names such as `CanInteractWithTunicPlayer()` become confusing enough to justify Blueprint function redirect / override validation.
 - `Portal Destination / Floor Route DataAsset v2`: when destination IDs, branch weights, floor types, safe/combat rules, map assets, room pools, or shop/hub rules start repeating, replace the current `FName PortalDestinationId` bridge with authored route/floor data.
 - `Equipment DataAsset / Inventory Slots v2`: add only when multiple weapons, item stats, icons, descriptions, ability grants, or switching between several carried items become real scope.
 - `Enemy Drop Profile / Equipment DataAsset v2`: add only when several enemies repeat drop setup, random drop pools, rarity, weights, ownership policy, or equipment stats become real scope.

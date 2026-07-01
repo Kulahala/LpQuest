@@ -15,7 +15,7 @@ This file stores stable architecture facts for LpQuest. Update it when implement
 
 Start with one runtime module, `LpQuest`. Do not split modules until a concrete boundary exists.
 
-Current naming surface uses `LPQ` for Blueprint categories, runtime debug CVars, editor-facing node/display names, C++ reflected type names, source file names, and generated header includes. Existing Blueprint asset names and Config Blueprint paths such as `BP_TunicGameMode` intentionally remain on the older `Tunic` prefix until a dedicated asset rename stage can use Unreal Editor redirectors and resave affected assets safely. Blueprint-facing member names such as `CanInteractWithTunicPlayer()` remain unchanged until a separate API/member rename stage needs them.
+Current naming surface uses `LPQ` for Blueprint categories, runtime debug CVars, editor-facing node/display names, C++ reflected type names, source file names, generated header includes, Blueprint asset names, and Config Blueprint paths. Existing Blueprint-facing member names such as `CanInteractWithTunicPlayer()` remain unchanged until a separate API/member rename stage needs them.
 
 Current runtime dependencies:
 
