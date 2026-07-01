@@ -13,30 +13,29 @@ Reusable compiler/runtime/debugging lessons belong in server-memory MCP, not in 
 Current working state:
 
 - Core loop is in place: server-authoritative player/enemy combat, enemy death, player death v1, RunState, Portal Event, Floor Stub, floor-wave spawn sources, enemy-configured shared XP, shared run Level, pending upgrade choices, and fixed run-local upgrade selection.
-- Enemy AI uses `ATunicEnemyAIController` + StateTree + Sight/awareness policy + last-known investigation state + spline patrol route. StateTree owns intent flow; GameplayAbility / combat hit windows own final attack results.
+- Enemy AI uses `ALPQEnemyAIController` + StateTree + Sight/awareness policy + last-known investigation state + spline patrol route. StateTree owns intent flow; GameplayAbility / combat hit windows own final attack results.
 - Enemy melee attack uses `GameplayAbility -> telegraph -> Montage -> AnimNotify hit window -> server attack shape query -> GameplayEffect damage`; missing Montage or missing hit-window Notify should fail visibly instead of applying fallback damage.
 - Dodge movement is client-predicted through GAS `LocalPredicted` activation and `UAbilityTask_ApplyRootMotionConstantForce`; invulnerability, damage immunity, cooldown/action-lock, Health, and final correction remain server-authoritative.
-- Ordinary floor waves now use placed `ATunicFloorWaveEnemySpawnSource` actors as the single authored source for enemy class, count, location, optional radius sampling, tracking, and cleanup.
+- Ordinary floor waves now use placed `ALPQFloorWaveEnemySpawnSource` actors as the single authored source for enemy class, count, location, optional radius sampling, tracking, and cleanup.
 - Enemy death XP uses each enemy's own `ExperienceReward`; `ExperienceReward=0` is the no-XP configuration. Ordinary enemy death does not move RunState out of `CombatActive`.
-- Portal interaction uses one `ATunicPortalActor` with completion mode plus destination ID. CombatEvent mode locks the event to the interacted Portal, can spawn a configured existing enemy Blueprint as a test Boss, and blocks charging until that Boss is dead or gone; DirectFloorExit mode requires all living players in the Portal radius and enters the floor transition stub without `PortalEventActive`.
+- Portal interaction uses one `ALPQPortalActor` with completion mode plus destination ID. CombatEvent mode locks the event to the interacted Portal, can spawn a configured existing enemy Blueprint as a test Boss, and blocks charging until that Boss is dead or gone; DirectFloorExit mode requires all living players in the Portal radius and enters the floor transition stub without `PortalEventActive`.
 
 Most recent commits:
 
-- `fd9ef57 [Feature] 分离传送门目的地与完成模式（Split Portal Destination and Completion Mode）`
-- `096d973 [Refactor] 统一敌人死亡经验配置（Use Enemy Config XP Rewards）`
-- `119c88c [Feature] 统一楼层敌人生成源（Unify Floor Enemy Spawn Source）`
-- `f957a7b [Feature] 添加敌人死亡拾取掉落（Add Enemy Drop Pickup Source）`
-- `bf3b338 [Feature] 添加拾取装备交互闭环（Add Pickup Equipment Interaction）`
+- `7ceb483 [Refactor] 清理LPQ表层命名（Clean LPQ Naming Surface）`
+- `176f9d8 [Chore] 启用AIAssistant插件（Enable AIAssistant Plugin）`
+- `771aaea [Feature] 统一调试绘制开关入口（Add Debug Draw Settings Gate）`
+- `be5ecda [Chore] 启用VibeUE协作配置（Enable VibeUE Collaboration Setup）`
+- `1938570 [Feature] 锁定传送门分支选择（Lock Portal Branch Choice）`
 
 Current stage:
 
-- No active implementation stage after `LPQ Naming Surface Cleanup v1`.
-- `LPQ Naming Surface Cleanup v1` is completed, user build / PIE validation passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
+- No active implementation stage after `LPQ Reflected Type Rename v2`.
+- `LPQ Reflected Type Rename v2` is completed, user command build passed, strict review passed, and the outcome is recorded in `docs/archive/stage-log.md`.
 - Next stage should be chosen deliberately from the near-term TODOs below rather than inferred from this completed stage.
 
 Near-term TODOs:
 
-- `LPQ Reflected Type Rename v2`: rename C++ reflected types from `ATunic` / `UTunic` / `FTunic` / `ETunic` / `ITunic` to `ALPQ` / `ULPQ` / `FLPQ` / `ELPQ` / `ILPQ`, rename matching source files and `.generated.h` includes, and add required Core Redirects so existing Blueprint / StateTree / AnimNotify references survive.
 - `LPQ Blueprint Asset Rename v3`: rename Blueprint / Content assets such as `BP_TunicGameMode`, `BP_TunicPlayerController`, `BP_TunicEnemyAIController_*`, and `BP_TunicEnemyPatrolRoute` through the Unreal Editor, update config paths such as `GlobalDefaultGameMode`, fix redirectors, and resave affected assets.
 - `Enemy Variant Profile Cleanup v2` after current Portal work: when Guard / Wild / Spawn / Elite only differ by tuning, fold them toward one enemy class plus profile DataAssets instead of keeping separate Blueprints for each variant.
 - `Portal Destination / Floor Route DataAsset v2`: when destination IDs, branch weights, floor types, safe/combat rules, map assets, room pools, or shop/hub rules start repeating, replace the current `FName PortalDestinationId` bridge with authored route/floor data.

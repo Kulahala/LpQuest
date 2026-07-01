@@ -24,9 +24,9 @@ Do not copy old `E:\UnRealEngine\Test` or `E:\UnRealEngine\LowpolyQuest` classes
 
 V1 targets a listen-server co-op PvE vertical slice. Build single-player feel quickly, but keep gameplay authority multiplayer-friendly from the start.
 
-- Player ASC and AttributeSet live on `ATunicPlayerState`.
-- `ATunicPlayerCharacter` is the ASC AvatarActor and owns camera, input, movement, mesh, and local presentation.
-- Enemies own their ASC directly on `ATunicEnemyCharacter`.
+- Player ASC and AttributeSet live on `ALPQPlayerState`.
+- `ALPQPlayerCharacter` is the ASC AvatarActor and owns camera, input, movement, mesh, and local presentation.
+- Enemies own their ASC directly on `ALPQEnemyCharacter`.
 - Combat results, projectile spawning, damage GameplayEffects, death, and AI decisions are server-authoritative.
 - Clients may own local input and camera presentation, not final combat state.
 

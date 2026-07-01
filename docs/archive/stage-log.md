@@ -1639,4 +1639,24 @@ Validation and review:
 - Accepted follow-up: complete `LPQ Reflected Type Rename v2` only when ready to add Core Redirects and handle Blueprint / StateTree / AnimNotify references.
 - Accepted follow-up: complete `LPQ Blueprint Asset Rename v3` through the Unreal Editor when ready to rename assets, update Config paths, fix redirectors, and resave affected assets.
 
+## LPQ Reflected Type Rename v2
+
+Summary:
+
+- Renamed native reflected C++ type prefixes from `Tunic` to `LPQ` for current runtime classes, interfaces, enums, dynamic delegate typedefs, StateTree task structs, and project C++ structs.
+- Renamed matching `Tunic*.h/.cpp` source files to `LPQ*.h/.cpp` and updated `.generated.h` includes and source includes.
+- Added UE `[CoreRedirects]` in `Config/DefaultEngine.ini` for renamed native classes / interfaces, StateTree structs, and renamed `ELPQ...` enums so existing Blueprint, StateTree, AnimNotify, and Config references can load through redirects.
+- Kept Blueprint / Content asset names such as `BP_TunicGameMode`, Config Blueprint paths such as `GlobalDefaultGameMode=/Game/_Game/Blueprints/BP_TunicGameMode.BP_TunicGameMode_C`, and Blueprint-facing member names such as `CanInteractWithTunicPlayer()` unchanged for later stages.
+- Updated `AGENTS.md`, `ARCHITECTURE.md`, `README.md`, and `plan.md` for the reflected type rename boundary.
+- The stage intentionally does not rename Blueprint assets, Content asset paths, Blueprint-facing function names, module name, `LPQUEST_API`, `.uproject` module entries, or add asset redirectors.
+
+Validation and review:
+
+- User confirmed `LpQuestEditor Win64 Development` command build succeeded after the reflected type and source filename rename.
+- Strict review found no blocking issue. Source scans found no old `ATunic` / `UTunic` / `FTunic` / `ETunic` / `ITunic` reflected type references, old `Tunic*.generated.h` includes, old `Tunic*.h` includes, old `Tunic.Debug.*` CVars, or old `Tunic|...` Blueprint categories in current source/docs.
+- Strict review compared old reflected declarations against `[CoreRedirects]`; no missing class, struct, or enum redirects were found.
+- StateTree struct redirects intentionally use reflected script names without the C++ `F` prefix, for example `TunicStateTree... -> LPQStateTree...`, matching the names stored in authored assets.
+- Accepted follow-up: open the Editor, ideally once with `-DebugCoreRedirects`, and load key Blueprint / StateTree / AnimNotify assets to confirm redirects resolve before or during the next asset-facing stage.
+- Accepted follow-up: complete `LPQ Blueprint Asset Rename v3` through Unreal Editor when ready to rename `BP_Tunic...` assets, update Config paths, fix redirectors, and resave affected assets.
+
 
